@@ -1,0 +1,10 @@
+USE testdb;
+
+CREATE TABLE IF NOT EXISTS counter (
+    added_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(16) NOT NULL,
+    updated TIMESTAMP NOT NULL,
+    body VARCHAR(1024),
+    UNIQUE KEY (id)
+) ENGINE=InnoDB;
+
