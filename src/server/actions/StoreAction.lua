@@ -57,7 +57,7 @@ function StoreAction:ctor(app)
 end
 
 function StoreAction:SaveObjAction(data) 
-    assert(type(data) == "table", "data is NOT a table!")
+    assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
     if mySql == nil then 
@@ -80,7 +80,7 @@ function StoreAction:SaveObjAction(data)
 end 
 
 function StoreAction:UpdateObjAction(data)
-    assert(type(data) == "table", "data is NOT a table!")
+    assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
     if mySql == nil then 
@@ -108,7 +108,7 @@ function StoreAction:UpdateObjAction(data)
 end
 
 function StoreAction:DeleteObjAction(data)
-    assert(type(data) == "table", "data is NOT a table!")
+    assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
     if mySql == nil then 
@@ -130,7 +130,7 @@ function StoreAction:DeleteObjAction(data)
 end
 
 function StoreAction:FindObjAction(data) 
-    assert(type(data) == "table", "data is NOT a table!")
+    assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
     if mySql == nil then 
