@@ -339,6 +339,17 @@ function table.removeItem(list, item, removeAll)
     end
 end
 
+function table.length(t) 
+    local count = 0 
+    if type(t) ~= "table" then 
+        return 0 
+    end
+
+    for _, _ in pairs(t) do 
+        count = count + 1
+    end 
+end 
+
 function string.htmlspecialchars(input)
     for k, v in pairs(string._htmlspecialchars_set) do
         input = string.gsub(input, k, v)
