@@ -32,7 +32,7 @@ function RankListAction:ctor(app)
     self.super:ctor(app)
 
     if app then 
-        self.rankList = app.GetRankList(app)
+        self.rankList = app.getRankList(app)
     end 
 
     self.OK = {success=1}
@@ -143,7 +143,7 @@ function RankListAction:GetScoreRangeAction(data)
 
     local upper = data.upper_bound
     local lower = data.lower_bound
-    local r = rl:range_by_socre(lower, upper)
+    local r = rl:range_by_score(lower, upper)
     local res = {} 
     for _, v in pairs(r) do 
         res[v] = rl:score(v)
@@ -285,3 +285,4 @@ function RankListAction:RevLimitAction(data)
     return self.OK
 end
 
+return RankListAction

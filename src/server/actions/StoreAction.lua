@@ -9,7 +9,7 @@
             {"key_n" : "val_n"}
         }
 
-        ["id" : "xxxxxxx"]  --for delete/update operation
+        ["id" : "xxxxxxx"]  --for delete/update/find operation
     }
 --
 --]]

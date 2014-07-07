@@ -127,4 +127,20 @@ function ServerAppBase:getMysql()
     return self.mysql
 end
 
+function ServerAppBase:newRankList() 
+    local rankList = cc.server.RankList.new()
+
+    return rankList
+end 
+
+function ServerAppBase:getRankList() 
+    if not self.rankList then 
+        self.rankList = self:newRankList()
+        return self.rankList
+    end
+
+    return self.rankList
+end 
+
 return ServerAppBase
+
