@@ -141,8 +141,8 @@ function RankListAction:GetScoreRangeAction(data)
         throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
     end
 
-    local upper = data.upper_bound
-    local lower = data.lower_bound
+    local upper = tonumber(data.upper_bound)
+    local lower = tonumber(data.lower_bound)
     local r = rl:range_by_score(lower, upper)
     local res = {} 
     for _, v in pairs(r) do 
@@ -207,8 +207,8 @@ function RankListAction:GetRankRangeAction(data)
         throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
     end
 
-    local upper = data.upper_bound
-    local lower = data.lower_bound 
+    local upper = tonumber(data.upper_bound)
+    local lower = tonumber(data.lower_bound)
     local r = rl:range(lower, upper)
     local res = {} 
     for _, v in pairs(r) do 
@@ -233,8 +233,8 @@ function RankListAction:GetRevRankRangeAction(data)
         throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
     end
 
-    local lower = data.lower_bound 
-    local upper = data.upper_bound 
+    local lower = tonumber(data.lower_bound)
+    local upper = tonumber(data.upper_bound)
     local r = rl:rev_range(lower, upper) 
     local res = {} 
     for _, v in pairs(r) do 
@@ -259,7 +259,7 @@ function RankListAction:LimitAction(data)
         throw(ERR_SERVER_INVALID_PARAMETERS, "param count missed") 
     end
 
-    local count = data.count 
+    local count = tonumber(data.count)
     rl:limit(count) 
 
     return self.OK 
@@ -279,7 +279,7 @@ function RankListAction:RevLimitAction(data)
         throw(ERR_SERVER_INVALID_PARAMETERS, "param count missed") 
     end
 
-    local count = data.count
+    local count = tonumber(data.count)
     rl:rev_limit(count) 
 
     return self.OK
