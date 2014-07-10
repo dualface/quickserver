@@ -32,14 +32,15 @@ function RankListAction:ctor(app)
     self.super:ctor(app)
 
     if app then 
-        self.rankList = app.getRankList(app)
+        --self.rankList = app.getRankList(app)
+        self.rankList = app.getRedis(app)
     end 
 
     self.OK = {success=1}
 end 
 
--- zset:count() 
--- param: none
+-- zcard 
+-- param: ranklist 
 function RankListAction:CountAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -48,12 +49,22 @@ function RankListAction:CountAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end 
 
-    self.OK.count = self.rankList:count()
+    if not CheckParams(data, "ranklist") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist missed")
+    end 
+
+    local listName = data.ranklist
+    local err = nil
+    self.OK.count, err = rl:command("zcard", listName)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zcard failed: %s", err)
+    end 
+
     return self.OK
 end
 
--- zset:add()
--- param: key, value 
+-- zadd
+-- param: ranklist, key, value 
 function RankListAction:AddAction(data)  
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -62,19 +73,24 @@ function RankListAction:AddAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "key", "value") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param key or value missed") 
+    if not CheckParams(data, "ranklist", "key", "value") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist, key or value missed") 
     end 
 
+    local listName = data.ranklist
     local key = data.key
     local value = data.value
-    rl:add(value, key)
+    local err = nil 
+    _, err = rl:command("zadd", listName, value, key)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zadd failed: %s", err)
+    end 
 
     return self.OK
 end
 
--- zset:rem()
--- param: key
+-- zrem
+-- param: ranklist, key
 function RankListAction:RemoveAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -83,18 +99,24 @@ function RankListAction:RemoveAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "key") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param key missed") 
+    if not CheckParams(data, "ranklist", "key") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist or key missed") 
     end
 
+    local listName = data.ranklist
     local key = data.key 
-    rl:rem(key)
+    local err = nil 
+    _, err = rl:command("zrem", listName, key) 
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zrem failed: %s", err)
+    end 
 
     return self.OK
 end
 
 -- zset:dump()
 -- param: none
+--[[
 function RankListAction:DumpAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -106,9 +128,10 @@ function RankListAction:DumpAction(data)
     rl:dump()
     return self.OK 
 end
+--]]
 
--- zset:score()
--- param: key
+-- zscore
+-- param: ranklist, key
 function RankListAction:ScoreAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -117,18 +140,23 @@ function RankListAction:ScoreAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "key") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param key missed") 
+    if not CheckParams(data, "ranklist", "key") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist or key missed") 
     end
     
+    local listName = data.ranklist
     local key = data.key
-    self.OK.score = rl:score(key)
+    local err = nil
+    self.OK.score, err = rl:command("zscore", listName, key)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zscore failed: %s", err)
+    end 
 
     return self.OK
 end
 
--- zset:range_by_socre()
--- param: upper bound, lower bound
+-- zrangebysocre
+-- param: ranklist, upper bound, lower bound
 function RankListAction:GetScoreRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -137,24 +165,31 @@ function RankListAction:GetScoreRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "upper_bound", "lower_bound") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
+    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist, upper_bound or lower_bound missed") 
     end
 
+    local listName = data.ranklist
     local upper = tonumber(data.upper_bound)
     local lower = tonumber(data.lower_bound)
-    local r = rl:range_by_score(lower, upper)
+    local r, err = rl:command("zrangebyscore", listName, lower, upper)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zrangebyscore failed: %s", err)
+    end
     local res = {} 
     for _, v in pairs(r) do 
-        res[v] = rl:score(v)
+        res[v], err = rl:command("zscore", listName, v) 
+        if err then 
+            throw(ERR_SERVER_REDIS_ERROR, "command zscore in GetScoreRangeAction failed: %s", err)
+        end
     end 
     self.OK.list = res 
    
     return self.OK
 end
 
--- zset:rank() 
--- param: key
+-- zrank 
+-- param: ranklist, key
 function RankListAction:GetRankAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -163,18 +198,24 @@ function RankListAction:GetRankAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "key") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param key missed") 
+    if not CheckParams(data, "ranklist", "key") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist or key missed") 
     end
 
+    local listName = data.ranklist
     local key = data.key
-    self.OK.rank = rl:rank(key)
+    local err = nil
+    self.OK.rank, err = rl:command("zrank", listName, key)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zrank failed: %s", err)
+    end
+    self.OK.rank = self.OK.rank + 1
 
     return self.OK
 end 
 
--- zset:rev_rank()
--- param: key
+-- zrevrank 
+-- param: ranklist, key
 function RankListAction:GetRevRankAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -183,18 +224,24 @@ function RankListAction:GetRevRankAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "key") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param key missed") 
+    if not CheckParams(data, "ranklist", "key") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist or key missed") 
     end
 
+    local listName = data.ranklist
     local key = data.key
-    self.OK.rev_rank = rl:rev_rank(key)
+    local err = nil 
+    self.OK.rev_rank, err = rl:command("zrevrank", listName, key)
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zrevrank failed: %s", err)
+    end
+    self.OK.rev_rank = self.OK.rev_rank + 1 
 
     return self.OK
 end 
 
--- zset:range() 
--- param: upper bound, lower bound 
+-- zrange 
+-- param: ranklist, upper bound, lower bound 
 function RankListAction:GetRankRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -203,24 +250,35 @@ function RankListAction:GetRankRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "upper_bound", "lower_bound") then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
+    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param ranklist, upper_bound or lower_bound missed") 
     end
 
-    local upper = tonumber(data.upper_bound)
-    local lower = tonumber(data.lower_bound)
-    local r = rl:range(lower, upper)
+    local listName = data.ranklist
+    local upper = tonumber(data.upper_bound) - 1 
+    local lower = tonumber(data.lower_bound) - 1 
+    if upper < 0 or lower < 0 then 
+        throw(ERR_SERVER_OPERATION_FAILED, "param upper_bound or lower_bound can't be negtive")
+    end 
+
+    local r, err = rl:command("zrange", listName, lower, upper)
+    if err then  
+        throw(ERR_SERVER_REDIS_ERROR, "command zrange failed: %s", err)
+    end 
     local res = {} 
     for _, v in pairs(r) do 
-        res[v] = rl:score(v) 
+        res[v], err = rl:command("zscore", listName, v) 
+        if err then 
+            throw(ERR_SERVER_REDIS_ERROR, "command zscore in GetRankRangeAction failed: %s", err)
+        end
     end 
-    self.OK.list = res 
+    self.OK.list = res
     
     return self.OK 
 end
 
--- zset:rev_range()
--- param: upper bound, lower bound
+-- zrevrange
+-- param: ranklist, upper bound, lower bound
 function RankListAction:GetRevRankRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -229,24 +287,35 @@ function RankListAction:GetRevRankRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "upper_bound", "lower_bound") then 
+    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
         throw(ERR_SERVER_INVALID_PARAMETERS, "param upper_bound or lower_bound missed") 
     end
 
-    local lower = tonumber(data.lower_bound)
-    local upper = tonumber(data.upper_bound)
-    local r = rl:rev_range(lower, upper) 
+    local listName = data.ranklist
+    local upper = tonumber(data.upper_bound) - 1
+    local lower = tonumber(data.lower_bound) - 1 
+    if upper < 0 or lower < 0 then 
+        throw(ERR_SERVER_OPERATION_FAILED, "param upper_bound or lower_bound can't be negtive")
+    end
+
+    local r, err = rl:command("zrevrange", listName, lower, upper)
+    if err then  
+        throw(ERR_SERVER_REDIS_ERROR, "command zrevrange failed: %s", err)
+    end 
     local res = {} 
     for _, v in pairs(r) do 
-        res[v] = rl:score(v)
+        res[v], err = rl:command("zscore", listName, v) 
+        if err then 
+            throw(ERR_SERVER_REDIS_ERROR, "command zscore in GetRevRankRangeAction failed: %s", err)
+        end
     end 
     self.OK.list = res 
 
     return self.OK
 end
 
--- zset:Limit(), used for reduce some element from tail
--- param: count
+-- zremrangebyrank, used for reduce some element from tail
+-- param: ranklist, count
 function RankListAction:LimitAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -255,18 +324,23 @@ function RankListAction:LimitAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "count") then 
+    if not CheckParams(data, "ranklist", "count") then 
         throw(ERR_SERVER_INVALID_PARAMETERS, "param count missed") 
     end
 
+    local listName = data.ranklist
     local count = tonumber(data.count)
-    rl:limit(count) 
+    local err = nil
+    _, err = rl:command("zremrangebyrank", listName, count, -1) 
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zremrangebyrank failed: %s", err)
+    end 
 
     return self.OK 
 end
 
--- zset:RevLimit(), used for reduce some element from head, contrary to zset:Limit()
--- param: count
+-- zremrangebyrank, used for reduce some element from head, contrary to zset:Limit()
+-- param: ranklist, count
 function RankListAction:RevLimitAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -275,12 +349,20 @@ function RankListAction:RevLimitAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "count") then 
+    if not CheckParams(data, "ranklist", "count") then 
         throw(ERR_SERVER_INVALID_PARAMETERS, "param count missed") 
     end
 
+    local listName = data.ranklist
     local count = tonumber(data.count)
-    rl:rev_limit(count) 
+    local len, err = rl:command("zcard", listName) 
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zcard in RevLimitAction failed: %s", err)
+    end 
+    _, err = rl:command("zremrangebyrank", listName, 0, len-count-1) 
+    if err then 
+        throw(ERR_SERVER_REDIS_ERROR, "command zremrangebyrank in RevLimitAction failed: %s", err)
+    end 
 
     return self.OK
 end
