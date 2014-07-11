@@ -7,9 +7,9 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    //ws = new WebSocket('ws://127.0.0.1:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
     //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
-    ws = new WebSocket('ws://115.28.88.113:8088/test');
+    //ws = new WebSocket('ws://115.28.88.113:8088/test');
     //115.28.88.113
     ws.onopen = function () {
         log('connected');
@@ -41,7 +41,7 @@ function count() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "RankList.Count", 
+        "action": "RankList.Count",
         "ranklist": "myzset"
     }
 
@@ -307,11 +307,11 @@ function log(text) {
     <button type="button" onclick="return disconnect();">
       Disconnect
     </button>
-    <input id="text" type="text">
-    <input id="lower" type="text">
-    <input id="upper" type="text">
+    key: <input id="text" type="text">
+    lower_bound: <input id="lower" type="text">
+    upper_bound: <input id="upper" type="text">
 
-    <button type="submit">Send</button>
+    <button type="submit">Add</button>
   </form>
   <form onsubmit="return count();">
       <button type="submit">Count</button>
