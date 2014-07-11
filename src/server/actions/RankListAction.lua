@@ -224,7 +224,9 @@ function RankListAction:GetScoreRangeAction(data)
         end
         table.insert(res, {uid = v, score = s})
     end 
-    self.reply.scores = res 
+    if next(rest) ~= nil then 
+        self.reply.scores = res 
+    end
    
     return self.reply
 end
@@ -337,7 +339,9 @@ function RankListAction:GetRankRangeAction(data)
         end
         table.insert(res, {uid = v, score = s})
     end 
-    self.reply.scores = res
+    if next(res) ~= nil then 
+        self.reply.scores = res
+    end 
     
     return self.reply 
 end
@@ -388,7 +392,9 @@ function RankListAction:GetRevRankRangeAction(data)
         end
         table.insert(res, {uid = v, score = s})
     end 
-    self.reply.scores = res 
+    if next(res) ~= nil then 
+        self.reply.scores = res 
+    end 
 
     return self.reply
 end
