@@ -224,7 +224,7 @@ function RankListAction:GetScoreRangeAction(data)
         end
         table.insert(res, {uid = v, score = s})
     end 
-    if next(rest) ~= nil then 
+    if next(res) ~= nil then 
         self.reply.scores = res 
     end
    
@@ -315,13 +315,14 @@ function RankListAction:GetRankRangeAction(data)
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) are NOT number")
         return self.reply
     end
+    upper = upper - 1
+    lower = lower - 1
+
     if upper < 0 or lower < 0 then 
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) can't be negtive")
         return self.reply
     end 
-    upper = upper - 1
-    lower = lower - 1
-
+    
     local r, err = rl:command("zrange", listName, lower, upper)
     if not r then  
         echoInfo("redis command zrange failed: %s", err)
@@ -368,13 +369,14 @@ function RankListAction:GetRevRankRangeAction(data)
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) are NOT number")
         return self.reply
     end 
+    upper = upper - 1
+    lower = lower - 1
+
     if upper < 0 or lower < 0 then 
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) can't be negtive")
         return self.reply
     end
-    upper = upper - 1
-    lower = lower - 1
-
+    
     local r, err = rl:command("zrevrange", listName, lower, upper)
     if not r then  
         echoError("redis command zrevrange failed: %s", err)
