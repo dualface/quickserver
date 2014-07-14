@@ -59,7 +59,7 @@ function RankListAction:CountAction(data)
     end 
 
     if not CheckParams(data, "ranklist") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(ranklist) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(ranklist) is missed")
         return self.reply
     end 
 
@@ -86,7 +86,7 @@ function RankListAction:AddAction(data)
     end
  
     if not CheckParams(data, "ranklist", "key", "value") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, key or value) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, key or value) are missed")
         return self.reply
     end 
 
@@ -118,7 +118,7 @@ function RankListAction:RemoveAction(data)
     end
  
     if not CheckParams(data, "ranklist", "key") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) are missed")
         return self.reply
     end
 
@@ -162,7 +162,7 @@ function RankListAction:ScoreAction(data)
     end
  
     if not CheckParams(data, "ranklist", "key") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) are missed")
         return self.reply
     end
     
@@ -195,7 +195,7 @@ function RankListAction:GetScoreRangeAction(data)
     end
  
     if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, lower_bound or upper_bound) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, lower_bound or upper_bound) are missed")
         return self.reply
     end
 
@@ -242,7 +242,7 @@ function RankListAction:GetRankAction(data)
     end
  
     if not CheckParams(data, "ranklist", "key") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) are missed")
         return self.reply
     end
 
@@ -273,7 +273,7 @@ function RankListAction:GetRevRankAction(data)
     end
  
     if not CheckParams(data, "ranklist", "key") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or key) are missed")
         return self.reply
     end
 
@@ -304,7 +304,7 @@ function RankListAction:GetRankRangeAction(data)
     end
  
     if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) are missed")
         return self.reply
     end
 
@@ -358,7 +358,7 @@ function RankListAction:GetRevRankRangeAction(data)
     end
  
     if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) are missed")
         return self.reply
     end
 
@@ -412,7 +412,7 @@ function RankListAction:LimitAction(data)
     end
  
     if not CheckParams(data, "ranklist", "count") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or count) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or count) are missed")
         return self.reply
     end
 
@@ -444,7 +444,7 @@ function RankListAction:RevLimitAction(data)
     end
  
     if not CheckParams(data, "ranklist", "count") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or count) missed")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or count) are missed")
         return self.reply
     end
 
