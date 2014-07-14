@@ -9,10 +9,13 @@
             {"key_n" : "val_n"}
         }
 
-        ["id" : "xxxxxxx"]  --for delete/update/find operation
+        "id" : "xxxxxxx"  --for delete/update/find operation
     }
 --
 --]]
+
+local ERR_STORE_INVALID_PARAM = 2000
+local ERR_STORE_OPERATION_FAILED = 2100
 
 local StoreAction = class("StoreAction", cc.server.ActionBase)
 
@@ -29,16 +32,23 @@ local function ConstructParams(rawData)
     local body = {}
     for _, t in pairs(rawData) do 
         for k, v in pairs(t) do
-                body[k] = v
+                if k ~= "index" and k ~= "" then    -- ignore null name of property 
+                    body[k] = v
+                else 
+
+                end
         end
     end 
     local id = base64(sha1(json.encode(body)))
+    local res = {id = string.sub(id, 1, -2), body = json.encode(body)}
 
-    return {id=id, body=json.encode(body)} 
+    return res, body 
 end
 
-local function IndexProperty() 
+local function Err(errCode, errMsg, ...) 
+   local msg = string.format(errMsg, ...)
 
+   return {err_code=errCode, err_msg=msg} 
 end
 
 function StoreAction:ctor(app)
@@ -53,7 +63,7 @@ function StoreAction:ctor(app)
 
     self.indexSql = require(app.config.appModuleName.. "." .. app.config.actionPackage .. ".sql.IndexSql")
 
-    self.OK = {success=1}
+    self.reply = {}
 end
 
 function StoreAction:SaveObjAction(data) 
@@ -66,17 +76,19 @@ function StoreAction:SaveObjAction(data)
 
     local rawData = data.rawdata
     if rawData == nil or type(rawData) ~= "table" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(rawdata) is missed.")
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(rawdata) is missed")
+        return self.reply
     end
 
-    params = ConstructParams(rawData)
+    local params = ConstructParams(rawData)
     local ok, err = mySql:insert("entity", params) 
     if not ok then 
-        throw(ERR_SERVER_MYSQL_ERROR, "insert data failed: %s", err)
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.SaveObj failed: %s", err)
+        return self.reply
     end 
 
-    self.OK.id = params.id
-    return self.OK 
+    self.reply.id = params.id
+    return self.reply 
 end 
 
 function StoreAction:UpdateObjAction(data)
@@ -89,22 +101,40 @@ function StoreAction:UpdateObjAction(data)
 
     local rawData = data.rawdata
     if rawData == nil or type(rawData) ~= "table" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(rawdata) is missed.")
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(rawdata) is missed")
+        return self.reply
     end
 
     local id = data.id
-    if id == nil or type(id) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(id) is missed.")
+    if id == nil or id == "" then 
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(id) is missed")
+        return self.reply
     end
 
-    params = ConstructParams(rawData)
-    local ok, err = mySql:update("entity", params, {id=id}) 
-    if not ok then 
-        throw(ERR_SERVER_MYSQL_ERROR, "update data failed: %s", err)
+    local res, err = mySql:query("select * from entity where id='"..id.."';")
+    if not res then 
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.UpdateObj failed: %s", err)
+        return self.reply
+    end
+    if next(res) == nil then 
+        return self.reply
+    end
+
+    local oriProperty = json.decode(res[1].body)
+    local params, newProperty = ConstructParams(rawData)
+    for k,v in pairs(newProperty) do 
+        oriProperty[k] = v 
+    end 
+    params.body = json.encode(oriProperty) 
+    
+    res, err = mySql:update("entity", params, {id=id}) 
+    if not res then 
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.UpdateObj failed: %s", err)
+        return self.reply
     end 
 
-    self.OK.id = params.id
-    return self.OK
+    self.reply.id = params.id -- after update, id is also changed.
+    return self.reply
 end
 
 function StoreAction:DeleteObjAction(data)
@@ -116,17 +146,22 @@ function StoreAction:DeleteObjAction(data)
     end
 
     local id = data.id
-    if id == nil or type(id) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(id) is missed.")
+    if id == nil or id == "" then 
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(id) is missed")
+        return self.reply
     end
 
     local ok, err = mySql:del("entity", {id=id}) 
     if not ok then 
-        throw(ERR_SERVER_MYSQL_ERROR, "delete data failed: %s", err)
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.DeleteObj failed: %s", err)
+        return self.reply
     end 
+    if ok.affected_rows == 0 then 
+        return self.reply
+    end
 
-    self.OK.id = id
-    return self.OK
+    self.reply.id = id
+    return self.reply
 end
 
 function StoreAction:FindObjAction(data) 
@@ -142,19 +177,31 @@ function StoreAction:FindObjAction(data)
     local res, err
     if id ~= nil then 
         -- find by id
-        if type(id) ~= "string" then 
-            throw(ERR_SERVER_INVALID_PARAMETERS, "param(id) is missed.")
+        if id == "" then 
+            self.reply = Err(ERR_STORE_INVALID_PARAM, "param(id) is missed")
+            return self.reply
         end
 
         res, err = mySql:query("select * from entity where id='"..id.."';")
         if not res then 
-            throw(ERR_SERVER_MYSQL_ERROR, "query data failed: %s", err)
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: %s", err)
+            return self.reply
         end    
+        if next(res) == nil then 
+            return self.reply
+        end
+
     elseif property ~= nil then 
         -- find by index
+        if property == "" then 
+            self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property) is missed")
+            return self.reply
+        end
+
         local value = data.property_value
-        if value == nil then 
-            throw(ERR_SERVER_INVALID_PARAMETERS, "param(property_value) is missed.")
+        if value == nil or value == "" then 
+            self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property_value) is missed")
+            return self.reply
         end 
 
         local indexSql = self.indexSql 
@@ -165,18 +212,29 @@ function StoreAction:FindObjAction(data)
         local sql = indexSql.FindIndex{[property]=value}
         res, err = mySql:query(sql)
         if not res then 
-            throw(ERR_SERVER_MYSQL_ERROR, "query data failed: %s", err)
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: %s", err)
+            return self.reply
         end 
+        if next(res) == nil then 
+            return self.reply 
+        end
 
         local id = res[1].entity_id
         res, err = mySql:query("select * from entity where id='"..id.."';")
         if not res then 
-            throw(ERR_SERVER_MYSQL_ERROR, "query data failed: %s", err)
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: %s", err)
+            return self.reply
         end
+        if next(res) == nil then 
+            return self.reply
+        end
+    else 
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "both 'id' and 'property' are missed")        
+        return self.reply
     end
 
-    self.OK.result = res
-    return self.OK
+    self.reply.objs = res
+    return self.reply
 end
 
 function StoreAction:CreateIndexAction(data)
@@ -194,7 +252,7 @@ function StoreAction:CreateIndexAction(data)
 
     local property = data.property
     if property == nil or type(property) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(prorperty) is missed.")
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param(prorperty) is missed")
     end 
 
     local createIndexSql = indexSql.CreateIndex(property)
@@ -203,7 +261,7 @@ function StoreAction:CreateIndexAction(data)
         throw(ERR_SERVER_MYSQL_ERROR, "create %s_index table failed: %s", property, err)
     end
 
-    return self.OK
+    return self.reply
 end
 
 function StoreAction:DeleteIndexAction(data) 
@@ -221,7 +279,7 @@ function StoreAction:DeleteIndexAction(data)
     
     local property = data.property
     if property == nil or type(property) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(property) is missed.")
+        throw(ERR_SERVER_INVALID_PARAMETERS, "param(property) is missed")
     end
 
     local deleteIndexSql = indexSql.DeleteIndex(property)
@@ -230,7 +288,7 @@ function StoreAction:DeleteIndexAction(data)
         throw(ERR_SERVER_MYSQL_ERROR, "delete %s_index table failed: %s", property, err)
     end
 
-    return self.OK
+    return self.reply
 end
 
 return StoreAction
