@@ -1,0 +1,169 @@
+<html>
+<head>
+<script>
+
+var ws = null;
+var msg_id = 0;
+
+function connect() {
+    if (ws !== null) return log('already connected');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
+    //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
+    //ws = new WebSocket('ws://115.28.88.113:8088/test');
+    //115.28.88.113
+    ws.onopen = function () {
+        log('connected');
+    };
+    ws.onerror = function (error) {
+        log(error);
+    };
+    ws.onmessage = function (e) {
+        log('recv: ' + e.data);
+    };
+    ws.onclose = function () {
+        log('disconnected');
+        ws = null;
+    };
+    return false;
+}
+
+function disconnect() {
+    if (ws === null) return log('already disconnected');
+    ws.close();
+    return false;
+}
+
+function FindObj() {
+    if (ws === null) return log('please connect first');
+    var p1 = document.getElementById('p1').value;
+    document.getElementById('p1').value = "";
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "Store.FindObj", 
+        "id": p1
+    }
+
+    var jsonData = JSON.stringify(data)
+    ws.send(jsonData);
+    msg_id = msg_id + 1
+
+    log('FindObj: '+ jsonData);
+
+    return false;
+}
+
+function DeleteObj() {
+    if (ws === null) return log('please connect first');
+    var p1 = document.getElementById('p1').value;
+    document.getElementById('p1').value = "";
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "Store.DeleteObj", 
+        "id": p1
+    }
+
+    var jsonData = JSON.stringify(data)
+    ws.send(jsonData);
+    msg_id = msg_id + 1
+
+    log('DeleteObj: '+ jsonData);
+
+    return false;
+}
+
+function  UpdateObj() {
+    if (ws === null) return log('please connect first');
+    var p1 = document.getElementById('p1').value;
+    var p2 = document.getElementById('p2').value;
+    var p3 = document.getElementById('p3').value;
+    document.getElementById('p1').value = "";
+    document.getElementById('p2').value = "";
+    document.getElementById('p3').value = "";
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "Store.UpdateObj", 
+        "id": p1,
+        "rawdata": [
+            {"key1": p2}, 
+            {"name": p3}
+        ]
+    }
+
+    var jsonData = JSON.stringify(data)
+    ws.send(jsonData);
+    msg_id = msg_id + 1
+
+    log('UpdateObj: '+ jsonData);
+
+    return false;
+}
+
+function SaveObj() {
+    if (ws === null) return log('please connect first');
+    var p1 = document.getElementById('p1').value;
+    var p2 = document.getElementById('p2').value;
+    var p3 = document.getElementById('p3').value;
+    document.getElementById('p1').value = "";
+    document.getElementById('p2').value = "";
+    document.getElementById('p3').value = "";
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "Store.SaveObj", 
+        "rawdata": [
+            {"key1": p1}, 
+            {"property": p2},
+            {"name": p3}
+        ] //"string not table"
+    }
+
+    var jsonData = JSON.stringify(data)
+    ws.send(jsonData);
+    msg_id = msg_id + 1
+
+    log('saveobj: ' + jsonData);
+
+    return false;
+}
+
+function log(text) {
+    var li = document.createElement('li');
+    li.appendChild(document.createTextNode(text));
+    document.getElementById('log').appendChild(li);
+    return false;
+}
+
+</script>
+
+</head>
+<body>
+  <form onsubmit="return SaveObj();">
+    <button type="button" onclick="return connect();">
+      Connect
+    </button>
+    <button type="button" onclick="return disconnect();">
+      Disconnect
+    </button>
+    key1: <input id="p1" type="text">
+    property2: <input id="p2" type="text">
+    property3: <input id="p3" type="text">
+
+    <button type="submit">SaveObj</button>
+  </form>
+  <form onsubmit="return FindObj();">
+      <button type="submit">FindObj</button>
+  </form>
+
+  <form onsubmit="return DeleteObj();">
+      <button type="submit">DeleteObj</button>
+  </form>
+
+  <form onsubmit="return UpdateObj();">
+      <button type="submit">UpdateObj</button>
+  </form>
+  <ol id="log"></ol>
+</body>
+</html>
