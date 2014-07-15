@@ -1,4 +1,4 @@
-local dogs = ngx.shared.dogs
-local tbl = {x=1} 
-dogs:set("Jim", tbl)
+local dogs = ngx.shared.INDEXES
+local v = "hello world" 
+dogs:set("Jim", v)
 ngx.say("STORED")

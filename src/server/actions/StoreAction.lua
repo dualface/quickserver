@@ -4,12 +4,13 @@
         "action" : "actionname", 
         "rawdata": {
             { "key1" : "val1"}, 
-            { "key2" : "val2", "index" : 1},
+            { "key2" : "val2"},
             ...
             {"key_n" : "val_n"}
         }
 
         "id" : "xxxxxxx"  --for delete/update/find operation
+        "indexs": [key1, key3, ...] -- keys, which need index
     }
 --
 --]]
@@ -32,10 +33,8 @@ local function ConstructParams(rawData)
     local body = {}
     for _, t in pairs(rawData) do 
         for k, v in pairs(t) do
-                if k ~= "index" and k ~= "" then    -- ignore null name of property 
+                if k ~= "" then    -- ignore null name of property 
                     body[k] = v
-                else 
-
                 end
         end
     end 
@@ -66,6 +65,73 @@ function StoreAction:ctor(app)
     self.reply = {}
 end
 
+function StoreAction:UpdateIndexes(indexes, body, id)
+    local indexSql = self.indexSql
+    if indexSql == nil then
+        -- just use echoinfo to handle index, the same below 
+        echoInfo("IndexSql module is NOT loaded.")
+        return ERR_STORE_OPERATION_FAILED 
+    end
+
+    local mySql = self.Mysql
+    if mySql == nil then 
+        echoInfo(ERR_SERVER_MYSQL_ERROR, "connect to mysql failed.")
+        return ERR_STORE_OPERATION_FAILED
+    end
+
+    -- create index tables
+    local shardIndexes = ngx.shared.INDEXES
+    for _, p in pairs(indexes) do 
+        if shardIndexes:get(p) == nil then 
+            local createIndexSql = indexSql.CreateIndex(p)
+            local ok, err = mySql:query(createIndexSql)
+            if not ok then
+                echoInfo("create %s_index table failed: %s", property, err)
+                return ERR_STORE_OPERATION_FAILED
+            end
+            shardIndexes:set(p, 1)
+        end
+    end
+
+    -- store and update index tables
+    for k, v in pairs(body) do 
+        if shardIndexes:get(k) == 1 then 
+            local tblName = k .. "_index"
+            local p = {[k]=v, ["entity_id"]=id}
+            local ok, err = mySql:insert(tblName, p)
+            if not ok then 
+                echoInfo("update index table %s failed: %s", tblName, err)
+                return ERR_STORE_OPERATION_FAILED
+            end
+        end
+    end
+
+    return nil
+end 
+
+function StoreAction:DeleteIndexes(body, id) 
+    local mySql = self.Mysql
+    if mySql == nil then 
+        echoInfo(ERR_SERVER_MYSQL_ERROR, "connect to mysql failed.")
+        return ERR_STORE_OPERATION_FAILED
+    end
+
+    local shardIndexes = ngx.shared.INDEXES
+    for k in pairs(body) do 
+        if shardIndexes:get(k) == 1 then 
+            local tblName = k .. "_index"
+            local where = {entity_id = id}
+            local ok, err = mySql:insert(tblName, where)
+            if not ok then 
+                echoInfo("delete index table %s failed: %s", tblName, err)
+                return ERR_STORE_OPERATION_FAILED
+            end
+        end
+    end
+
+    return nil
+end
+
 function StoreAction:SaveObjAction(data) 
     assert(type(data) == "table", "data is NOT a table")
 
@@ -80,12 +146,21 @@ function StoreAction:SaveObjAction(data)
         return self.reply
     end
 
-    local params = ConstructParams(rawData)
+    local params, body = ConstructParams(rawData)
     local ok, err = mySql:insert("entity", params) 
     if not ok then 
         self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.SaveObj failed: %s", err)
         return self.reply
     end 
+
+    -- begin to handle indexs
+    local indexes = data.indexes 
+    if indexes ~= nil and type(indexes) == "table" then 
+        err = self:UpdateIndexes(indexes, body, params.id)
+        if err then 
+            echoInfo("operation Store.SaveObj success, but update index tables failed.")
+        end
+    end
 
     self.reply.id = params.id
     return self.reply 
@@ -133,6 +208,15 @@ function StoreAction:UpdateObjAction(data)
         return self.reply
     end 
 
+    -- begin to handle indexs
+    local indexes = data.indexes or {} 
+    if type(indexes) == "table" then 
+        err = self:UpdateIndexes(indexes, oriProperty, params.id)
+        if err then 
+            echoInfo("operation Store.SaveObj success, but update index tables failed.")
+        end
+    end
+
     self.reply.id = params.id -- after update, id is also changed.
     return self.reply
 end
@@ -158,6 +242,7 @@ function StoreAction:DeleteObjAction(data)
     end 
     if ok.affected_rows == 0 then 
         return self.reply
+    else 
     end
 
     self.reply.id = id
@@ -237,6 +322,7 @@ function StoreAction:FindObjAction(data)
     return self.reply
 end
 
+--[[
 function StoreAction:CreateIndexAction(data)
     assert(type(data) == "table", "data is NOT a table.")
 
@@ -290,6 +376,7 @@ function StoreAction:DeleteIndexAction(data)
 
     return self.reply
 end
+--]]
 
 return StoreAction
 

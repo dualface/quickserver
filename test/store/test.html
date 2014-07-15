@@ -87,9 +87,10 @@ function  UpdateObj() {
         "action": "Store.UpdateObj", 
         "id": p1,
         "rawdata": [
-            {"key1": p2}, 
-            {"name": p3}
-        ]
+            {"i_name": p2}, 
+            {"property": p3}
+        ],
+        "indexes": ["key1"]
     }
 
     var jsonData = JSON.stringify(data)
@@ -116,8 +117,9 @@ function SaveObj() {
         "rawdata": [
             {"key1": p1}, 
             {"property": p2},
-            {"name": p3}
-        ] //"string not table"
+            {"i_name": p3}
+        ],
+        "indexes": ["i_name", "property"]
     }
 
     var jsonData = JSON.stringify(data)
