@@ -65,17 +65,17 @@ function StoreAction:ctor(app)
     self.reply = {}
 end
 
-function StoreAction:UpdateIndexes(indexes, body, id)
+function StoreAction:_UpdateIndexes(indexes, body, id)
     local indexSql = self.indexSql
     if indexSql == nil then
-        -- just use echoinfo to handle index, the same below 
+        -- just use echoinfo to handle writting index, the same below 
         echoInfo("IndexSql module is NOT loaded.")
         return ERR_STORE_OPERATION_FAILED 
     end
 
     local mySql = self.Mysql
     if mySql == nil then 
-        echoInfo(ERR_SERVER_MYSQL_ERROR, "connect to mysql failed.")
+        echoInfo("connect to mysql failed.")
         return ERR_STORE_OPERATION_FAILED
     end
 
@@ -109,10 +109,10 @@ function StoreAction:UpdateIndexes(indexes, body, id)
     return nil
 end 
 
-function StoreAction:DeleteIndexes(body, id) 
+function StoreAction:_DeleteIndexes(body, id) 
     local mySql = self.Mysql
     if mySql == nil then 
-        echoInfo(ERR_SERVER_MYSQL_ERROR, "connect to mysql failed.")
+        echoInfo("connect to mysql failed.")
         return ERR_STORE_OPERATION_FAILED
     end
 
@@ -130,6 +130,30 @@ function StoreAction:DeleteIndexes(body, id)
     end
 
     return nil
+end
+
+function StoreAction:_FindIndexes(where)
+    local mySql = self.Mysql
+    if mySql == nil then 
+        echoError("connect to mysql failed.")
+        return nil
+    end
+
+    local indexSql = self.indexSql 
+    if indexSql == nil then
+        -- in reading from index, use echoError
+        echoError("IndexSql module is NOT loaded.")
+        return nil
+    end
+
+    local sql = indexSql.FindIndex(where)
+    local res, err = mySql:query(sql)
+    if not res then 
+        echoError("find index table, sql: %s failed: %s", sql, err)
+        return nil 
+    end 
+
+    return res
 end
 
 function StoreAction:SaveObjAction(data) 
@@ -156,7 +180,7 @@ function StoreAction:SaveObjAction(data)
     -- begin to handle indexs
     local indexes = data.indexes 
     if indexes ~= nil and type(indexes) == "table" then 
-        err = self:UpdateIndexes(indexes, body, params.id)
+        err = self:_UpdateIndexes(indexes, body, params.id)
         if err then 
             echoInfo("operation Store.SaveObj success, but update index tables failed.")
         end
@@ -211,7 +235,7 @@ function StoreAction:UpdateObjAction(data)
     -- begin to handle indexs
     local indexes = data.indexes or {} 
     if type(indexes) == "table" then 
-        err = self:UpdateIndexes(indexes, oriProperty, params.id)
+        err = self:_UpdateIndexes(indexes, oriProperty, params.id)
         if err then 
             echoInfo("operation Store.SaveObj success, but update index tables failed.")
         end
@@ -289,24 +313,28 @@ function StoreAction:FindObjAction(data)
             return self.reply
         end 
 
-        local indexSql = self.indexSql 
-        if indexSql == nil then
-            throw(ERR_SERVER_UNKNOWN_ERROR, "IndexSql module is NOT loaded.")
-        end
-
-        local sql = indexSql.FindIndex{[property]=value}
-        res, err = mySql:query(sql)
+        -- begin to handle index
+        local where = {[property]=value}
+        res, err = self:_FindIndexes(where)
         if not res then 
-            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: %s", err)
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: can't find object via this property '%s'", property)
             return self.reply
-        end 
+        end
         if next(res) == nil then 
-            return self.reply 
+            return self.reply
         end
 
-        local id = res[1].entity_id
-        res, err = mySql:query("select * from entity where id='"..id.."';")
-        if not res then 
+        local whereFields = {}
+        for _, obj in ipairs(res) do 
+            local id = obj.entity_id
+            whereFields[#whereFields+1] = "id='" .. id .. "'"
+        end
+
+        local sql = string.format("select * from entity where %s;", table.concat(whereFields, " OR "))  
+        echoInfo("sql = %s", sql)
+
+        res, err = mySql:query(sql)
+        if not res then
             self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.FindObj failed: %s", err)
             return self.reply
         end

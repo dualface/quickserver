@@ -41,7 +41,9 @@ function FindObj() {
     var data = {
         "_msgid": msg_id, 
         "action": "Store.FindObj", 
-        "id": p1
+        //"id": p1
+        "property": "key2",
+        "property_value": "i_name_1"
     }
 
     var jsonData = JSON.stringify(data)
@@ -89,8 +91,8 @@ function  UpdateObj() {
         "rawdata": [
             {"i_name": p2}, 
             {"property": p3}
-        ],
-        "indexes": ["key1"]
+        ]
+        //"indexes": ["key1"]
     }
 
     var jsonData = JSON.stringify(data)
