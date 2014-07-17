@@ -39,6 +39,11 @@ function MysqlLuaAdapter:query(queryStr)
         return cur, err
     end
 
+    if cur:numrows() == 0 then 
+        return {}, err
+    end
+
+
     if type(cur) == "userdata" then
         local row, err = cur:fetch ({}, "a")
 
@@ -47,7 +52,12 @@ function MysqlLuaAdapter:query(queryStr)
             return row, err
         end
 
-        local results = {row}
+        local results = {}
+        local result = {}
+        for key, value in pairs(row) do 
+            result[key] = value
+        end
+        results[#results+1] = result
 
         while true do
             row = cur:fetch (row, "a")
@@ -56,7 +66,6 @@ function MysqlLuaAdapter:query(queryStr)
                 break
             end
 
-            local result = {}
             for key, value in pairs(row) do
                 result[key] = value
             end
