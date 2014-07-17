@@ -39,12 +39,11 @@ function MysqlLuaAdapter:query(queryStr)
         return cur, err
     end
 
-    if cur:numrows() == 0 then 
-        return {}, err
-    end
-
-
     if type(cur) == "userdata" then
+        if cur:numrows() == 0 then
+            return {}, err
+        end
+
         local row, err = cur:fetch ({}, "a")
 
         if err then
