@@ -7,9 +7,9 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://127.0.0.1:8088/test');
+    //ws = new WebSocket('ws://127.0.0.1:8088/test');
     //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
-    //ws = new WebSocket('ws://115.28.88.113:8088/test');
+    ws = new WebSocket('ws://115.28.88.113:8088/test');
     //115.28.88.113
     ws.onopen = function () {
         log('connected');

@@ -91,8 +91,8 @@ function  UpdateObj() {
         "rawdata": [
             {"i_name": p2}, 
             {"property": p3}
-        ]
-        //"indexes": ["key1"]
+        ],
+        "indexes": ["i_name_bk"]
     }
 
     var jsonData = JSON.stringify(data)
@@ -119,7 +119,8 @@ function SaveObj() {
         "rawdata": [
             {"key1": p1}, 
             {"property": p2},
-            {"i_name": p3}
+            {"i_name": p3},
+            {"i_name_bk": p3}
         ],
         "indexes": ["i_name", "property"]
     }
