@@ -1,6 +1,7 @@
 -- require class framework
 require("framework.functions")
 require("framework.debug")
+local json = require("framework.json")
 
 -- require mysql interface and config
 local MysqlEasy = require("server.lib.MysqlEasy")
@@ -70,23 +71,40 @@ local function CleanTable(tbl)
         if next(res) == nil then 
             sql = string.format("delete from %s where entity_id = '%s';", tbl, k.entity_id)
             echoInfo("sql = %s", sql)
-            --mysql:query(sql)
+            mysql:query(sql)
         end
     end
 
     return nil
 end
 
+local function UpdateTable(k, v, id)
+    local tblName = k .. "_index"
+    local sql = string.format("select * from %s where entity_id = '%s';", tblName, id)
+    local res, err = mysql:query(sql) 
+    if not res then
+        return err
+    end
+    if next(res) ~= nil then
+        return nil
+    end
+
+    local param = {[k] = v, entity_id = id}
+
+    local err = nil 
+    _, err = mysql:insert(tblName, param)
+
+    return err
+end
+
 local function CleanIndexes()
-    local res, err = mysql:query("select * from key1_index;")
+    local res, err = mysql:query("show tables;")
     if not res then 
         echoError("mysql:query() failed: %s", err)
         return 
     end
     local tables = GetTableName(res)
-
-    DumpRes(res, 0)
-    --DumpRes(tables, 0)
+    local properties = {}  -- record indexed properties
 
     for _, k in ipairs(tables) do 
         if string.find(k, "_index$", 0) ~= nil then 
@@ -94,10 +112,35 @@ local function CleanIndexes()
             if err then 
                 echoError("Delete redundant item from index table %s failed: %s", k, err)
             end
+            properties[string.sub(k, 1, -7)] = 1
         end
+    end
+
+    return properties
+end
+
+local function UpdateIndexes(properties)
+    local res, err = mysql:query("select * from entity;")
+    if not res then 
+        echoError("mysql:query() failed: %s", err)
+        return 
+    end
+
+    for _, obj in pairs(res) do 
+        local tbl = json.decode(obj.body)
+        for k, v in pairs(tbl) do 
+            if properties[k] then 
+                err = UpdateTable(k, v, obj.id) 
+                if err then 
+                    echoError("Update %s_index table failed: %s", k, err)
+                end
+            end
+        end 
     end
 end
 
-CleanIndexes()
+local properties = CleanIndexes()
+UpdateIndexes(properties)
+
 echoInfo("---DONE---")
 
