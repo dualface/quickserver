@@ -11,6 +11,7 @@
 
         "id" : "xxxxxxx"  --for delete/update/find operation
         "indexs": [key1, key3, ...] -- keys, which need index
+        "addtional_info": ["IP", "TIME"] 
     }
 --
 --]]
@@ -158,6 +159,8 @@ end
 
 function StoreAction:SaveObjAction(data) 
     assert(type(data) == "table", "data is NOT a table")
+
+    echoInfo("remote_addr = %s", ngx.var.remote_addr)
 
     local mySql = self.Mysql
     if mySql == nil then 
