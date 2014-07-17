@@ -66,6 +66,7 @@ function MysqlLuaAdapter:query(queryStr)
                 break
             end
 
+            result = {} 
             for key, value in pairs(row) do
                 result[key] = value
             end
