@@ -19,6 +19,14 @@
 local ERR_STORE_INVALID_PARAM = 2000
 local ERR_STORE_OPERATION_FAILED = 2100
 
+-- keywords dictionary
+local keywords = {
+    TIME = 1, 
+    time = 1, 
+    IP = 1, 
+    ip = 1
+}
+
 local StoreAction = class("StoreAction", cc.server.ActionBase)
 
 local function ConstructParams(rawData)
@@ -157,6 +165,25 @@ function StoreAction:_FindIndexes(where)
     return res
 end
 
+function StoreAction:_TIME()
+    return ngx.localtime()
+end
+
+function StoreAction:_IP()
+    return ngx.var.remote_addr 
+end
+
+function StoreAction:_HandleInfos(infos, rawData)
+    for _, v in pairs(infos) do 
+        if keywords[v] then 
+            local method = string.upper(v)
+            local tmp = {}
+            tmp[method] = self["_"..method](self) 
+            table.insert(rawData, tmp)
+        end 
+    end
+end
+
 function StoreAction:SaveObjAction(data) 
     assert(type(data) == "table", "data is NOT a table")
 
@@ -173,6 +200,21 @@ function StoreAction:SaveObjAction(data)
         return self.reply
     end
 
+    -- handle addtional_info, such as "IP" and "TIME"
+    local infos = data.addtional_info 
+    if infos ~= nil then
+        if type(infos) ~= "table" then 
+            self.reply = Err(ERR_STORE_INVALID_PARAM, "param(addtional_info) is NOT an array")
+            return self.reply
+        end
+
+        local err = self:_HandleInfos(infos, rawData)
+        if err then 
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.SavObj failed: handle addtional_info failed.")
+            return self.reply
+        end
+    end
+
     local params, body = ConstructParams(rawData)
     local ok, err = mySql:insert("entity", params) 
     if not ok then 
@@ -181,8 +223,13 @@ function StoreAction:SaveObjAction(data)
     end 
 
     -- begin to handle indexs
-    local indexes = data.indexes 
-    if indexes ~= nil and type(indexes) == "table" then 
+    local indexes = data.indexes or {} 
+    for _, v in pairs(infos) do
+        if keywords[v] then 
+            table.insert(indexes, string.upper(v))
+        end
+    end
+    if next(indexes) ~= nil and type(indexes) == "table" then 
         err = self:_UpdateIndexes(indexes, body, params.id)
         if err then 
             echoInfo("operation Store.SaveObj success, but update index tables failed.")
