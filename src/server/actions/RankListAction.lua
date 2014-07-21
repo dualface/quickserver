@@ -185,7 +185,7 @@ function RankListAction:ScoreAction(data)
 end
 
 -- zrangebysocre
--- param: ranklist, upper bound, lower bound
+-- param: ranklist, min, max 
 function RankListAction:GetScoreRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -194,16 +194,16 @@ function RankListAction:GetScoreRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, lower_bound or upper_bound) are missed")
+    if not CheckParams(data, "ranklist", "min", "max") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, min or max) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local upper = tonumber(data.upper_bound)
-    local lower = tonumber(data.lower_bound)
+    local upper = tonumber(data.max)
+    local lower = tonumber(data.min)
     if not upper or not lower then
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) are NOT number")
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(max or min) are NOT number")
         return self.reply
     end
 
@@ -294,7 +294,7 @@ function RankListAction:GetRevRankAction(data)
 end 
 
 -- zrange 
--- param: ranklist, upper bound, lower bound 
+-- param: ranklist, offset, count 
 function RankListAction:GetRankRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -303,27 +303,26 @@ function RankListAction:GetRankRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) are missed")
+    if not CheckParams(data, "ranklist", "offset", "count") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, offset or count) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local upper = tonumber(data.upper_bound)
-    local lower = tonumber(data.lower_bound)
-    if not upper or not lower then
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) are NOT number")
+    local offset = tonumber(data.offset)
+    local count = tonumber(data.count)
+    if not offset or not count then
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(offset or count) are NOT number")
         return self.reply
     end
-    upper = upper - 1
-    lower = lower - 1
+    offset = offset - 1
 
-    if upper < 0 or lower < 0 then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) can't be negtive")
+    if offset < 0 or count <= 0 then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(offset or count) can't be negtive or zero")
         return self.reply
     end 
     
-    local r, err = rl:command("zrange", listName, lower, upper)
+    local r, err = rl:command("zrange", listName, offset, offset+count-1)
     if not r then  
         echoInfo("redis command zrange failed: %s", err)
         self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.GetRankRange failed")
@@ -348,7 +347,7 @@ function RankListAction:GetRankRangeAction(data)
 end
 
 -- zrevrange
--- param: ranklist, upper bound, lower bound
+-- param: ranklist, offset, count 
 function RankListAction:GetRevRankRangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
@@ -357,27 +356,26 @@ function RankListAction:GetRevRankRangeAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist", "upper_bound", "lower_bound") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, upper_bound or lower_bound) are missed")
+    if not CheckParams(data, "ranklist", "offset", "count") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, offset or count) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local upper = tonumber(data.upper_bound)
-    local lower = tonumber(data.lower_bound) 
-    if not upper or not lower then
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) are NOT number")
+    local offset = tonumber(data.offset)
+    local count = tonumber(data.count) 
+    if not offset or not count then
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(offset or count) are NOT number")
         return self.reply
     end 
-    upper = upper - 1
-    lower = lower - 1
+    offset = offset - 1
 
-    if upper < 0 or lower < 0 then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(upper_bound or lower_bound) can't be negtive")
+    if offset < 0 or count <= 0 then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(offset or count) can't be negtive or zero")
         return self.reply
     end
     
-    local r, err = rl:command("zrevrange", listName, lower, upper)
+    local r, err = rl:command("zrevrange", listName, offset, offset+count-1)
     if not r then  
         echoError("redis command zrevrange failed: %s", err)
         self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.GetRevRankRange failed")
