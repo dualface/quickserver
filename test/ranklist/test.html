@@ -7,9 +7,9 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    //ws = new WebSocket('ws://127.0.0.1:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
     //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
-    ws = new WebSocket('ws://115.28.88.113:8088/test');
+    //ws = new WebSocket('ws://115.28.88.113:8088/test');
     //115.28.88.113
     ws.onopen = function () {
         log('connected');
@@ -104,32 +104,8 @@ function GetScoreRange() {
     var data = {
         "_msgid": msg_id, 
         "action": "RankList.GetScoreRange", 
-        "lower_bound": lower, 
-        "upper_bound": upper, 
-        "ranklist": "myzset"
-    }
-
-    var jsonData = JSON.stringify(data)
-    ws.send(jsonData);
-    msg_id = msg_id + 1
-
-    return false;
-}
-
-function GetScoreRange() {
-    if (ws === null) return log('please connect first');
-    var lower= document.getElementById('lower').value;
-    var upper= document.getElementById('upper').value; 
-    document.getElementById('lower').value = "";
-    document.getElementById('upper').value= "";
-
-    log('get score range: '+ lower + ", " + upper);
-
-    var data = {
-        "_msgid": msg_id, 
-        "action": "RankList.GetScoreRange", 
-        "lower_bound": lower, 
-        "upper_bound": upper,
+        "min": lower, 
+        "max": upper, 
         "ranklist": "myzset"
     }
 
@@ -192,8 +168,8 @@ function GetRankRange() {
     var data = {
         "_msgid": msg_id, 
         "action": "RankList.GetRankRange", 
-        "lower_bound": lower, 
-        "upper_bound": upper, 
+        "offset": lower, 
+        "count": upper, 
         "ranklist": "myzset"
     }
 
@@ -216,8 +192,8 @@ function GetRevRankRange() {
     var data = {
         "_msgid": msg_id, 
         "action": "RankList.GetRevRankRange", 
-        "lower_bound": lower, 
-        "upper_bound": upper,
+        "offset": lower, 
+        "count": upper,
         "ranklist": "myzset"
     }
 
