@@ -89,22 +89,22 @@ function StoreAction:_UpdateIndexes(indexes, body, id)
     end
 
     -- create index tables
-    local shardIndexes = ngx.shared.INDEXES
+    local sharedIndexes = ngx.shared.INDEXES
     for _, p in pairs(indexes) do 
-        if shardIndexes:get(p) == nil then 
+        if sharedIndexes:get(p) == nil then 
             local createIndexSql = indexSql.CreateIndex(p)
             local ok, err = mySql:query(createIndexSql)
             if not ok then
                 echoInfo("create %s_index table failed: %s", property, err)
                 return ERR_STORE_OPERATION_FAILED
             end
-            shardIndexes:set(p, 1)
+            sharedIndexes:set(p, 1)
         end
     end
 
     -- store and update index tables
     for k, v in pairs(body) do 
-        if shardIndexes:get(k) == 1 then 
+        if sharedIndexes:get(k) == 1 then 
             local tblName = k .. "_index"
             local p = {[k]=v, ["entity_id"]=id}
             local ok, err = mySql:insert(tblName, p)
@@ -118,6 +118,8 @@ function StoreAction:_UpdateIndexes(indexes, body, id)
     return nil
 end 
 
+
+-- not used, clean redundant items by cleaner.lua now
 function StoreAction:_DeleteIndexes(body, id) 
     local mySql = self.Mysql
     if mySql == nil then 
@@ -125,12 +127,12 @@ function StoreAction:_DeleteIndexes(body, id)
         return ERR_STORE_OPERATION_FAILED
     end
 
-    local shardIndexes = ngx.shared.INDEXES
+    local sharedIndexes = ngx.shared.INDEXES
     for k in pairs(body) do 
-        if shardIndexes:get(k) == 1 then 
+        if sharedIndexes:get(k) == 1 then 
             local tblName = k .. "_index"
             local where = {entity_id = id}
-            local ok, err = mySql:insert(tblName, where)
+            local ok, err = mySql:del(tblName, where)
             if not ok then 
                 echoInfo("delete index table %s failed: %s", tblName, err)
                 return ERR_STORE_OPERATION_FAILED
@@ -210,7 +212,7 @@ function StoreAction:SaveObjAction(data)
 
         local err = self:_HandleInfos(infos, rawData)
         if err then 
-            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.SavObj failed: handle addtional_info failed.")
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.SaveObj failed: handle addtional_info failed.")
             return self.reply
         end
     end
@@ -224,12 +226,14 @@ function StoreAction:SaveObjAction(data)
 
     -- begin to handle indexs
     local indexes = data.indexes or {} 
-    for _, v in pairs(infos) do
-        if keywords[v] then 
-            table.insert(indexes, string.upper(v))
+    if infos ~= nil then 
+        for _, v in pairs(infos) do
+            if keywords[v] then 
+                table.insert(indexes, string.upper(v))
+            end
         end
     end
-    if next(indexes) ~= nil and type(indexes) == "table" then 
+    if type(indexes) == "table" then 
         err = self:_UpdateIndexes(indexes, body, params.id)
         if err then 
             echoInfo("operation Store.SaveObj success, but update index tables failed.")
@@ -269,6 +273,21 @@ function StoreAction:UpdateObjAction(data)
         return self.reply
     end
 
+    -- handle addtional_info, such as "IP" and "TIME"
+    local infos = data.addtional_info 
+    if infos ~= nil then
+        if type(infos) ~= "table" then 
+            self.reply = Err(ERR_STORE_INVALID_PARAM, "param(addtional_info) is NOT an array")
+            return self.reply
+        end
+
+        local err = self:_HandleInfos(infos, rawData)
+        if err then 
+            self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.UpdateObj failed: handle addtional_info failed.")
+            return self.reply
+        end
+    end
+
     local oriProperty = json.decode(res[1].body)
     local params, newProperty = ConstructParams(rawData)
     for k,v in pairs(newProperty) do 
@@ -284,6 +303,13 @@ function StoreAction:UpdateObjAction(data)
 
     -- begin to handle indexs
     local indexes = data.indexes or {} 
+    if infos ~= nil then
+        for _, v in pairs(infos) do
+            if keywords[v] then 
+                table.insert(indexes, string.upper(v))
+            end
+        end
+    end
     if type(indexes) == "table" then 
         err = self:_UpdateIndexes(indexes, oriProperty, params.id)
         if err then 
@@ -400,7 +426,6 @@ function StoreAction:FindObjAction(data)
     return self.reply
 end
 
---[[
 function StoreAction:CreateIndexAction(data)
     assert(type(data) == "table", "data is NOT a table.")
 
@@ -416,14 +441,20 @@ function StoreAction:CreateIndexAction(data)
 
     local property = data.property
     if property == nil or type(property) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(prorperty) is missed")
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property) is missed")
+        return self.reply
     end 
 
     local createIndexSql = indexSql.CreateIndex(property)
     local ok, err = mySql:query(createIndexSql)
     if not ok then
-        throw(ERR_SERVER_MYSQL_ERROR, "create %s_index table failed: %s", property, err)
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.CreateIndex for property '%s' failed: %s", property, err)
+        return self.reply
     end
+
+    -- add new index to global shared memory
+    local sharedIndexes = ngx.shared.INDEXES
+    sharedIndexes:set(property, 1)
 
     return self.reply
 end
@@ -443,18 +474,23 @@ function StoreAction:DeleteIndexAction(data)
     
     local property = data.property
     if property == nil or type(property) ~= "string" then 
-        throw(ERR_SERVER_INVALID_PARAMETERS, "param(property) is missed")
+        self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property) is missed")
+        return self.reply
     end
 
-    local deleteIndexSql = indexSql.DeleteIndex(property)
-    local ok, err = mySql:query(deleteIndexSql)
+    local dropIndexSql = indexSql.DropIndex(property)
+    local ok, err = mySql:query(dropIndexSql)
     if not ok then
-        throw(ERR_SERVER_MYSQL_ERROR, "delete %s_index table failed: %s", property, err)
+        self.reply = Err(ERR_STORE_OPERATION_FAILED, "operation Store.DeleteIndex for property %s failed: %s", property, err)
+        return self.reply
     end
+
+    -- delete index from global shard memory
+    local sharedIndexes = ngx.shared.INDEXES
+    sharedIndexes:set(property, nil)
 
     return self.reply
 end
---]]
 
 return StoreAction
 
