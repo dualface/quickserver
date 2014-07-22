@@ -440,7 +440,7 @@ function StoreAction:CreateIndexAction(data)
     end
 
     local property = data.property
-    if property == nil or type(property) ~= "string" then 
+    if property == nil or type(property) ~= "string" or property == "" then 
         self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property) is missed")
         return self.reply
     end 
@@ -473,7 +473,7 @@ function StoreAction:DeleteIndexAction(data)
     end
     
     local property = data.property
-    if property == nil or type(property) ~= "string" then 
+    if property == nil or type(property) ~= "string" or property == "" then 
         self.reply = Err(ERR_STORE_INVALID_PARAM, "param(property) is missed")
         return self.reply
     end
@@ -488,6 +488,22 @@ function StoreAction:DeleteIndexAction(data)
     -- delete index from global shard memory
     local sharedIndexes = ngx.shared.INDEXES
     sharedIndexes:set(property, nil)
+
+    return self.reply
+end
+
+function StoreAction:ShowIndexAction(data)
+    assert(type(data) == "table", "data is NOT a table.")
+
+    local sharedIndexes = ngx.shared.INDEXES
+    if sharedIndexes == nil then 
+        throw(ERR_SERVER_UNKNOWN_ERROR, "shared INDEXES is nil.")
+    end
+
+    local keys = sharedIndexes:get_keys() -- retur only the first 1024 indexes
+    if keys ~= nil and next(keys) ~= nil then
+       self.reply.keys = keys
+    end
 
     return self.reply
 end
