@@ -103,7 +103,8 @@ function RankListAction:AddAction(data)
         self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.Add failed")
         return self.reply
     end 
-
+    
+    self.reply.ok = 1
     return self.reply
 end
 
@@ -132,6 +133,7 @@ function RankListAction:RemoveAction(data)
         return self.reply
     end 
 
+    self.reply.ok = 1
     return self.reply
 end
 
@@ -428,6 +430,7 @@ function RankListAction:LimitAction(data)
         return self.reply
     end 
 
+    self.reply.ok = 1
     return self.reply 
 end
 
@@ -468,6 +471,7 @@ function RankListAction:RevLimitAction(data)
         return self.reply
     end 
 
+    self.reply.ok = 1
     return self.reply
 end
 
