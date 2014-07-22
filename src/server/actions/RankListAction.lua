@@ -423,6 +423,11 @@ function RankListAction:LimitAction(data)
         return self.reply
     end 
 
+    if count < 0 then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(count) can't be negtive")
+        return self.reply
+    end
+
     local ok, err = rl:command("zremrangebyrank", listName, count, -1) 
     if not ok then 
         echoError("redis command zremrangebyrank faild: %s", err)
@@ -456,6 +461,11 @@ function RankListAction:RevLimitAction(data)
         return self.reply
     end
 
+    if count < 0 then
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(count) can't be negtive")
+        return self.reply
+    end
+
     local len, err = rl:command("zcard", listName) 
     if not len then 
         echoError("redis command zcard failed: %s", err)
@@ -463,13 +473,15 @@ function RankListAction:RevLimitAction(data)
         return self.reply
     end 
 
-    local ok = nil
-    ok, err = rl:command("zremrangebyrank", listName, 0, len-count-1) 
-    if not ok then 
-        echoError("redis command zremrangebyrank failed: %s", err)
-        self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.RevLimit failed")
-        return self.reply
-    end 
+    if len > count then 
+        local ok = nil
+        ok, err = rl:command("zremrangebyrank", listName, 0, len-count-1) 
+        if not ok then 
+            echoError("redis command zremrangebyrank failed: %s", err)
+            self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.RevLimit failed")
+            return self.reply
+        end 
+    end
 
     self.reply.ok = 1
     return self.reply
