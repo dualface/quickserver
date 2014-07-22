@@ -155,6 +155,22 @@ function CreateIndex() {
     return false;
 }
 
+function ShowIndex() {
+    if (ws === null) return log('please connect first');
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "Store.ShowIndex" 
+    }
+
+    var jsonData = JSON.stringify(data);
+    ws.send(jsonData);
+    msg_id = msg_id + 1;
+
+    log('ShowIndex: ' + jsonData);
+
+    return false;
+}
 function DeleteIndex() {
     if (ws === null) return log('please connect first');
     var p1 = document.getElementById('p1').value;
@@ -166,9 +182,9 @@ function DeleteIndex() {
         "property": p1
     }
 
-    var jsonData = JSON.stringify(data)
+    var jsonData = JSON.stringify(data);
     ws.send(jsonData);
-    msg_id = msg_id + 1
+    msg_id = msg_id + 1;
 
     log('DeleteIndex: ' + jsonData);
 
@@ -216,6 +232,10 @@ function log(text) {
 <form onsubmit="return DeleteIndex();">
     <button type="submit">DeleteIndex</button>
 </form>
+<form onsubmit="return ShowIndex();">
+    <button type="submit">ShowIndex</button>
+</form>
+
 <ol id="log"></ol>
 </body>
 </html>
