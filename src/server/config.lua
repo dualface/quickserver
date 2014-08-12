@@ -30,6 +30,11 @@ local config = {
         password   = "123456",
         timeout    = 10 * 1000,
     },
+
+    userDefinedCodes = {
+        local_repo  = "/home/cheeray/work/user_codes/",
+        uriPrefix  = "http_test",
+    },
 }
 
 return config
