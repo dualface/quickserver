@@ -32,7 +32,8 @@ local config = {
     },
 
     userDefinedCodes = {
-        local_repo  = "/home/cheeray/work/user_codes/",
+        localRepo  = "/home/cheeray/work/user_codes/",
+        localDest  = "/home/cheeray/work/quick-x-server/src/server/actions", 
         uriPrefix  = "http_test",
     },
 }
