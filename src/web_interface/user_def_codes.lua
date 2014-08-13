@@ -10,7 +10,6 @@ local function PullCode(files)
     end
 
     local cmd = string.format("%s %s %s %s", SHELL, repo, dest, files)
-    ngx.say(cmd)
     local ok = os.execute(cmd)
     if ok == 0 then
         ngx.say("ok")
@@ -29,7 +28,6 @@ if args["files"] then
         files = args["files"]
     end
 
-    ngx.say("files :", files)
     PullCode(files)
 else
     ngx.say("param 'files' missed")
