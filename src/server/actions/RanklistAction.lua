@@ -2,7 +2,7 @@
 --
 --REQ
     {
-        "acton" : "RankList.add", 
+        "acton" : "Ranklist.add", 
         "key": "hqy"
         "value": "92"
         ]
@@ -188,7 +188,7 @@ end
 
 -- zrangebysocre
 -- param: ranklist, min, max 
-function RankListAction:GetScoreRangeAction(data)
+function RankListAction:GetscorerangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList
@@ -235,7 +235,7 @@ end
 
 -- zrank 
 -- param: ranklist, key
-function RankListAction:GetRankAction(data) 
+function RankListAction:GetrankAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList
@@ -266,7 +266,7 @@ end
 
 -- zrevrank 
 -- param: ranklist, key
-function RankListAction:GetRevRankAction(data) 
+function RankListAction:GetrevrankAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList
@@ -297,7 +297,7 @@ end
 
 -- zrange 
 -- param: ranklist, offset, count 
-function RankListAction:GetRankRangeAction(data)
+function RankListAction:GetrankrangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList
@@ -350,7 +350,7 @@ end
 
 -- zrevrange
 -- param: ranklist, offset, count 
-function RankListAction:GetRevRankRangeAction(data)
+function RankListAction:GetrevrankrangeAction(data)
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList
@@ -441,7 +441,7 @@ end
 
 -- zremrangebyrank, used for reduce some element from head, contrary to zset:Limit()
 -- param: ranklist, count
-function RankListAction:RevLimitAction(data) 
+function RankListAction:RevlimitAction(data) 
     assert(type(data) ==  "table", "data is NOT a table")
 
     local rl = self.rankList

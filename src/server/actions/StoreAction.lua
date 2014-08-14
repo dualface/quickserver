@@ -186,7 +186,7 @@ function StoreAction:_HandleInfos(infos, rawData)
     end
 end
 
-function StoreAction:SaveObjAction(data) 
+function StoreAction:SaveobjAction(data) 
     assert(type(data) == "table", "data is NOT a table")
 
     echoInfo("remote_addr = %s", ngx.var.remote_addr)
@@ -244,7 +244,7 @@ function StoreAction:SaveObjAction(data)
     return self.reply 
 end 
 
-function StoreAction:UpdateObjAction(data)
+function StoreAction:UpdateobjAction(data)
     assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
@@ -321,7 +321,7 @@ function StoreAction:UpdateObjAction(data)
     return self.reply
 end
 
-function StoreAction:DeleteObjAction(data)
+function StoreAction:DeleteobjAction(data)
     assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
@@ -349,7 +349,7 @@ function StoreAction:DeleteObjAction(data)
     return self.reply
 end
 
-function StoreAction:FindObjAction(data) 
+function StoreAction:FindobjAction(data) 
     assert(type(data) == "table", "data is NOT a table")
 
     local mySql = self.Mysql
@@ -426,7 +426,7 @@ function StoreAction:FindObjAction(data)
     return self.reply
 end
 
-function StoreAction:CreateIndexAction(data)
+function StoreAction:CreateindexAction(data)
     assert(type(data) == "table", "data is NOT a table.")
 
     local indexSql = self.indexSql
@@ -459,7 +459,7 @@ function StoreAction:CreateIndexAction(data)
     return self.reply
 end
 
-function StoreAction:DeleteIndexAction(data) 
+function StoreAction:DeleteindexAction(data) 
     assert(type(data) == "table", "data is NOT a table.")
 
     local indexSql = self.indexSql
@@ -492,7 +492,7 @@ function StoreAction:DeleteIndexAction(data)
     return self.reply
 end
 
-function StoreAction:ShowIndexAction(data)
+function StoreAction:ShowindexAction(data)
     assert(type(data) == "table", "data is NOT a table.")
 
     local sharedIndexes = ngx.shared.INDEXES

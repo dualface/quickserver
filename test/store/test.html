@@ -7,9 +7,9 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    //ws = new WebSocket('ws://127.0.0.1:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
     //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
-    ws = new WebSocket('ws://115.28.88.113:8088/test');
+    //ws = new WebSocket('ws://115.28.88.113:8088/test');
     //ws = new WebSocket('ws://128.199.140.15:8088/test');
     //ws = new WebSocket('ws://172.17.0.2:8088/test');  //local docker
     //115.28.88.113, cheeray-aliyun
@@ -45,8 +45,8 @@ function FindObj() {
         "_msgid": msg_id, 
         "action": "Store.FindObj", 
         //"id": p1
-        "property": "key2",
-        "property_value": "i_name_1"
+        "property": "i_name",
+        "property_value": "upperlower"
     }
 
     var jsonData = JSON.stringify(data)
@@ -65,7 +65,7 @@ function DeleteObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.DeleteObj", 
+        "action": "Store.deleteobj", 
         "id": p1
     }
 
@@ -89,7 +89,7 @@ function  UpdateObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.UpdateObj", 
+        "action": "Store.UPdAteOBJ", 
         "id": p1,
         "rawdata": [
         {"i_name": p2}, 
@@ -119,7 +119,7 @@ function SaveObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.SaveObj", 
+        "action": "Store.SAVEOBJ", 
         "rawdata": [
         {"key1": p1}, 
         {"property": p2},
@@ -145,7 +145,7 @@ function CreateIndex() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.CreateIndex", 
+        "action": "Store.creAteindex", 
         "property": p1
     }
 

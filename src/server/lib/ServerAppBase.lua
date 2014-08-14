@@ -29,8 +29,8 @@ end
 
 function ServerAppBase:doRequest(actionName, data)
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
-    actionModuleName = string.format("%s.%s%s", self.config.actionPackage, string.ucfirst(actionModuleName), self.config.actionModuleSuffix)
-    actionMethodName = actionMethodName .. "Action"
+    actionModuleName = string.format("%s.%s%s", self.config.actionPackage, string.ucfirst(string.lower(actionModuleName)), self.config.actionModuleSuffix)
+    actionMethodName = string.ucfirst(string.lower(actionMethodName)) .. "Action"
 
     local actionModule = self:require(actionModuleName)
     local t = type(actionModule)
