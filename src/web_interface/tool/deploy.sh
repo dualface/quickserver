@@ -5,9 +5,11 @@ else
 fi
 
 #pwd > /tmp/1.txt 
-git pull >> /tmp/1.txt
+git pull
 
 shift
 DEST=$1
 shift
-cp $* $DEST
+COMMIT=$1
+git reset --hard $COMMIT 
+cp *.lua $DEST
