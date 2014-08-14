@@ -44,7 +44,13 @@ function HttpServerBase:runEventLoop()
 
     local uri = self.uri
     local prefixLen = string.len(self.config.userDefinedCodes.uriPrefix)
-    local rawAction = string.sub(uri, prefixLen+3, -1)
+    local rawAction = nil
+    if prefixLen == 0 then
+        rawAction = string.sub(uri, prefixLen+1, -1)
+    else
+        rawAction = string.sub(uri, prefixLen+3, -1)
+    end
+
     rawAction = string.gsub(rawAction, "/", ".")
 
     echoInfo("requst via HTTP,  Action: %s", rawAction)
