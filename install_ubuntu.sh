@@ -14,7 +14,7 @@ DEST_DIR=/opt/quick_server
 BUILD_DIR=/tmp/install_quick_server
 THIRD_PARTY_DIR=$DEST_DIR/third_party
 
-OPENRESTY_VER=1.4.3.1
+OPENRESTY_VER=1.7.2.1
 LUAROCKS_VER=2.1.1
 LIBYAML_VER=0.1.4
 REDIS_VAR=2.6.16
@@ -38,12 +38,14 @@ cd $BUILD_DIR
 wget http://openresty.org/download/ngx_openresty-$OPENRESTY_VER.tar.gz
 tar zxf ngx_openresty-$OPENRESTY_VER.tar.gz
 cd ngx_openresty-$OPENRESTY_VER/bundle
-rm -fr ngx_lua-*
-wget https://github.com/dualface/lua-nginx-module/archive/fix-sockets.zip
-unzip fix-sockets.zip
-rm fix-sockets.zip
-mv lua-nginx-module-fix-sockets ngx_lua-1
-cd ..
+
+#don't need socket patch anymore
+#rm -fr ngx_lua-*
+#wget https://github.com/dualface/lua-nginx-module/archive/fix-sockets.zip
+#unzip fix-sockets.zip
+#rm fix-sockets.zip
+#mv lua-nginx-module-fix-sockets ngx_lua-1
+#cd ..
 
 ./configure --prefix=$DEST_DIR/openresty --with-luajit
 make
