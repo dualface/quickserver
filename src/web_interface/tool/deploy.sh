@@ -12,4 +12,4 @@ DEST=$1
 shift
 COMMIT=$1
 git reset --hard $COMMIT 
-cp *.lua $DEST
+cp ./* $DEST -rf
