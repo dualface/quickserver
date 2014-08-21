@@ -1,1 +1,1 @@
-nginx -p $(pwd)/ -c conf/nginx.conf
+sudo ./sbin/nginx -p $(pwd)/ -c conf/nginx.conf
