@@ -12,14 +12,14 @@ function HttpServerApp:ctor(config)
 
 end
 
-function HttpServerApp:doRequest(actionName, data)
+function HttpServerApp:doRequest(actionName, data, userDefModule)
     if self.config.debug then
         --printLog("ACTION", ">> call [%s]", actionName)
         echoInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
-        return HttpServerApp.super.doRequest(self, actionName, data)
+        return HttpServerApp.super.doRequest(self, actionName, data, userDefModule)
     end, function(msg) return {error = msg} end)
 
     if self.config.debug then

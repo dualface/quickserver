@@ -14,6 +14,7 @@ function ServerAppBase:ctor(config)
     self.config.appModuleName = config.appModuleName or "app"
     self.config.actionPackage = config.actionPackage or "actions"
     self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
+
 end
 
 function ServerAppBase:run()
@@ -27,9 +28,14 @@ function ServerAppBase:runEventLoop()
     throw(ERR_SERVER_OPERATION_FAILED, "ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
-function ServerAppBase:doRequest(actionName, data)
+function ServerAppBase:doRequest(actionName, data, userDefModule)
+    local actionPackage = self.config.actionPackage 
+    if userDefModule then
+        actionPackage = "user_codes." .. userDefModule
+    end
+
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
-    actionModuleName = string.format("%s.%s%s", self.config.actionPackage, string.ucfirst(string.lower(actionModuleName)), self.config.actionModuleSuffix)
+    actionModuleName = string.format("%s.%s%s", actionPackage, string.ucfirst(string.lower(actionModuleName)), self.config.actionModuleSuffix)
     actionMethodName = string.ucfirst(string.lower(actionMethodName)) .. "Action"
 
     local actionModule = self:require(actionModuleName)

@@ -3,6 +3,28 @@ local ServerAppBase = import(".ServerAppBase")
 
 local HttpServerBase = class("HttpServerBase", ServerAppBase)
 
+local function GetActionFromURI(uri, uriPrefix) 
+    local prefix = uriPrefix 
+    local userDefModule = nil
+    if type(uriPrefix) == "table" then  
+        for k,v in pairs(prefix) do 
+            if string.find(uri, v) then 
+                prefix = v
+                userDefModule = k
+                break;
+            end
+        end
+    end
+
+    local pos = string.find(uri, prefix) 
+    if type(uriPrefix) == "string" then 
+        pos = string.find(string.upper(uri), prefix)
+    end
+    local action = string.sub(uri, pos+string.len(prefix)+1, -1)
+
+    return string.gsub(action, "/", "."), userDefModule 
+end
+
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
 
@@ -39,44 +61,33 @@ function HttpServerBase:ctor(config)
 end
 
 function HttpServerBase:runEventLoop()
-    --ngx.say("call: "..self.uri)
-    --ngx.say("uri_prefix: " .. self.config.userDefinedCodes.uriPrefix)
+    -- "/_SERVER/*" points to default local service.
+    local LOCAL_URI_PREFIX = [[_SERVER]]
 
+    local uriPrefix = self.config.userDefinedCodes.uriPrefix
     local uri = self.uri
-    local prefixLen = string.len(self.config.userDefinedCodes.uriPrefix)
-    local rawAction = nil
-    if prefixLen == 0 then
-        rawAction = string.sub(uri, prefixLen+1, -1)
-    else
-        rawAction = string.sub(uri, prefixLen+3, -1)
+    local rawAction = {}
+    if string.find(string.upper(uri), LOCAL_URI_PREFIX) then
+        rawAction.action = GetActionFromURI(uri, LOCAL_URI_PREFIX)  
+    else 
+        rawAction.action, rawAction.userDefModule = GetActionFromURI(uri, uriPrefix)
     end
-
-    rawAction = string.gsub(rawAction, "/", ".")
-
-    echoInfo("requst via HTTP,  Action: %s", rawAction)
+    
+    echoInfo("requst via HTTP,  Action: %s", rawAction.action)
     self:dumpParams()
 
-    local result = self:doRequest(rawAction, self.requestParameters)
+    local result = self:doRequest(rawAction.action, self.requestParameters, rawAction.userDefModule)
     if result and type(result) == "table" then
         -- simple http rsp
         ngx.say(json.encode(result))
     end
+    
 end
 
 -- for test
 function HttpServerBase:dumpParams()
     echoInfo("DUMP HTTP params: %s", json.encode(self.requestParameters))
-    --[[
-    for k,v in pairs(self.requestParameters) do
-        if type(v) == "table" then
-            echoInfo("%s : %s", k, table.concat(v, ", "))
-            --ngx.say(k, " :", table.concat(v, ", "))
-        else
-            echoInfo("%s : %s", k, v)
-            --ngx.say(k, " :", v)
-        end
-    end
-    --]]
+
 end
 
 return HttpServerBase
