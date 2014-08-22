@@ -8,19 +8,23 @@ local function GetActionFromURI(uri, uriPrefix)
     local userDefModule = nil
     if type(uriPrefix) == "table" then  
         for k,v in pairs(prefix) do 
-            if string.find(uri, v) then 
+            if string.find(string.upper(uri), string.upper(v)) then 
                 prefix = v
                 userDefModule = k
-                break;
+                break
             end
         end
     end
 
-    local pos = string.find(uri, prefix) 
-    if type(uriPrefix) == "string" then 
-        pos = string.find(string.upper(uri), prefix)
+    local action = nil
+    if type(prefix) ~= "table" then 
+        echoInfo(type(prefix))
+        local pos = string.find(string.upper(uri), string.upper(prefix)) 
+        action = string.sub(uri, pos+string.len(prefix)+1, -1)
+    else 
+       echoInfo("Can't get actions from uri.") 
+       return "", nil
     end
-    local action = string.sub(uri, pos+string.len(prefix)+1, -1)
 
     return string.gsub(action, "/", "."), userDefModule 
 end
