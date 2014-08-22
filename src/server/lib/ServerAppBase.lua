@@ -31,7 +31,7 @@ end
 function ServerAppBase:doRequest(actionName, data, userDefModule)
     local actionPackage = self.config.actionPackage 
     if userDefModule then
-        actionPackage = "user_codes." .. userDefModule
+        actionPackage = "user_codes." .. userDefModule .. ".actions"
     end
 
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
