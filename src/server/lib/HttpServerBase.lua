@@ -77,9 +77,16 @@ function HttpServerBase:runEventLoop()
     self:dumpParams()
 
     local result = self:doRequest(rawAction.action, self.requestParameters, rawAction.userDefModule)
-    if result and type(result) == "table" then
-        -- simple http rsp
-        ngx.say(json.encode(result))
+
+    -- simple http rsp
+    if result  then
+        if type(result) == "string" then 
+            ngx.say(result) 
+        elseif type(result) == "table" then 
+            ngx.say(json.encode(result))
+        else 
+            ngx.say("unexpected result: ", tostring(result))
+        end
     end
     
 end
