@@ -24,7 +24,7 @@ function SayAction:SayFunc(jsonStr)
     local tbl = json.decode(jsonStr)
 
     -- return a table
-    return {hi = tbl.name}
+    return {hi_in_server = tbl.name}
 end
 
 -- you can write more functions and codes, according to your requirement.

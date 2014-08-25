@@ -13,7 +13,8 @@ end
 
 -- another action
 function HiAction:SayhiAction(data)
-
+    
+    return {dont_want_say_hi = data.name}
 end
 
 -- you can write other func
