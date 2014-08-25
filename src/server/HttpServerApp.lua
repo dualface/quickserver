@@ -20,7 +20,7 @@ function HttpServerApp:doRequest(actionName, data, userDefModule)
 
     local _, result = xpcall(function()
         return HttpServerApp.super.doRequest(self, actionName, data, userDefModule)
-    end, function(msg) return {error = msg} end)
+    end, function() return {error = "Handle http request failed: actions module or file not found"} end)
 
     if self.config.debug then
         local j = json.encode(result)
