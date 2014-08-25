@@ -32,8 +32,8 @@ local config = {
     },
 
     userDefinedCodes = {
-        localRepo  = "/home/cheeray/work/user_codes/",
-        localDest  = "/home/cheeray/work/quick-x-server/src/server/user_codes", 
+        localRepo  = "/opt/user_codes/",
+        localDest  = "/quick_server/openresty/server/user_codes", 
         uriPrefix  = {
             module1 = "http_test1", 
             module2 = "http_test2", 

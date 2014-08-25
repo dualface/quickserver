@@ -1,6 +1,6 @@
 CURRDIR=$(pwd)
 DIR=/opt/quick_server/openresty/nginx/
-SRCDIR=/opt/quick-x-server/src/server/actions/tools/
+SRCDIR=/opt/quick_server/openresty/server/actions/tools/
 
 /opt/quick_server/redis/bin/redis-server /opt/quick_server/conf/redis.conf
 

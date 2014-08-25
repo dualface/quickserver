@@ -1,6 +1,5 @@
 CURRDIR=$(pwd)
 DIR=/opt/quick_server/openresty/nginx/
-SRCDIR=/opt/quick-x-server/src/server/actions/tools/
 
 PID=$(ps -ef | grep "sleep 60" | awk '{print $3}')
 
