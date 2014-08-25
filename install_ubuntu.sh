@@ -10,6 +10,7 @@ set -e
 
 apt-get install -y build-essential libpcre3-dev git-core unzip
 
+CUR_DIR=$(pwd)
 DEST_DIR=/opt/quick_server
 BUILD_DIR=/tmp/install_quick_server
 THIRD_PARTY_DIR=$DEST_DIR/third_party
@@ -32,6 +33,7 @@ mkdir -p $DEST_DIR/beanstalkd/bin
 mkdir -p $DEST_DIR/db
 mkdir -p $DEST_DIR/logs
 mkdir -p $DEST_DIR/conf
+mkdir -p $DEST_DIR/openresty
 
 # install openresty
 cd $BUILD_DIR
@@ -52,6 +54,7 @@ make
 make install
 
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit $DEST_DIR/openresty/luajit/bin/lua
+cp $CUR_DIR/src/* $DEST_DIR/openresty/ -rf
 
 # install luarocks
 cd $BUILD_DIR
@@ -59,7 +62,7 @@ wget http://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz
 tar zxf luarocks-$LUAROCKS_VER.tar.gz
 cd luarocks-$LUAROCKS_VER
 
-./configure --prefix=$DEST_DIR/openresty/luajit --with-lua=$DEST_DIR/openresty/luajit --with-lua-include=$DEST_DIR/openresty/luajit/include/luajit-2.0
+./configure --prefix=$DEST_DIR/openresty/luajit --with-lua=$DEST_DIR/openresty/luajit --with-lua-include=$DEST_DIR/openresty/luajit/include/luajit-2.1
 make build
 make install
 
