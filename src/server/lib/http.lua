@@ -20,7 +20,7 @@ local default = {
 
 
 -- global variables
-local url = require("resty.url")
+local url = require("server.lib.url")
 
 local mt = { __index = resty.http }
 
