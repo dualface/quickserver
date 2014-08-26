@@ -13,11 +13,14 @@
 
 ### Install via Shell Script
 
-1. Download codes from github or osc. 
+1. Download codes from github or osc.
+
    github:
    https://github.com/dualface/quickserver.git
+   
    OSChina mirror:
    https://git.oschina.net/cheerayhuang/quick-x-server.git
+   
 2. Run shell script **install_ubuntu.sh** in root of codes dir.
 
 ## Change Log
