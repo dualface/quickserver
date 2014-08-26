@@ -15,9 +15,13 @@
 ### 通过Shell脚本安装
 
 1. 从github或者OSChina下载quick-server源码：
+
+   github:
    https://github.com/dualface/quickserver.git
+
    在OSChina有镜像仓库：
    https://git.oschina.net/cheerayhuang/quick-x-server.git
+
 2. 在源码根目录下运行脚本 **install_ubuntu.sh**。
 
 ## 版本日志
