@@ -1,4 +1,4 @@
-# Quick-Server(中文)
+# Quick-Server
 ## 基于OpenResty的服务器框架
 
 ---
