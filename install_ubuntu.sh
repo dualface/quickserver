@@ -39,7 +39,7 @@ mkdir -p $DEST_DIR/openresty
 cd $BUILD_DIR
 wget http://openresty.org/download/ngx_openresty-$OPENRESTY_VER.tar.gz
 tar zxf ngx_openresty-$OPENRESTY_VER.tar.gz
-cd ngx_openresty-$OPENRESTY_VER/bundle
+cd ngx_openresty-$OPENRESTY_VER
 
 #don't need socket patch anymore
 #rm -fr ngx_lua-*
@@ -54,10 +54,11 @@ make
 make install
 
 # compile lua codes to bytecode, and deploy them.
-ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha usr/bin/lua
+ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
+ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_DIR/openresty/luajit/bin/lua
 #cp $CUR_DIR/src/* $DEST_DIR/openresty/ -rf
 cd $CUR_DIR/tool/
-./complile_bytecode.sh
+./compile_bytecode.sh
 
 # install luarocks
 cd $BUILD_DIR
