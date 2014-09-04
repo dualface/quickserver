@@ -53,8 +53,11 @@ cd ngx_openresty-$OPENRESTY_VER/bundle
 make
 make install
 
-ln -f -s $DEST_DIR/openresty/luajit/bin/luajit $DEST_DIR/openresty/luajit/bin/lua
-cp $CUR_DIR/src/* $DEST_DIR/openresty/ -rf
+# compile lua codes to bytecode, and deploy them.
+ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha usr/bin/lua
+#cp $CUR_DIR/src/* $DEST_DIR/openresty/ -rf
+cd $CUR_DIR/tool/
+./complile_bytecode.sh
 
 # install luarocks
 cd $BUILD_DIR
