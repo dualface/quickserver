@@ -1,6 +1,6 @@
 local config = require("server.config")
 
-local SHELL = "/home/cheeray/work/quick-x-server/src/web_interface/tool/deploy.sh"
+local SHELL = "/opt/quick_server/openresty/web_interface/tool/deploy.sh"
 
 local function PullCode(commit)
     local repo = config.userDefinedCodes.localRepo

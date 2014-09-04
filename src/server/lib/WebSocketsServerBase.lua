@@ -116,10 +116,11 @@ function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
 
     local msgid = message._msgid
     local actionName = message.action
+    local userDefModule = message.user_def_mod
 
-    echoInfo("msgid: %s, action: %s", message._msgid, message.action)
+    echoInfo("msgid: %s, action: %s, user_def_mod: %s", message._msgid, message.action, message.user_def_mod)
 
-    local result = self:doRequest(actionName, message)
+    local result = self:doRequest(actionName, message, userDefModule)
     if type(result) == "table" then
         if msgid then
             result._msgid = msgid

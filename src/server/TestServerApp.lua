@@ -35,15 +35,15 @@ function TestServerApp:ctor(config)
 
 end
 
-function TestServerApp:doRequest(actionName, data)
+function TestServerApp:doRequest(actionName, data, userDefModule)
     if self.config.debug then
         --printLog("ACTION", ">> call [%s]", actionName)
         echoInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
-        return TestServerApp.super.doRequest(self, actionName, data)
-    end, function(msg) return {error = "Handle http request failed: actions module or file not found"} end)
+        return TestServerApp.super.doRequest(self, actionName, data, userDefModule)
+    end, function(msg) return {error = "Handle request failed: actions module or file not found"} end)
 
     if self.config.debug then
         local j = json.encode(result)
