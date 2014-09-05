@@ -1,4 +1,4 @@
-export LUA_PATH="/opt/quick_server/openresty/server/?.lua;/opt/quick_server/openresty/lualib/?.lua;;"
+export LUA_PATH="/opt/quick_server/openresty/?.lua;/opt/quick_server/openresty/lualib/?.lua;;"
 
 DIR=$(pwd)
 
