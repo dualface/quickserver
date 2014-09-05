@@ -108,7 +108,7 @@ cp src/redis-sentinel $DEST_DIR/redis/bin
 cp src/redis-benchmark $DEST_DIR/redis/bin
 cp src/redis-check-aof $DEST_DIR/redis/bin
 cp src/redis-check-dump $DEST_DIR/redis/bin
-cp redis.conf $DEST_DIR/conf
+#cp redis.conf $DEST_DIR/conf
 
 # install beanstalkd
 cd $BUILD_DIR
