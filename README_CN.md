@@ -30,6 +30,7 @@
 
 - 更新OpenResty到1.7.2版本。 
 - 除了使用HTTP协议，现在也可以使用WebSocket协议访问用户自定义的代码了。
+- 修正了索引维护脚本代码里LUA_PATH路径。
 - 基于github的wiki完善了中文Quick-Server Wiki文档。
 - Quick-Server现在基于Docker发布的是lua字节码。并且修改ubuntu下的安装脚本，更正了一些安装错误。
 
