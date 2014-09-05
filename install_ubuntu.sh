@@ -66,6 +66,7 @@ cp start_quick_server.sh stop_quick_server.sh /opt/. -f
 #copy nginx and redis conf file
 cp $CUR_DIR/conf/nginx.conf $DEST_DIR/openresty/nginx/conf/. -f
 cp $CUR_DIR/conf/redis.conf $DEST_DIR/conf/. -f
+mkdir -p $DEST_DIR/redis/rdb
 
 # install luarocks
 cd $BUILD_DIR
