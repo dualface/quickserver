@@ -39,7 +39,7 @@ cc.server.Session               = require(cc.PACKAGE_NAME .. ".Session")
 cc.server.RedisEasy             = require(cc.PACKAGE_NAME .. ".RedisEasy")
 cc.server.BeanstalkdEasy        = require(cc.PACKAGE_NAME .. ".BeanstalkdEasy")
 cc.server.MysqlEasy             = require(cc.PACKAGE_NAME .. ".MysqlEasy")
-cc.server.RankList              = require(cc.PACKAGE_NAME .. ".RankList")
+--cc.server.RankList              = require(cc.PACKAGE_NAME .. ".RankList")
 cc.server.http                  = require(cc.PACKAGE_NAME .. ".http")
 cc.server.url                   = require(cc.PACKAGE_NAME .. ".url")
 
