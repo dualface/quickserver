@@ -10,7 +10,7 @@ cd $DIR
 . ./start.sh
 
 cd $SRCDIR
-. ./cleaner.sh  > /opt/.cleaner.log 2> /opt/.cleaner.log &
+. ./cleaner.sh  > /dev/null 2> /opt/.cleaner.log &
 
 cd $CURRDIR
 
