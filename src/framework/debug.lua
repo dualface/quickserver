@@ -61,7 +61,7 @@ function throw(errorType, fmt, ...)
         arg[k] = tostring(v)
     end
     local msg = string.format(tostring(fmt), unpack(arg))
-    error(string.format("<<%s>> - %s", tostring(errorType), msg), 2)
+    error(string.format("<<%s>> - %s", tostring(errorType), msg), 0)
 end
 
 function dump(object, label, isReturnContents, nesting)
