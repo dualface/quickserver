@@ -8,3 +8,10 @@ CREATE TABLE IF NOT EXISTS entity(
     UNIQUE KEY (id)
 ) ENGINE=InnoDB;
 
+
+CREATE TABLE IF NOT EXISTS user_info(
+    uid varchar(32) NOT NULL PRIMARY KEY,
+    session_id varchar(32) NOT NULL,
+    ip char(17) NOT NULL,
+    INDEX(session_id)
+) ENGINE=InnoDB;
