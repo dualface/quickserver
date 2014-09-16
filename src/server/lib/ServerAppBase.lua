@@ -29,7 +29,7 @@ function ServerAppBase:runEventLoop()
 end
 
 function ServerAppBase:doRequest(actionName, data, userDefModule)
-    local actionPackage = self.config.actionPackage 
+    local actionPackage = self.config.actionPackage
     if userDefModule then
         actionPackage = "user_codes." .. userDefModule .. ".actions"
     end
@@ -53,7 +53,54 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
     if not data then
         data = self.requestParameters or {}
     end
+
+    if actionMethodName ~= "LoginAction" then
+        if not self:checkAccessToken(data) then
+           throw(ERR_SERVER_INVALID_SESSION_ID, "session id is invalid or does NOT exist when calling %s:%s.", actionModuleName, actionMethodName)
+        end
+    end
+
     return method(action, data)
+end
+
+function ServerAppBase:checkAccessToken(data)
+    if data.session_id == nil or data.session_id == "" then
+        return false
+    end
+
+    local findSql = string.format([[select uid, ip from user_info where session_id = '%s';]], data.session_id)
+
+    local mysql = self:getMysql()
+    local redis = self:getRedis()
+
+    local res, err = mysql:query(findSql)
+    if not res then
+        mysql:close()
+        redis:close()
+        return false
+    end
+    local uid = res[1].uid
+    local ip = res[1].ip
+
+    if ip ~= ngx.var.remote_addr then
+        echoInfo("ip from session_id is not same as remote client ip.")
+        msyql:close()
+        redis:close()
+        return false
+    end
+
+    -- "__token_expire" is a hash for storing last updated time of token.
+    local lastTime = redis:command("hget", "__token_expire", uid)
+    if not lastTime or (os.time()-tonumber(lastTime)) > 120 then
+        echoInfo("session_id is EXPIRED.")
+        mysql:close()
+        redis:close()
+        return false
+    end
+
+    mysql:close()
+    redis:close()
+    return true
 end
 
 function ServerAppBase:newService(name)
