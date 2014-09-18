@@ -34,7 +34,7 @@ local function ConstructBody(body)
     end
 
     local str = SECRET
-    for k, v in body do
+    for k, v in pairs(body) do
         str = str .. k .. v
     end
     body.sign = string.upper(ngx.md5(str .. SECRET))
@@ -73,25 +73,25 @@ function UserAction:LoginAction(data)
     assert(type(data) == "table", "data is NOT a table.")
 
     local user = data.user
-    if user == nil or type(user) ~= string then 
+    if user == nil or type(user) ~= "string" then 
         self.reply = Err(ERR_USER_INVALID_PARAM, "param(user) is missed")
         return self.reply
     end
 
     local password = data.password 
-    if password == nil or type(password) ~= string then 
+    if password == nil or type(password) ~= "string" then 
         self.reply = Err(ERR_USER_INVALID_PARAM, "param(password) is missed")
         return self.reply
     end
 
     local from = data.from 
-    if from == nil or type(from) ~= string then 
+    if from == nil or type(from) ~= "string" then 
         self.reply = Err(ERR_USER_INVALID_PARAM, "param(from) is missed")
         return self.reply
     end
 
     local email = data.email
-    if email == nil or type(email) ~= string then 
+    if email == nil or type(email) ~= "string" then 
         self.reply = Err(ERR_USER_INVALID_PARAM, "param(email) is missed")
         return self.reply
     end
@@ -101,6 +101,8 @@ function UserAction:LoginAction(data)
     local bodyStr = nil 
     local reqBody = {}
     local ok = nil
+    local code = nil 
+    local status = nil
     local err = nil
 
     reqBody.user = user 
@@ -109,7 +111,8 @@ function UserAction:LoginAction(data)
     reqBody.email = email 
     reqBody.time = os.time()
 
-    ok, _, _, _, bodyStr = httpClient:request{
+    echoInfo("type of httpClient = %s", type(httpClient))
+    ok, code, _, status, bodyStr = httpClient:request{
         url = [[http://open.cocoachina.com/api/user_login]], 
         method = "POST", 
         header = { ["Content-Type"] = "application/json"}, 
@@ -117,10 +120,12 @@ function UserAction:LoginAction(data)
     } 
 
     if not ok then 
-        self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: access cocoschina interface failed")
+        self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: http resp code = %s, status = %s", code, status)
         return self.reply
     end
 
+    -- handle reply body
+    echoInfo("bodyStr = %s", bodyStr)
     local body = json.decode(bodyStr) 
     if body.status == "error" then 
         self.reply =Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: username or passwrod is wrong.")
@@ -129,8 +134,10 @@ function UserAction:LoginAction(data)
 
     body = json.decode(body.msg)
     local ip = ngx.var.remote_addr
+    -- generate session_id from uid, ip and timestamp
     local session_id = ngx.md5(body.uid .. ":" .. body.ip .. ":" .. tostring(time))
     
+    -- store login data into user_info table
     local findSql = string.format([[insert into table(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], body.uid, session_id, ip, session_id, ip)
     ok, err = self.Mysql:query(findSql)
     if not ok then 
