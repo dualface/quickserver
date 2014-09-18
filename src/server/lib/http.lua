@@ -1,4 +1,4 @@
-module("resty.http", package.seeall)
+module(..., package.seeall)
 
 _VERSION = '0.2'
 
@@ -22,7 +22,7 @@ local default = {
 -- global variables
 local url = require("server.lib.url")
 
-local mt = { __index = resty.http }
+local mt = { __index = package.loaded[...] }
 
 local tcp = ngx.socket.tcp
 local base64 = ngx.encode_base64
@@ -409,7 +409,7 @@ function proxy_pass(self, reqt)
 end
 
 -- to prevent use of casual module global variables
-getmetatable(resty.http).__newindex = function (table, key, val)
+getmetatable(package.loaded[...]).__newindex = function (table, key, val)
     error('attempt to write to undeclared variable "' .. key .. '": '
             .. debug.traceback())
 end
