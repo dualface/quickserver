@@ -42,8 +42,15 @@ function TestServerApp:doRequest(actionName, data, userDefModule)
     end
 
     local _, result = xpcall(function()
-        return TestServerApp.super.doRequest(self, actionName, data, userDefModule)
-    end, function(msg) return {error = "Handle request failed: actions module or file not found"} end)
+                                 return TestServerApp.super.doRequest(self, actionName, data, userDefModule)
+                             end, 
+                             function(err) 
+                                 local beg, rear = string.find(err, "module.*not found") 
+                                 if beg then 
+                                     err = string.sub(err, beg, rear)
+                                 end
+                                 return {error = string.format([[Handle request failed: %s]], err)} 
+                             end)
 
     if self.config.debug then
         local j = json.encode(result)
