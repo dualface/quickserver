@@ -1,24 +1,9 @@
 --local COCOSCHINA = [[http://open.cocoachina.com/api/user_login]]
-local COCOSCHINA = [[http://localhost:8088/_server/user/login]]
+--local COCOSCHINA = [[http://localhost:8088/_server/user/login]]
 
-local http = require("resty.http")
-local httpClient = http:new() 
+url = require("resty.url")
 
-local function LoginNormal_case1() 
-    local ok, _, _, _, body = httpClient:request{
-        url = COCOSCHINA, 
-        method = "POST", 
-        header = {["Content-Type"] = "application/json"},
-        body = [[{"username":"hqycxy", "password":"hqycxylove1", "email":"cheeray.huang@gmail.com", "from":"OA"}]]
-    }
+local str = [[password=9bb4aa9034e9b399b5a77a3a49e376bd&sign=61694F908853A4F40757182BB451A1DA&username=hqycxy&from=quickcocos2dx&timestamp=1411117923]]
 
-    if not ok then 
-        print("failed") 
-    end 
+print(string.sub(url.escape(str))
 
-    print(body.status) 
-    print(body.msg)
-    print("success")
-end
-
-LoginNormal_case1()
