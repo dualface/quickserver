@@ -7,9 +7,9 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    //ws = new WebSocket('ws://127.0.0.1:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
     //ws = new WebSocket('ws://127.0.0.1:8088/websocket');
-    ws = new WebSocket('ws://115.28.88.113:8088/test');
+    //ws = new WebSocket('ws://115.28.88.113:8088/test');
     //ws = new WebSocket('ws://128.199.140.15:8088/test');
     //ws = new WebSocket('ws://172.17.0.2:8088/test');  //local docker
     //115.28.88.113, cheeray-aliyun
@@ -120,6 +120,7 @@ function SaveObj() {
     var data = {
         "_msgid": msg_id, 
         "action": "Store.SAVEOBJ", 
+        "session_id" : "feea2ddaa02fc89c783e70621da2372d",
         "rawdata": [
         {"key1": p1}, 
         {"property": p2},
