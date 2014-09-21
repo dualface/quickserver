@@ -92,7 +92,7 @@ function RankListAction:AddAction(data)
 
     local listName = data.ranklist
     local key = data.key
-    local value = data.value
+    local value = tonumber(data.value)
     if type(value) ~= "number" then 
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(value) is NOT number")
         return self.reply
