@@ -75,7 +75,7 @@ function ServerAppBase:checkSessionId(data)
     local redis = self:getRedis()
 
     local res, err = mysql:query(findSql)
-    if not res then
+    if not res or next(res) == nil then
         return false
     end
     local uid = res[1].uid
@@ -88,9 +88,12 @@ function ServerAppBase:checkSessionId(data)
 
     -- "__token_expire" is a hash for storing last updated time of token.
     local lastTime = redis:command("hget", "__token_expire", uid)
-    if not lastTime or (os.time()-tonumber(lastTime)) > 120 then
+    local now = os.time()
+    if not lastTime or (now-tonumber(lastTime)) > 120 then
         echoInfo("session_id is EXPIRED.")
         return false
+    else
+        redis:command("hset", "__token_expire", uid, now)
     end
 
     self.notCheckedSessionId = false
