@@ -15,6 +15,7 @@ function ServerAppBase:ctor(config)
     self.config.actionPackage = config.actionPackage or "actions"
     self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
 
+    self.notCheckedSessionId = true
 end
 
 function ServerAppBase:run()
@@ -55,7 +56,7 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
     end
 
     if actionMethodName ~= "LoginAction" then
-        if not self:checkAccessToken(data) then
+        if self.notCheckedSessionId and not self:checkSessionId(data) then
            throw(ERR_SERVER_INVALID_SESSION_ID, "session id is invalid or does NOT exist when calling %s:%s.", actionModuleName, actionMethodName)
         end
     end
@@ -63,7 +64,7 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
     return method(action, data)
 end
 
-function ServerAppBase:checkAccessToken(data)
+function ServerAppBase:checkSessionId(data)
     if data.session_id == nil or data.session_id == "" then
         return false
     end
@@ -75,8 +76,6 @@ function ServerAppBase:checkAccessToken(data)
 
     local res, err = mysql:query(findSql)
     if not res then
-        mysql:close()
-        redis:close()
         return false
     end
     local uid = res[1].uid
@@ -84,8 +83,6 @@ function ServerAppBase:checkAccessToken(data)
 
     if ip ~= ngx.var.remote_addr then
         echoInfo("ip from session_id is not same as remote client ip.")
-        msyql:close()
-        redis:close()
         return false
     end
 
@@ -93,13 +90,10 @@ function ServerAppBase:checkAccessToken(data)
     local lastTime = redis:command("hget", "__token_expire", uid)
     if not lastTime or (os.time()-tonumber(lastTime)) > 120 then
         echoInfo("session_id is EXPIRED.")
-        mysql:close()
-        redis:close()
         return false
     end
 
-    mysql:close()
-    redis:close()
+    self.notCheckedSessionId = false
     return true
 end
 
@@ -137,6 +131,13 @@ function ServerAppBase:getRedis()
         self.redis = self:newRedis()
     end
     return self.redis
+end
+
+function ServerAppBase:relRedis()
+    if self.redis then
+        self.redis:close()
+        self.redis = nil
+    end
 end
 
 function ServerAppBase:newBeanstalkd(config)
@@ -178,6 +179,13 @@ function ServerAppBase:getMysql()
     end
 
     return self.mysql
+end
+
+function ServerAppBase:relMysql()
+    if self.mysql then 
+        self.mysql:close()
+        self.mysql = nil
+    end
 end
 
 function ServerAppBase:newRankList() 
