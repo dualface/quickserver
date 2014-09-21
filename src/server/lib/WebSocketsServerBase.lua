@@ -9,7 +9,7 @@ WebSocketsServerBase.WEBSOCKETS_CLOSE_EVENT = "WEBSOCKETS_CLOSE_EVENT"
 function WebSocketsServerBase:ctor(config)
     WebSocketsServerBase.super.ctor(self, config)
 
-    self.config.requestType = "websockets"
+    self.requestType = "websockets"
     self.config.websocketsTimeout = self.config.websocketsTimeout or 10 * 1000
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or 16 * 1024
     self.config.websocketsMessageFormat = self.config.websocketsMessageFormat or "json"
@@ -100,6 +100,10 @@ function WebSocketsServerBase:runEventLoop()
     self:dispatchEvent({name = WebSocketsServerBase.WEBSOCKETS_CLOSE_EVENT})
     wb:send_close()
     self.websockets = nil
+
+    -- release mysql & redis connections
+    self:relRedis()
+    self:relMysql()
 
     return ret
 end
