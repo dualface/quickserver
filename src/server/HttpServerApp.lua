@@ -26,7 +26,7 @@ function HttpServerApp:doRequest(actionName, data, userDefModule)
                                  if beg then 
                                      err = string.sub(err, beg, rear)
                                  end
-                                 return {error = string.format([[Handle http request failed: %s]], err)}
+                                 return {error = string.format([[Handle http request failed: %s]], string.gsub(err, [[\]], ""))}
                              end)
 
     if self.config.debug then
