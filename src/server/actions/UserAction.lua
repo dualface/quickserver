@@ -33,21 +33,20 @@ local function ConstructBody(body)
         body.password = ngx.md5(body.password)    
     end
 
-    local str = SECRET .. "from" .. body.from .. "password" .. body.password .. "timestamp" .. body.timestamp .. "username" .. body.username .. SECRET
-    --[[for k, v in pairs(body) do
-        str = str .. k .. v
-    end --]]
+    for k, v in pairs(body) do 
+        body[k] = string.urlencode(v)
+    end
 
-    echoInfo("Login str before sign = %s", str)
-    body.sign = string.upper(ngx.md5(str .. SECRET))
+    local str = SECRET .. "from" .. body.from .. "password" .. body.password .. "timestamp" .. body.timestamp .. "username" .. body.username .. SECRET
+
+    body.sign = string.upper(ngx.md5(str))
 
     --local bodyStr = json.encode(body)
     local bodyStr = ""
     for k, v in pairs(body) do 
-        bodyStr = bodyStr .. k .. "=" .. string.urlencode(v) .. "&"
+        bodyStr = bodyStr .. k .. "=" .. v .. "&"
     end
     bodyStr = string.sub(bodyStr, 1, -2)
-    echoInfo("Login Body = %s", bodyStr)
    
     return bodyStr
 end
@@ -114,7 +113,7 @@ function UserAction:LoginAction(data)
     ok, code, _, status, bodyStr = httpClient:request{
         url = [[http://open.cocoachina.com/api/user_login]], 
         method = "POST", 
-        header = { ["Content-Type"] = [[application/x-www-form-urlencoded]]}, 
+        headers = { ["Content-Type"] = [[application/x-www-form-urlencoded]]}, 
         body = ConstructBody(reqBody)
     } 
 
@@ -124,20 +123,21 @@ function UserAction:LoginAction(data)
     end
 
     -- handle reply body
-    echoInfo("bodyStr = %s", bodyStr)
+    echoInfo("Login Reply: %s", bodyStr)
     local body = json.decode(bodyStr) 
     if body.status == "error" then 
         self.reply =Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: username or passwrod is wrong.")
         return self.reply
     end
 
-    body = json.decode(body.msg)
+    -- if status is "success"
+    body = body.msg
     local ip = ngx.var.remote_addr
     -- generate session_id from uid, ip and timestamp
-    local session_id = ngx.md5(body.uid .. ":" .. body.ip .. ":" .. tostring(reqBody.timestamp))
+    local session_id = ngx.md5(body.uid .. ":" .. ip .. ":" .. tostring(reqBody.timestamp))
     
     -- store login data into user_info table
-    local findSql = string.format([[insert into table(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], body.uid, session_id, ip, session_id, ip)
+    local findSql = string.format([[insert into user_info(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], body.uid, session_id, ip, session_id, ip)
     ok, err = self.Mysql:query(findSql)
     if not ok then 
         self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: Store user info failed.")
@@ -146,9 +146,8 @@ function UserAction:LoginAction(data)
 
     -- set expired time of session_id in redis
     ok = self.Redis:command("hset", "__token_expire", body.uid, reqBody.timestamp)
-    echoInfo("redis OK = %s", ok)
 
-    self.reply = {session_id = session_id, uid = body.uid}
+    self.reply = {session_id = session_id, uid = body.uid, email = body.email}
     return self.reply
 end
 
