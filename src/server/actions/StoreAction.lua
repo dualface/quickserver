@@ -48,6 +48,7 @@ local function ConstructParams(rawData)
         end
     end 
     local id = base64(sha1(json.encode(body)))
+    id = string.gsub(id, [[/]], [[-]])  -- delete "/" symbol
     local res = {id = string.sub(id, 1, -2), body = json.encode(body)}
 
     return res, body 
