@@ -60,6 +60,10 @@ function UserAction:ctor(app)
     if app then 
         self.Mysql = app.getMysql(app)
         self.Redis = app.getRedis(app)
+
+        -- for /user/codes interface
+        self.repo = app.config.userDefinedCodes.localRepo
+        self.dest = app.config.userDefinedCodes.localDest
     end  
 
     self.reply = {}
@@ -151,4 +155,38 @@ function UserAction:LoginAction(data)
     return self.reply
 end
 
-return UserAction 
+function UserAction:UploadcodesAction(data)
+    if not self.repo or not self.dest then
+        self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.UploadCodes failed: codes repo or destination dir are NOT configured")
+        return self.reply
+    end
+
+    local commit = data.commit
+    if not commit or type(commit) ~= "string" then
+        self.reply = Err(ERR_USER_INVALID_PARAM, "param(commit) is missed")
+        return self.reply
+    end
+
+    -- define shell
+    local cmdGitPull = string.format([[cd %s && git pull]], self.repo)
+    local cmdGitReset = string.format([[cd %s && git reset --hard %s]], self.repo, data.commit)
+    local cmdCpDest = string.format([[cd %s && cp ./* %s -rf]], self.repo, self.dest)
+
+    local ok = os.execute(cmdGitPull)
+    ok = ok + os.execute(cmdGitReset)
+    if ok ~= 0 then
+        self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.UploadCodes failed: get codes from git error")
+        return self.reply
+    end
+
+    ok = os.execute(cmdCpDest)
+    if ok ~= 0 then
+        self.reply = Err(ERR_USER_OPERATION_FAILED, "operatoin User.UploadCodes failed: deploy codes error")
+        return self.reply
+    end
+
+    self.reply.ok = 1
+    return self.reply
+end
+
+return UserAction
