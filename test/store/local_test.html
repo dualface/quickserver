@@ -7,7 +7,7 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://115.28.88.113:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/test');
     //115.28.88.113, cheeray-aliyun
     //128.199.140.15:8088, cheeray-do
     ws.onopen = function () {
@@ -116,7 +116,7 @@ function SaveObj() {
     var data = {
         "_msgid": msg_id, 
         "action": "Store.SAVEOBJ", 
-        "session_id" : "5f92bd6976efeb7e125ddbff950685f7",
+        "session_id" : "57701d739035b6e9ef88de0819e20966",
         "rawdata": [
         {"key1": p1}, 
         {"property": p2},
