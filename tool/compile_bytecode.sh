@@ -18,3 +18,6 @@ sudo rm ./jit -rf
 cp -rf ../src/* /opt/quick_server/openresty/. 
 
 git reset --hard HEAD
+
+#config.lua don't need compiling.
+cp -f ../src/server/config.lua /opt/quick_server/openresty/server/.
