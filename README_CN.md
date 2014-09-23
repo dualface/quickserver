@@ -36,9 +36,11 @@
    - 为Quick-Server新添加了一个脚本工具"status\_quick\_server.sh"，可以简单的查看Quick-Server各进程状态。
    - 增加了两个函数释放MySql以及Redis链接。现在每个http请求以及通过WebSocket的调用，在结束后都会主动释放连接。
    - server/config.lua文件在安装后不再会是字节码的形式，而保留lua源码，方便用户配置。
+   - 修正了functions.lua中urlencodeChar()函数的一个小错误，现在可以正常使用这一函数了。
    - 修改了tool/compile_bytes.sh中的luajit版本号。现在的luajit版本是luajit-2.1.0-alpha，对应于OpenResty1.7.2。
    - Ranklist.Add接口中的参数"value"可以使用string呈现。
    - Store.Saveobj接口现在返回的id不会再带有"/"符号，而是用"-"代替，方便字符串处理。
+   - 修改了debug.lua中的throw()方法，把调用error()函数时的错误等级设置为0，让错误信息更简洁。
 
 ### 0.3.6
 
