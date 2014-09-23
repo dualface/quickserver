@@ -3,7 +3,7 @@
 
 ---
 
-## 最新版本 0.3.6
+## 最新版本 0.3.7
 
 ## 安装
 
@@ -25,6 +25,22 @@
 2. 在源码根目录下运行脚本 **install_ubuntu.sh**。
 
 ## 版本日志
+
+### 0.3.7
+- 实现用户登录功能，与cocoachina网站平台对接。
+- 加入了Session ID验证机制，每一次http接口调用都会进行Session ID验证了。每一次基于WebSocket的访问，在第一次调用接口时，都会进行Session ID验证。
+- 改进了用户自定义代码功能，原来的/user/codes接口将被/_server/user/uploadcodes接口替代。也就是说，现在的用户自定义代码功能是属于Quick-Server自带的一个内部服务。*/user/codes 接口在这一版本还可以使用，但不推荐，将在下一版本正式废弃*。
+- 其他改进与bug修复：
+   - 修正了Quick-Server中http库和url库的载入问题。
+   - 在nginx.conf中添加了DNS服务器地址配置。
+   - 为Quick-Server新添加了一个脚本工具"status\_quick\_server.sh"，可以简单的查看Quick-Server各进程状态。
+   - 增加了两个函数释放MySql以及Redis链接。现在每个http请求以及通过WebSocket的调用，在结束后都会主动释放连接。
+   - server/config.lua文件在安装后不再会是字节码的形式，而保留lua源码，方便用户配置。
+   - 修正了functions.lua中urlencodeChar()函数的一个小错误，现在可以正常使用这一函数了。
+   - 修改了tool/compile_bytes.sh中的luajit版本号。现在的luajit版本是luajit-2.1.0-alpha，对应于OpenResty1.7.2。
+   - Ranklist.Add接口中的参数"value"可以使用string呈现。
+   - Store.Saveobj接口现在返回的id不会再带有"/"符号，而是用"-"代替，方便字符串处理。
+   - 修改了debug.lua中的throw()方法，把调用error()函数时的错误等级设置为0，让错误信息更简洁。
 
 ### 0.3.6
 

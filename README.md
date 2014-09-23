@@ -2,7 +2,7 @@
 ## A Server Framework Based On OpenResty
 
 ---
-## Latest Version 0.3.6
+## Latest Version 0.3.7
 
 ## Installation
 
@@ -24,6 +24,23 @@
 2. Run shell script **install_ubuntu.sh** in root of codes dir.
 
 ## Change Log
+
+### 0.3.7
+
+- FEATURE: implement user login function through Cocochina platform.
+- FEATURE: when invoking the service of Quick-Server via either http or WebSocket, to verify session ID is needed.
+- IMPROVE: implment user.uploadcodes action instead of "user/codes" web interface. The original http interface "user/codes" will be obsoleted in next release.
+- OTHER BUGFIX & IMPROVE:
+   - BUGFIX: fix some bugs in http.lua and url.lua.
+   - CHANGE: add a configuration into nginx.conf for DNS server.
+   - IMPROVE: Write a new shell named "status\_quick\_server.sh" to show the status of Quick-Server processes.
+   - IMPROVE: implement two functions to release mysql and redis connections. 
+   - IMPROVE: After installation, server/config.lua should not be compiled in order to be configured by user conveniently.
+   - BUGFIX: fix a slight mistake in urlencodeChar() of functions.lua.
+   - BUGFIX: the param "value" of Ranklist.Add is allowed to be a string.
+   - BUGFIX: fix the version of luajit in "compile_bytecode.sh", change it to "luajit-2.1.0-alpha".
+   - IMPROVE: StoreObj returns a id  which don't includes "/" symbol definitely.
+   - IMPROVE: change the level of error() in the method "throw" of debug.lua in order to make error messge more concise.
 
 ### 0.3.6
 
