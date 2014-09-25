@@ -15,7 +15,10 @@ function ServerAppBase:ctor(config)
     self.config.actionPackage = config.actionPackage or "actions"
     self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
 
-    self.notCheckedSessionId = true
+    -- check session id for WebSocket
+    self.checkedSessionId = false 
+    self.websocketInfo= {}
+
 end
 
 function ServerAppBase:run()
@@ -55,16 +58,23 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
         data = self.requestParameters or {}
     end
 
-    if actionMethodName ~= "LoginAction" then
-        if self.notCheckedSessionId and not self:checkSessionId(data) then
-           throw(ERR_SERVER_INVALID_SESSION_ID, "session id is invalid or does NOT exist when calling %s:%s.", actionModuleName, actionMethodName)
-        end
+    if not self:checkSessionId(data, actionMethodName, actionModuleName) then
+        throw(ERR_SERVER_INVALID_SESSION_ID, "session id is invalid or does NOT exist when calling %s:%s.", actionModuleName, actionMethodName)
     end
 
     return method(action, data)
 end
 
-function ServerAppBase:checkSessionId(data)
+function ServerAppBase:checkSessionId(data, action, module)
+    if action == "LoginAction" and string.find(module, "UserAction") then
+        return true
+    end
+
+    -- in subsequent WebSocket reqs, this value should be true. 
+    if self.checkedSessionId then 
+        return true
+    end
+
     if data.session_id == nil or data.session_id == "" then
         return false
     end
@@ -95,8 +105,10 @@ function ServerAppBase:checkSessionId(data)
     else
         redis:command("hset", "__token_expire", uid, now)
     end
+    
+    -- if the req is though WebSocket, flag it.
+    self.checkedSessionId = true
 
-    self.notCheckedSessionId = false
     return true
 end
 

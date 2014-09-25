@@ -64,19 +64,14 @@ function UserAction:ctor(app)
         -- for /user/codes interface
         self.repo = app.config.userDefinedCodes.localRepo
         self.dest = app.config.userDefinedCodes.localDest
+
+        if app.requestType == "websocket" then 
+            self.isWebSocket = true
+            self.websocketInfo = app.websocketInfo
+        end
     end  
 
     self.reply = {}
-end
-
-function UserAction:dector(app)
-    if self.Mysql then 
-        self.Mysql:close()
-    end
-
-    if self.Redis then
-        self.Redis:close()
-    end
 end
 
 function UserAction:LoginAction(data) 
@@ -186,6 +181,28 @@ function UserAction:UploadcodesAction(data)
     end
 
     self.reply.ok = 1
+    return self.reply
+end
+
+function UserAction:Beginsession(data)
+    if not self.isWebSocket then 
+        self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Beginsession failed: this operation is allowed to access only though WebSocket.")
+        return self.reply
+    end
+
+    -- assign channel for this req
+    local chs = ngx.shared.CHANNELS
+    local key
+    for i = 1, 100 do
+        key = "ch" .. tostring(i)
+        if chs:get(key) < 200 then
+            chs:incr(key, 1)
+            break;    
+        end
+    end
+    self.websocketInfo.channel = key
+
+    self.reply.ok = 1 
     return self.reply
 end
 
