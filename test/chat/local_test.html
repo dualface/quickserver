@@ -32,6 +32,24 @@ function disconnect() {
     return false;
 }
 
+function SendNULL() {
+    if (ws === null) return log('please connect first');
+    var p1 = document.getElementById('p1').value;
+    document.getElementById('p1').value = "";
+
+    var data = {
+        "_msgid": msg_id, 
+        "action": "chat.broadCast", 
+        "session_id" : "d6dd0b41948fbe1b4b27c89974ddf15b"
+    }
+
+    var jsonData = JSON.stringify(data)
+    ws.send(jsonData);
+    msg_id = msg_id + 1
+    log('saveobj: ' + jsonData);
+
+    return false;
+}
 function Send() {
     if (ws === null) return log('please connect first');
     var p1 = document.getElementById('p1').value;
@@ -40,7 +58,7 @@ function Send() {
     var data = {
         "_msgid": msg_id, 
         "action": "chat.broadCast", 
-        "session_id" : "b1aa03a4bf041da6b8c01b2031ce17ce",
+        "session_id" : "d6dd0b41948fbe1b4b27c89974ddf15b",
         "content": p1,
         "user": "hqy"
     }
@@ -74,8 +92,10 @@ function log(text) {
     content: <input id="p1" type="text">
 
     <button type="submit">Send</button>
+</form >
+<form onsubmit="return SendNULL();">
+<button type="submit">heartbeat</button>
 </form>
-
 
 <ol id="log"></ol>
 </body>
