@@ -1,15 +1,32 @@
 
 local TestsAction = class("TestsAction", cc.server.ActionBase)
 
+function TestsAction:ctor(app)
+    self.super:ctor(app)
+
+    self.redis = app.getRedis(app)
+end
+
 function TestsAction:IndexAction(data)
     --[[
     if not self.app.count then self.app.count = 0 end
     self.app.count = self.app.count + 1
     return {ret = string.format("SHOW ME THE MONEY [%s:%d]", data.say, self.app.count)}
     --]]
+    
+    local res, ok = self.redis:command("zrangebyscore", "srted_demo", 1, 3, "withscores")
 
-   jsonStr = json.encode(data.rawdata) 
-   return self:ConstructParams(data.rawdata)
+    if not res then 
+        return {error = "redis error"}
+    end
+    
+    local i = 2
+    local str = ""
+    for i = 2, #res, 2 do
+        str = str .. res[i]
+    end
+
+    return {res = str }
 end
 
 function TestsAction:ConstructParams(rawdata)
