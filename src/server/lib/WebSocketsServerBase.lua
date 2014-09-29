@@ -107,6 +107,13 @@ function WebSocketsServerBase:runEventLoop()
     self:relRedis()
     self:relMysql()
 
+    -- dec online numbers in the channel
+    if self.websocketInfo.channel ~= nil then
+        local chs = ngx.shared.CHANNELS
+        chs:incr(self.websocketInfo.channel, -1)
+        echoInfo("number in channel = %s", tostring(chs:get(self.websocketInfo.channel)))
+    end
+
     return ret
 end
 
