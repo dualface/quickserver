@@ -17,7 +17,6 @@ function ServerAppBase:ctor(config)
 
     -- check session id for WebSocket
     self.checkedSessionId = false 
-    self.websocketInfo= {}
 
 end
 

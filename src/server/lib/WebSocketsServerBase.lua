@@ -24,6 +24,8 @@ function WebSocketsServerBase:ctor(config)
     if self.config.session then
         self.session = cc.server.Session.new(self)
     end
+
+    self.websocketInfo= {}
 end
 
 function WebSocketsServerBase:closeClientConnect()
