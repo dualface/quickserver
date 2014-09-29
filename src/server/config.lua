@@ -39,6 +39,12 @@ local config = {
             module2 = "http_test2", 
         },
     },
+
+    chat = {
+        recordNum = 100,
+        channelNum = 100,
+        peoplePerCh = 200,
+    },
 }
 
 return config
