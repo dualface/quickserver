@@ -69,6 +69,10 @@ function ServerAppBase:checkSessionId(data, action, module)
         return true
     end
 
+    if string.find(module, "FriendshipAction") then
+        return true
+    end
+
     -- in subsequent WebSocket reqs, this value should be true. 
     if self.checkedSessionId then 
         return true
@@ -98,7 +102,7 @@ function ServerAppBase:checkSessionId(data, action, module)
     -- "__token_expire" is a hash for storing last updated time of token.
     local lastTime = redis:command("hget", "__token_expire", uid)
     local now = os.time()
-    if not lastTime or (now-tonumber(lastTime)) > 120 then
+    if not lastTime or (now-tonumber(lastTime)) > 1200 then
         echoInfo("session_id is EXPIRED.")
         return false
     else
