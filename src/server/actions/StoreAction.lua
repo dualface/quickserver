@@ -63,11 +63,8 @@ end
 function StoreAction:ctor(app)
     self.super:ctor(app)
 
-    self.Mysql = nil
-    self.Redis = nil
     if app then 
         self.Mysql = app.getMysql(app)
-        --self.Redis = self.app.getRedis(self.app)
     end
 
     self.indexSql = require(app.config.appModuleName.. "." .. app.config.actionPackage .. ".sql.IndexSql")
