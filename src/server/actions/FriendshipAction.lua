@@ -14,11 +14,10 @@ function FriendshipAction:ctor(app)
     self.super:ctor(app)
     
     if app then 
-        self.redis = app.getRedis(app)
         self.mysql = app.getMysql(app)
     end
 
-    local storeAction  = require("StoreAction")
+    local storeAction  = require("server.actions.StoreAction")
     self.store = storeAction.new(app)
 
     self.friends = {}
@@ -26,7 +25,6 @@ function FriendshipAction:ctor(app)
 end
 
 function FriendshipAction:_UpdateFrineds(app, source, id, access_token)
-
     local httpClient = cc.server.http:new()
 
     local bodyStr = nil 
@@ -60,14 +58,23 @@ function FriendshipAction:_UpdateFrineds(app, source, id, access_token)
                 break
             end
             
+            -- add itself
+            local tmpData = {}
+            tmpData.app = app
+            tmpData.source = source
+            tmpData.id = id
+            local r = self:ScoreAction(tmpData)
+            if r.score then
+                frineds[tostring(id)] = res.score
+            end
+            -- add friends
             for _, v in ipairs(users) do
-                local tmpData = {}
                 tmpData.app = app
                 tmpData.source = source 
-                tmpData.id = tonumber(v.id)
-                local res = Self:ScoreAction(tmpData)
-                if res.score then
-                    friends[tonumber(v.id)] = res.score
+                tmpData.id = v.id
+                r = Self:ScoreAction(tmpData)
+                if r.score then
+                    friends[tostring(v.id)] = res.score
                 end
             end
             cursor = res.next_cursor
@@ -97,12 +104,19 @@ function FriendshipAction:FriendsAction(data)
         return self.reply
     end
 
-    local friendshipId = data.app .. "_" .. data.source .. "_" .. tostring(data.id)
+    local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
     if not self.friends[friendshipId] then
         self.friends[friendshipId] = self:_UpdateFrineds(data.source, tonumber(data.id), data.access_token)
     end
 
-    self.reply.friends = self.friends[friendshipId]
+    local friends = {}
+    for k, _ in pairs(self.friends[friendshipId]) do
+        if k ~= data.id then 
+            table.insert(friends, k)
+        end
+    end
+
+    self.reply.friends = friends
     
     return self.reply
 end
@@ -123,11 +137,13 @@ function FriendshipAction:ScoreAction(data)
         return self.reply
     end
     
-    local friendshipId = data.app .. "_" .. data.source .. "_" .. tostring(data.id)
+    local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
     local tmpData = {}
     tmpData.property = "friendship_id" 
     tmpData.property_value = friendshipId
-    local res = store:FindobjAction(tmpdata)
+    echoInfo("property_value = %s", friendshipId)
+    local store = self.store
+    local res = store:FindobjAction(tmpData)
     if not res.objs then
         return res
     end
@@ -137,11 +153,10 @@ function FriendshipAction:ScoreAction(data)
     end
 
     local obj = json.decode(res.objs[1].body)
-    local playlevel = tonumber(data.playlevel)
-    if playlevel == nil then 
-        self.reply = {score = obj.scores[1]}
+    if data.playlevel and tonumber(data.playlevel) then
+        self.reply = {score = obj.scores[data.playlevel]}
     else
-        self.reply = {score = obj.scores[playlevel]}
+        self.reply = {scores = obj.scores}
     end
 
     return self.reply
@@ -162,27 +177,40 @@ function FriendshipAction:RanklistAction(data)
         self.reply = Err(ERR_FRIENDSHIP_INVALID_PARAM, "param(id) is missed")
         return self.reply
     end
+    if data.access_token == nil or data.access_token == "" then
+        self.reply = Err(ERR_FRIENDSHIP_INVALID_PARAM, "param(access_token) is missed")
+        return self.reply
+    end
+    local playlevel = "1"
+    if data.playlevel ~= nil and tonumber(data.playlevel) ~= nil then
+        playlevel = data.playlevel
+    end
 
-    local friendshipId = data.app .. "_" .. data.source .. "_" .. tostring(data.id)
+    local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
     if not self.friends[friendshipId] then
         self.friends[friendshipId] = self:_UpdateFrineds(data.source, tonumber(data.id), data.access_token)
     end
+    --self.friends[friendshipId] = {["0000000002"] = {["10"] = "8"}, ["0000000003"] = {["10"] = "8000"}, ["0000000004"] = {["10"] = "88"}}
 
     local count = tonumber(data.count)
-    if count == nil then
+    if count == nil or count > 100 then
         count = 100
     end
+    
+    local friends = clone(self.friends[friendshipId])
+    if count > table.length(friends) then 
+        count = table.length(friends)
+    end
 
-    local friends = clone(self.friends)
     local res = {}
-
     while count ~= 0 do
         local maxScore = -1        
         local maxKey = nil
-
+        echoInfo("count = %s", count)
         for k, v in pairs(friends) do
-            if v > maxScore then
-                maxScore = v
+            local s = tonumber(v[playlevel]) or 0 
+            if s > maxScore then
+                maxScore = s 
                 maxKey = k
             end
         end
@@ -216,12 +244,16 @@ function FriendshipAction:UpdateplayerAction(data)
         self.reply = Err(ERR_FRIENDSHIP_INVALID_PARAM, "param(access_token) is missed")
         return self.reply
     end
+    if data.score == nil or data.score == "" then
+        self.reply = Err(ERR_FRIENDSHIP_INVALID_PARAM, "param(access_token) is missed")
+        return self.reply
+    end
     if data.id == nil or tonumber(data.id) == nil then
         self.reply = Err(ERR_FRIENDSHIP_INVALID_PARAM, "param(id) is missed")
         return self.reply
     end
 
-    local friendshipId = data.app .. "_" .. data.source .. "_" .. tostring(data.id)
+    local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
    
     local store = self.store
     assert(store ~= nil, "load StoreAction failed.")
@@ -234,23 +266,32 @@ function FriendshipAction:UpdateplayerAction(data)
     if res.objs then 
         local obj = json.decode(res.objs[1].body)
         if data.playlevel then 
-            if data.playlevel > obj.max_play_level then
+            if tonumber(data.playlevel) > tonumber(obj.max_play_level) then
                 obj.max_play_level = data.playlevel
             end
             obj.scores[data.playlevel] = data.score
         else
-            obj.scores[1] = data.score
+            obj.scores["1"] = data.score
         end
 
         rawdata = {} 
-        rawdata.id = res.id
-        raswdata.rawdata = obj
+        rawdata.id = res.objs[1].id
+        rawdata.rawdata = {}
+        table.insert(rawdata.rawdata, {max_play_level = obj.max_play_level})
+        table.insert(rawdata.rawdata, {scores = obj.scores})
         res = store:UpdateobjAction(rawdata)
     else 
         local obj = {}
-        obj.max_play_level = data.playlevel
-        obj.scores[data.playlevel] = data.score
-        obj.friendship_id = friendshipId
+        local scores = {}
+        if data.playlevel then
+            table.insert(obj, {max_play_level = data.playlevel})
+            scores[data.playlevel] = data.score
+        else 
+            table.insert(obj, {max_play_level = "1"})
+            scores["1"] = data.score
+        end
+        table.insert(obj, {scores = scores})
+        table.insert(obj, {friendship_id = friendshipId})
 
         rawdata = {}
         rawdata.rawdata = obj
