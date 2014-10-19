@@ -348,6 +348,8 @@ function table.length(t)
     for _, _ in pairs(t) do 
         count = count + 1
     end 
+    
+    return count
 end 
 
 function string.htmlspecialchars(input)
