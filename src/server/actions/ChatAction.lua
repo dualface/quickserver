@@ -120,10 +120,8 @@ function ChatAction:BroadcastAction(data)
     end
 
     -- push previous chat contents
-    if self.websocketInfo.lastTime == nil then
-        self.websocketInfo.lastTime = 0
-    end
-    local res, err = redis:command("zrangebyscore", "__chat_time", "("..tostring(self.websocketInfo.lastTime*10000), now*10000, "withscores")
+    local lastTime = now - 120  -- could give a param instead of "120"  
+    local res, err = redis:command("zrangebyscore", "__chat_time", "("..tostring(lastTime*10000), now*10000, "withscores")
     if not res then 
         echoError("redis command zrangebyscore failed: %s", err)
         self.reply = Err(ERR_CHAT_OPERATION_FAILED, "operation Chat.Broadcast failed: send previous chat contents error.")
@@ -144,8 +142,6 @@ function ChatAction:BroadcastAction(data)
             end
         end
     end
-
-    self.websocketInfo.lastTime = now
 
     return self.reply
 end
