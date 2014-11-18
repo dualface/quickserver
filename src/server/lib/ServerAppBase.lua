@@ -90,6 +90,7 @@ function ServerAppBase:checkSessionId(data, action, module)
 
     local res, err = mysql:query(findSql)
     if not res or next(res) == nil then
+        redis:command("hdel", "__token_expire", data.session_id)
         return false
     end
     local uid = res[1].uid
