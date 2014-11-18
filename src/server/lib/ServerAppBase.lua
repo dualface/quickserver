@@ -69,6 +69,7 @@ function ServerAppBase:checkSessionId(data, action, module)
         return true
     end
 
+    -- cause "FriendshipAction" is associated with weibo.
     if string.find(module, "FriendshipAction") then
         return true
     end
@@ -100,17 +101,21 @@ function ServerAppBase:checkSessionId(data, action, module)
     end
 
     -- "__token_expire" is a hash for storing last updated time of token.
-    local lastTime = redis:command("hget", "__token_expire", uid)
+    local lastTime = redis:command("hget", "__token_expire", data.session_id)
     local now = os.time()
-    if not lastTime or (now-tonumber(lastTime)) > 1200 then
+    if not lastTime or not tonumber(lastTime) or (now-tonumber(lastTime)) > 120 then
         echoInfo("session_id is EXPIRED.")
+        redis:command("hdel", "__token_expire", data.session_id)
         return false
     else
-        redis:command("hset", "__token_expire", uid, now)
+        redis:command("hset", "__token_expire", data.session_id, now)
     end
     
     -- if the req is though WebSocket, flag it.
     self.checkedSessionId = true
+
+    -- generate a username for some actions' need.
+    data.__username = uid .. ":" .. ip
 
     return true
 end
