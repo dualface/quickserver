@@ -166,7 +166,7 @@ function UserAction:LoginAction(data)
     local session_id = ngx.md5(user .. ":" .. ip .. ":" .. tostring(timestamp))
     
     -- store login data into user_info table
-    local insertSql = string.format([[insert into user_info(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], user, session_id, ip, session_id, ip)
+    local insertSql = string.format([[insert into user_info(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], user..":"..ip, session_id, ip, session_id, ip)
     ok, err = self.Mysql:query(insertSql)
     if not ok then 
         self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: Store user info failed.")

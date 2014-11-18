@@ -106,6 +106,9 @@ function ServerAppBase:checkSessionId(data, action, module)
     if not lastTime or not tonumber(lastTime) or (now-tonumber(lastTime)) > 120 then
         echoInfo("session_id is EXPIRED.")
         redis:command("hdel", "__token_expire", data.session_id)
+        local delSql = string.format([[delete from user_info where session_id = '%s';]], data.session_id);
+        mysql:query(delSql)
+
         return false
     else
         redis:command("hset", "__token_expire", data.session_id, now)
