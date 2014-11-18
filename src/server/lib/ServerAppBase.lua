@@ -118,7 +118,7 @@ function ServerAppBase:checkSessionId(data, action, module)
     self.checkedSessionId = true
 
     -- generate a username for some actions' need.
-    data.__username = uid .. ":" .. ip
+    data.__username = uid
 
     return true
 end
