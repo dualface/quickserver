@@ -24,7 +24,7 @@ function FriendshipAction:ctor(app)
     self.reply = {}
 end
 
-function FriendshipAction:_UpdateFrineds(app, source, id, access_token)
+function FriendshipAction:_UpdateFriends(app, source, id, access_token)
     local httpClient = cc.server.http:new()
 
     local bodyStr = nil 
@@ -106,7 +106,7 @@ function FriendshipAction:FriendsAction(data)
 
     local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
     if not self.friends[friendshipId] then
-        self.friends[friendshipId] = self:_UpdateFrineds(data.source, tonumber(data.id), data.access_token)
+        self.friends[friendshipId] = self:_UpdateFriends(data.source, tonumber(data.id), data.access_token)
     end
 
     local friends = {}
@@ -188,7 +188,7 @@ function FriendshipAction:RanklistAction(data)
 
     local friendshipId = data.app .. "_" .. data.source .. "_" .. data.id
     if not self.friends[friendshipId] then
-        self.friends[friendshipId] = self:_UpdateFrineds(data.source, tonumber(data.id), data.access_token)
+        self.friends[friendshipId] = self:_UpdateFriends(data.source, tonumber(data.id), data.access_token)
     end
     --self.friends[friendshipId] = {["0000000002"] = {["10"] = "8"}, ["0000000003"] = {["10"] = "8000"}, ["0000000004"] = {["10"] = "88"}}
 
@@ -300,7 +300,7 @@ function FriendshipAction:UpdateplayerAction(data)
     end
 
     if not self.friends[friendshipId] then
-        self.friends[friendshipId] = self:_UpdateFrineds(data.app, data.source, tonumber(data.id), data.access_token)
+        self.friends[friendshipId] = self:_UpdateFriends(data.app, data.source, tonumber(data.id), data.access_token)
     end
 
     if not res.err_code then
