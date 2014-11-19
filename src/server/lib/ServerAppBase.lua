@@ -118,9 +118,6 @@ function ServerAppBase:checkSessionId(data, action, module)
     -- if the req is though WebSocket, flag it.
     self.checkedSessionId = true
 
-    -- generate a username for some actions' need.
-    data.__username = uid
-
     return true
 end
 
