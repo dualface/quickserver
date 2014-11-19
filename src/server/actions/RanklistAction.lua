@@ -130,6 +130,10 @@ function RankListAction:AddAction(data)
         self.reply.uid = key
     end
 
+    local rank = self:GetrankAction(data).rank
+    local total = self.CountAction(data).count
+    self.reply.percent = math.trunc(rank/total)
+
     return self.reply
 end
 
