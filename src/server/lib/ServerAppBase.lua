@@ -65,7 +65,7 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
 end
 
 function ServerAppBase:checkSessionId(data, action, module)
-    if action == "LoginAction" and string.find(module, "UserAction") then
+    if action == "SessionAction" and string.find(module, "UserAction") then
         return true
     end
 
