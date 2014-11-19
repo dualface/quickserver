@@ -463,7 +463,7 @@ function string.formatNumberThousands(num)
     return formatted
 end
 
-function math.trunc(num) 
+function math.trunc(x) 
     if x <= 0 then
         return math.ceil(x);
     end
