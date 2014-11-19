@@ -75,6 +75,25 @@ function RankListAction:CountAction(data)
     return self.reply
 end
 
+function RankListAction:GenerateUID_(nickname) 
+    local redis = self.rankList
+
+    if redis:command("hget", "__ranklist_uid", nickname) ~= "1" then
+        redis:command("hset","__ranklist_uid", nickname, 1)
+        return nickname
+    end
+
+    local i = 1
+    local uid = nickname .. tostring(i)
+    while redis:command("hget", "__ranklist_uid", uid) == "1" do
+        i = i + 1
+        uid = nickname .. tostring(i)
+    end
+    redis:command("hset", "__ranklist_uid", uid, 1)
+
+    return uid
+end
+
 -- zadd
 -- param: ranklist, value 
 function RankListAction:AddAction(data)  
@@ -84,14 +103,16 @@ function RankListAction:AddAction(data)
     if rl == nil then
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
- 
-    if not CheckParams(data, "ranklist", "value") then 
+
+    if CheckParams(data, "ranklist", "nickname", "value") then  
+        data.uid = self:GenerateUID_(data.nickname) 
+    else if not CheckParams(data, "uid", "ranklist", "value") then 
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, value) are missed")
         return self.reply
     end 
 
     local listName = data.ranklist
-    local key = data.__username
+    local key = data.uid
     local value = tonumber(data.value)
     if type(value) ~= "number" then 
         self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "param(value) is NOT number")
@@ -105,6 +126,10 @@ function RankListAction:AddAction(data)
     end 
     
     self.reply.ok = 1
+    if data.nickname then 
+        self.reply.uid = key
+    end
+
     return self.reply
 end
 
