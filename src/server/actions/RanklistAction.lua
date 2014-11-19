@@ -106,8 +106,8 @@ function RankListAction:AddAction(data)
 
     if CheckParams(data, "ranklist", "nickname", "value") then  
         data.uid = self:GenerateUID_(data.nickname) 
-    else if not CheckParams(data, "uid", "ranklist", "value") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, value) are missed")
+    elseif not CheckParams(data, "uid", "ranklist", "value") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist, value or uid) are missed")
         return self.reply
     end 
 
@@ -143,13 +143,13 @@ function RankListAction:RemoveAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist) are missed")
+    if not CheckParams(data, "uid", "ranklist") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or uid) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local key = data.__username
+    local key = data.uid
     local err = nil 
     ok, err = rl:command("zrem", listName, key) 
     if not ok then 
@@ -157,6 +157,7 @@ function RankListAction:RemoveAction(data)
         self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.Remove failed")
         return self.reply
     end 
+    rl:command("hdel", "__ranklist_uid", key)
 
     self.reply.ok = 1
     return self.reply
@@ -188,13 +189,13 @@ function RankListAction:ScoreAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist) are missed")
+    if not CheckParams(data, "uid", "ranklist") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or uid) are missed")
         return self.reply
     end
     
     local listName = data.ranklist
-    local key = data.__username
+    local key = data.uid
     local score, err = rl:command("zscore", listName, key)
     if not score then 
         echoError("redis command zscore faild: %s", err)
@@ -268,13 +269,13 @@ function RankListAction:GetrankAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist) are missed")
+    if not CheckParams(data, "uid", "ranklist") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or uid) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local key = data.__username
+    local key = data.uid
     local rank, err = rl:command("zrank", listName, key)
     if not rank then 
         echoError("redis command zrank failed: %s", err)
@@ -299,13 +300,13 @@ function RankListAction:GetrevrankAction(data)
         throw(ERR_SERVER_RANKLIST_ERROR, "ranklist object does NOT EXIST")
     end
  
-    if not CheckParams(data, "ranklist") then 
-        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist) are missed")
+    if not CheckParams(data, "uid", "ranklist") then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(ranklist or uid) are missed")
         return self.reply
     end
 
     local listName = data.ranklist
-    local key = data.__username
+    local key = data.uid
     local rev_rank, err = rl:command("zrevrank", listName, key)
     if not rev_rank then 
         echoError("redis command zrevrank failed: %s", err)
