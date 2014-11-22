@@ -80,7 +80,7 @@ function RankListAction:GenerateUID_(nickname)
 
     if redis:command("hget", "__ranklist_uid", nickname.."+") ~= "1" then
         redis:command("hset","__ranklist_uid", nickname.."+", 1)
-        return nickname
+        return nickname .. "+"
     end
 
     local i = 1
