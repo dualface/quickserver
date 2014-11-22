@@ -78,16 +78,16 @@ end
 function RankListAction:GenerateUID_(nickname) 
     local redis = self.rankList
 
-    if redis:command("hget", "__ranklist_uid", nickname) ~= "1" then
-        redis:command("hset","__ranklist_uid", nickname, 1)
+    if redis:command("hget", "__ranklist_uid", nickname.."+") ~= "1" then
+        redis:command("hset","__ranklist_uid", nickname.."+", 1)
         return nickname
     end
 
     local i = 1
-    local uid = nickname .. tostring(i)
+    local uid = nickname .. "+" .. tostring(i)
     while redis:command("hget", "__ranklist_uid", uid) == "1" do
         i = i + 1
-        uid = nickname .. tostring(i)
+        uid = nickname .. "+" .. tostring(i)
     end
     redis:command("hset", "__ranklist_uid", uid, 1)
 
