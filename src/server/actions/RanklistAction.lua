@@ -162,8 +162,8 @@ function RankListAction:RemoveAction(data)
     local listName = data.ranklist
     local key = data.uid
     local err = nil 
-    ok, err = rl:command("zrem", listName, key) 
-    if not ok then 
+    ok = rl:command("zrem", listName, key) 
+    if not ok or ok == "0" then 
         echoError("redis command zrem faild: %s", err)
         self.reply = Err(ERR_RANKLIST_OPERATION_FAILED, "operation RankList.Remove failed")
         return self.reply
@@ -329,6 +329,7 @@ function RankListAction:GetrevrankAction(data)
         return self.reply
     end
     self.reply.rev_rank = rev_rank + 1 
+    self:ScoreAction(data)
 
     return self.reply
 end 
