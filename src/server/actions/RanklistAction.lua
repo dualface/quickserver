@@ -111,6 +111,11 @@ function RankListAction:AddAction(data)
         return self.reply
     end 
 
+    if rl:command("hget", "__ranklist_uid", data.uid) ~= "1" then 
+        self.reply = Err(ERR_RANKLIST_INVALID_PARAM, "params(uid) does NOT exist")
+        return self.reply
+    end
+
     local listName = data.ranklist
     local key = data.uid
     local value = tonumber(data.value)
@@ -292,6 +297,7 @@ function RankListAction:GetrankAction(data)
         return self.reply
     end
     self.reply.rank = rank + 1
+    self:ScoreAction(data)
 
     return self.reply
 end 
