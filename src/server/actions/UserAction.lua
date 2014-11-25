@@ -151,12 +151,12 @@ function UserAction:LoginAction_deprecated(data)
     return self.reply
 end
 
-function UserAction:LoginAction(data) 
+function UserAction:SessionAction(data) 
     assert(type(data) == "table", "data is NOT a table.")
 
-    local user = data.user
+    local user = data.id
     if user == nil or type(user) ~= "string" then 
-        self.reply = Err(ERR_USER_INVALID_PARAM, "param(user) is missed")
+        self.reply = Err(ERR_USER_INVALID_PARAM, "param(id) is missed")
         return self.reply
     end
 
@@ -166,7 +166,7 @@ function UserAction:LoginAction(data)
     local session_id = ngx.md5(user .. ":" .. ip .. ":" .. tostring(timestamp))
     
     -- store login data into user_info table
-    local insertSql = string.format([[insert into user_info(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], user..":"..ip, session_id, ip, session_id, ip)
+    local insertSql = string.format([[insert into user_info(uid, session_id, ip) value('%s', '%s', '%s') on duplicate key update session_id = '%s', ip = '%s';]], user, session_id, ip, session_id, ip)
     ok, err = self.Mysql:query(insertSql)
     if not ok then 
         self.reply = Err(ERR_USER_OPERATION_FAILED, "operation User.Login failed: Store user info failed.")
@@ -174,9 +174,9 @@ function UserAction:LoginAction(data)
     end
 
     -- set expired time of session_id in redis
-    ok = self.Redis:command("hset", "__token_expire", session_id, timestamp)
+    self.Redis:command("hset", "__token_expire", session_id, timestamp)
 
-    self.reply = {session_id = session_id, user = user}
+    self.reply = {session_id = session_id}
     return self.reply
 end
 

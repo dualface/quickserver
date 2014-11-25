@@ -65,7 +65,7 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
 end
 
 function ServerAppBase:checkSessionId(data, action, module)
-    if action == "LoginAction" and string.find(module, "UserAction") then
+    if action == "SessionAction" and string.find(module, "UserAction") then
         return true
     end
 
@@ -117,9 +117,6 @@ function ServerAppBase:checkSessionId(data, action, module)
     
     -- if the req is though WebSocket, flag it.
     self.checkedSessionId = true
-
-    -- generate a username for some actions' need.
-    data.__username = uid
 
     return true
 end
