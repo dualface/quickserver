@@ -10,6 +10,8 @@ local config = {
     pushMessageChannelPattern = "channel.%s",
     sharedMemoryDictName      = "TestApp",
 
+    sessionExpired = 1200,
+
     redis = {
         host       = "127.0.0.1",
         port       = 6379,
@@ -32,14 +34,16 @@ local config = {
     },
 
     userDefinedCodes = {
-        localRepo  = "/opt/user_codes/",
-        localDest  = "/opt/quick_server/openresty/server/user_codes", 
+        --localRepo  = "/opt/user_codes/",
+        --localDest  = "/opt/quick_server/openresty/server/user_codes", 
+        localRepo = "/home/cheeray/work/user_codes",
+        localDest = "/home/cheeray/work/quick-server/src/server/user_codes",
         uriPrefix  = {
             module1 = "http_test1", 
             module2 = "http_test2", 
         },
     },
-
+    
     chat = {
         recordNum = 100,
         channelNum = 100,

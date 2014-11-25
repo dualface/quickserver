@@ -104,7 +104,7 @@ function ServerAppBase:checkSessionId(data, action, module)
     -- "__token_expire" is a hash for storing last updated time of token.
     local lastTime = redis:command("hget", "__token_expire", data.session_id)
     local now = os.time()
-    if not lastTime or not tonumber(lastTime) or (now-tonumber(lastTime)) > 120 then
+    if not lastTime or not tonumber(lastTime) or (now-tonumber(lastTime)) > self.config.sessionExpired then
         echoInfo("session_id is EXPIRED.")
         redis:command("hdel", "__token_expire", data.session_id)
         local delSql = string.format([[delete from user_info where session_id = '%s';]], data.session_id);
