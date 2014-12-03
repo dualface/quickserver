@@ -3,8 +3,8 @@
 
 ---
 ## Latest Version 0.3.9
-- Coming Soon 0.4.0
-- 0.4.0-rc0 is released.
+- **Coming Soon 0.4.0**
+- **0.4.0-rc0 is released**
 
 ## Installation
 
