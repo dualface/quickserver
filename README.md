@@ -3,8 +3,8 @@
 
 ---
 ## Latest Version 0.3.9
-
-## Development Version 0.4.0-rc0
+- Coming Soon 0.4.0
+- 0.4.0-rc0 is released.
 
 ## Installation
 
@@ -32,13 +32,13 @@
 - FEATURE: adjust many interfaces in RanklistAction. 
     - Each interface calling needs checking **session_id**. 
     - "Add" interface can generate a uid according to the **nickname** when user calls it first time.
-    - the format of uid is "nickname+numbers", keep each uid unique.
+    - the format of uid is "nickname+numbers" in order to keep each uid unique.
     - score, remove, getrank and getrevrank should get key from param "uid".
     - "GetRevRank" also replies score.
     - "GetRankAction" also return socre.
-    - "AddAction" can return a percent to indicate "rank/total".
+    - "AddAction" can return a percent to indicate "rank/total", in other words, it's the user's positiono in a ranklist.
     - Add some test cases for RanklistAction.
-- BUGFIX: if a redis command fails, it replies an int 0 not a string "0".    modify:     RanklistAction.lua
+- BUGFIX: if a redis command fails, it replies an int 0 not a string "0".
 
 ### 0.3.9
 - FEATURE: implement a ranklist with friendship based on social network platform.(only support Weibo now)
