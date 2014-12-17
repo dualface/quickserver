@@ -3,7 +3,9 @@
 
 ---
 
-## 最新版本 0.3.7
+## 最新版本 0.3.9
+- **即将发布 0.4.0**
+- **0.4.0-rc0 已经发布**
 
 ## 安装
 
@@ -25,6 +27,31 @@
 2. 在源码根目录下运行脚本 **install_ubuntu.sh**。
 
 ## 版本日志
+
+### 0.4.0-rc0
+- 新增加了一个接口user.session用于生成session_id。
+- 根据客户需求，修改了RanklistAction中大量的接口。
+    - 所有的RankList的接口都要验证session_id。
+    - "Add"接口现在在用户第一次调用的时候，会根据用户提交的"nickname"生成一个唯一的uid用于保存分数。
+    - "uid"的格式是"nickname+numbers"的形式，用于保证唯一。
+    - "score", "remove", "getrank"以及"getrevrank"接口需要的redis的key值都从用户提供的uid获得。（该uid由"Add"接口生成，见上。）
+    - "GetRevRank" 以及 "GetRank"现在除了返回排名也能返回分数了。
+    - "AddAction" 现在会返回一个百分比结果，来指示新加的用户的分数在排行榜中的位置。
+    - 给修改后的RankList模块添加了一些测试用例。
+- 修正了一个Bug， 正确处理redis命令的返回值。
+
+### 0.3.9 
+- 基于微博平台的用户接口，实现了好友排行榜功能。
+- 现在Quick-Server的每一个接口(除了user.Login)都要验证session_id了。
+- 修改了一个table.length()的bug。
+
+### 0.3.8 
+- 实现了一个简单聊天室模块， ChatAction。
+    - Config.lua里增加了一个子表用于ChatAction的配置。
+    - 自动给访问聊天室的用户分配频道。
+    - 给ChatAction添加了一些测试用例。
+- 优化了一些mysql以及redis的初始化Lua代码。
+- 移除了BegingSession接口。
 
 ### 0.3.7
 - 实现用户登录功能，与cocoachina网站平台对接。

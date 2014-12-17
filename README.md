@@ -2,7 +2,9 @@
 ## A Server Framework Based On OpenResty
 
 ---
-## Latest Version 0.3.7
+## Latest Version 0.3.9
+- **Coming Soon 0.4.0**
+- **0.4.0-rc0 is released**
 
 ## Installation
 
@@ -25,12 +27,39 @@
 
 ## Change Log
 
+### 0.4.0-rc0
+- FEATURE: Add an new action "SessionAction" to generate **session_id** for user.
+- FEATURE: adjust many interfaces in RanklistAction. 
+    - Each interface calling needs checking **session_id**. 
+    - "Add" interface can generate a uid according to the **nickname** when user calls it first time.
+    - the format of uid is "nickname+numbers" in order to keep each uid unique.
+    - score, remove, getrank and getrevrank should get key from param "uid".
+    - "GetRevRank" also replies score.
+    - "GetRankAction" also return socre.
+    - "AddAction" can return a percent to indicate "rank/total", in other words, it's the user's positiono in a ranklist.
+    - Add some test cases for RanklistAction.
+- BUGFIX: if a redis command fails, it replies an int 0 not a string "0".
+
+### 0.3.9
+- FEATURE: implement a ranklist with friendship based on social network platform.(only support Weibo now)
+- FEATURE: Each interface calling needs checking **session_id**.
+- FEATURE: ADD some test cases for FriendshipAction.
+- BUGFIX: table.length() method in function.lua moduel.
+
+### 0.3.8 
+- FEATURE: implement chatting room, ChatAction module. 
+    - Add a new sub-table as the configuration for ChatAction in config.lua.
+    - assign an user to a channel automatically.
+    - Add some tests cases for ChatAction. 
+- IMPROVE: remove BeginSession interface.  
+- IMPROVE: optimize some lua codes in the initialization of mysql and redis.
+
 ### 0.3.7
 
 - FEATURE: implement user login function through Cocochina platform.
 - FEATURE: when invoking the service of Quick-Server via either http or WebSocket, to verify session ID is needed.
 - IMPROVE: implment user.uploadcodes action instead of "user/codes" web interface. The original http interface "user/codes" will be obsoleted in next release.
-- OTHER BUGFIX & IMPROVE:
+- OTHER MINOR CHANGES:
    - BUGFIX: fix some bugs in http.lua and url.lua.
    - CHANGE: add a configuration into nginx.conf for DNS server.
    - IMPROVE: Write a new shell named "status\_quick\_server.sh" to show the status of Quick-Server processes.
