@@ -15,7 +15,7 @@ DEST_DIR=/opt/quick_server
 BUILD_DIR=/tmp/install_quick_server
 THIRD_PARTY_DIR=$DEST_DIR/third_party
 
-OPENRESTY_VER=1.7.2.1
+OPENRESTY_VER=1.7.7.1
 LUAROCKS_VER=2.1.1
 LIBYAML_VER=0.1.4
 REDIS_VAR=2.6.16
