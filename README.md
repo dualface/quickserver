@@ -12,6 +12,7 @@
 
 1. Install Docker. Please refer to https://www.docker.com/
 2. Run command: docker pull chukong/quick-server
+3. And please refer this documents for next steps: [Deploy Quick-Server with Docker] (https://github.com/dualface/quickserver/wiki/%E7%94%A8Docker%E9%83%A8%E7%BD%B2Quick-Server)
 
 ### Install via Shell Script
 
