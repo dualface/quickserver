@@ -13,6 +13,7 @@
 
 1. 安装dcoker, 请参考 https://www.docker.com/ 。
 2. 运行命令: *docker pull chukong/quick-server* 。
+3. 接下来的步骤请参考：[用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
 
 ### 通过Shell脚本安装
 
