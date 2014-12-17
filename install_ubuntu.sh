@@ -37,7 +37,7 @@ mkdir -p $DEST_DIR/openresty
 
 # install openresty
 cd $BUILD_DIR
-wget http://openresty.org/download/ngx_openresty-$OPENRESTY_VER.tar.gz
+wget --no-check-certificate http://openresty.org/download/ngx_openresty-$OPENRESTY_VER.tar.gz
 tar zxf ngx_openresty-$OPENRESTY_VER.tar.gz
 cd ngx_openresty-$OPENRESTY_VER
 
@@ -71,7 +71,7 @@ mkdir -p $DEST_DIR/redis/rdb
 
 # install luarocks
 cd $BUILD_DIR
-wget http://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz
+wget --no-check-certificate http://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz
 tar zxf luarocks-$LUAROCKS_VER.tar.gz
 cd luarocks-$LUAROCKS_VER
 
@@ -87,7 +87,7 @@ $LUAROCKS_BIN install lua-cjson
 $LUAROCKS_BIN install luafilesystem
 
 cd $BUILD_DIR
-wget http://pyyaml.org/download/libyaml/yaml-$LIBYAML_VER.tar.gz
+wget --no-check-certificate http://pyyaml.org/download/libyaml/yaml-$LIBYAML_VER.tar.gz
 tar zxf yaml-$LIBYAML_VER.tar.gz
 cd yaml-$LIBYAML_VER
 ./configure --prefix=$THIRD_PARTY_DIR
@@ -99,7 +99,7 @@ $LUAROCKS_BIN install lyaml YAML_DIR=$THIRD_PARTY_DIR
 
 # install redis
 cd $BUILD_DIR
-wget http://download.redis.io/releases/redis-$REDIS_VAR.tar.gz
+wget --no-check-certificate http://download.redis.io/releases/redis-$REDIS_VAR.tar.gz
 tar zxf redis-$REDIS_VAR.tar.gz
 cd redis-$REDIS_VAR
 make
@@ -113,7 +113,7 @@ cp src/redis-check-dump $DEST_DIR/redis/bin
 
 # install beanstalkd
 cd $BUILD_DIR
-wget https://github.com/kr/beanstalkd/archive/v$BEANSTALKD_VER.tar.gz -O beanstalkd-$BEANSTALKD_VER.tar.gz
+wget --no-check-certificate https://github.com/kr/beanstalkd/archive/v$BEANSTALKD_VER.tar.gz -O beanstalkd-$BEANSTALKD_VER.tar.gz
 tar zxf beanstalkd-$BEANSTALKD_VER.tar.gz
 cd beanstalkd-$BEANSTALKD_VER
 make
