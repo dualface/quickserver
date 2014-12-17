@@ -1,2 +1,2 @@
-#some tools for quick-x-server
+#some tools for quick-server
 
