@@ -82,28 +82,28 @@
 
 ### 0.3.5
 
-- Adjust directory structure of project, make it more simpler and cleaner.
-- Integrate lua-resty-http with quick-server. 
-- Fix and mend some confinguration in nginx.conf.
+- IMPROVE: Adjust directory structure of project, make it more simpler and cleaner.
+- FEATURE: Integrate lua-resty-http with quick-server. 
+- BUGFIX: Fix and mend some confinguration in nginx.conf.
 
 ### 0.3.1
-- Fix bug: There should be an "actions" sub-dir in root of user-defined codes.  
-- Fix bug: Allow the type of response of HTTP is "string".
-- Improve: Support case-insensitive uri.
+- BUGFIX: There should be an "actions" sub-dir in root of user-defined codes.  
+- BUGFIX: Allow the type of response of HTTP is "string".
+- IMPROVE: Support case-insensitive uri.
 
 ### 0.3.0
-- Improve the implemnet of user-defined function, supporting sub-dir structure deployment.
+- IMPROVE: refactor the implemnet of user-defined function, supporting sub-dir structure deployment.
 
 ### 0.2.0
-- Support user-defined function via uploading lua codes by users themselves.
-- Support Http protocol for invoking interfaces. 
-- Docker becomes a new way which users can choose for installation besides shell script. 
+- FEATURE: Support user-defined function via uploading lua codes by users themselves.
+- FEATURE: Support Http protocol for invoking interfaces. 
+- FEATURE: Docker becomes a new way which users can choose for installation besides shell script. 
 
 ### 0.1.0
-- Support Object Store based on MySql 5 with JSON format.
-- Support Index in Object Store.
-- Implement Ranklist function based on Redis. 
-- All interfaces is based on WebSocket protocol.
+- FEATURE: Support Object Store based on MySql 5 with JSON format.
+- FEATURE: Support Index in Object Store.
+- FEATURE: Implement Ranklist function based on Redis. 
+- FEATURE: All interfaces is based on WebSocket protocol.
 
 
 
