@@ -195,7 +195,7 @@ function UserAction:UploadcodesAction(data)
     -- define shell
     local cmdGitPull = string.format([[cd %s && git pull]], self.repo)
     local cmdGitReset = string.format([[cd %s && git reset --hard %s]], self.repo, data.commit)
-    local cmdCpDest = string.format([[cd %s && mkdir %s && cp ./* %s -rf]], self.repo, self.dest, self.dest)
+    local cmdCpDest = string.format([[cd %s && mkdir -p %s && cp ./* %s -rf]], self.repo, self.dest, self.dest)
 
     local ok = os.execute(cmdGitPull)
     ok = ok + os.execute(cmdGitReset)
