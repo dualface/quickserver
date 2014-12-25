@@ -1,4 +1,3 @@
-CREATE DATABASE testdb;
 USE testdb;
 
 CREATE TABLE IF NOT EXISTS entity(
