@@ -1,12 +1,12 @@
-CURRDIR=$(pwd)
-DIR=/opt/quick_server/openresty/nginx/
-SRCDIR=/opt/quick_server/openresty/server/actions/tools/
+CURRDIR=$(dirname $(readlink -f $0))
+NGINX_DIR=$CURRDIR/openresty/nginx/
+SRCDIR=$CURDIR/openresty/server/actions/tools/
 
-/opt/quick_server/redis/bin/redis-server /opt/quick_server/conf/redis.conf
+$CURDIR/redis/bin/redis-server $CURDIR/conf/redis.conf
 
 service mysql start
 
-cd $DIR
+cd $NGINX_DIR
 . ./start.sh
 
 cd $SRCDIR
