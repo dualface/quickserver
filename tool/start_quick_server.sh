@@ -7,7 +7,7 @@ $CURDIR/redis/bin/redis-server $CURDIR/conf/redis.conf
 service mysql start
 
 cd $NGINX_DIR
-. ./start.sh
+. ./sbin/start.sh
 
 cd $SRCDIR
 . ./cleaner.sh  > /dev/null 2> /opt/.cleaner.log &

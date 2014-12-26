@@ -4,7 +4,7 @@ NGINX_DIR=$CURRDIR/openresty/nginx/
 PID=$(ps -ef | grep "sleep 60" | awk '{print $3}')
 
 cd $NGINX_DIR
-./stop.sh
+. ./sbin/stop.sh
 
 cd $CURRDIR
 
