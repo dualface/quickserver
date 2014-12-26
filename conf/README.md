@@ -6,7 +6,7 @@
 - nginx.conf
    - default configure file for nginx in Quick-Server.
 
-- sql directory
+- sql/
    - base.sql 
       - create basic tables for Quick-Server.
    - pre_condition.sql
