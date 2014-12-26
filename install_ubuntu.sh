@@ -70,8 +70,8 @@ cd $CUR_DIR/tool/
 ./compile_bytecode.sh $DEST_DIR
 
 #deploy tool script
-cp start.sh stop.sh status.sh reload.sh $DEST_DIR/openresty/nginx/. -f
-cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR -f
+cp start.sh stop.sh reload.sh $DEST_DIR/openresty/nginx/sbin/. -f
+cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh restart_nginx_only.sh $DEST_DIR -f
 ln -f -s $DEST_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
 #copy nginx and redis conf file
