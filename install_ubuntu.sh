@@ -67,7 +67,7 @@ make install
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_DIR/openresty/luajit/bin/lua
 cd $CUR_DIR/tool/
-./compile_bytecode.sh
+./compile_bytecode.sh $DEST_DIR
 
 #deploy tool script
 cp start.sh stop.sh status.sh reload.sh $DEST_DIR/openresty/nginx/. -f
