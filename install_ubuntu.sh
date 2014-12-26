@@ -61,7 +61,7 @@ cd $CUR_DIR/tool/
 
 #deploy tool script
 cp start.sh stop.sh status.sh reload.sh $DEST_DIR/openresty/nginx/. -f
-cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh /opt/. -f 
+cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR -f 
 ln -f -s $DEST_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
 #copy nginx and redis conf file
