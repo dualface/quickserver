@@ -6,12 +6,22 @@ if [ $UID -ne 0 ]; then
     exit 1
 fi
 
+if [ $# -ne 1 ]; then
+    DEST_DIR=/opt/quick_server
+else
+    if [ $1 == "--help" ] || [ $1 == "-h" ] ; then
+        echo "Usage: ./install_ubuntu.sh [absolute path for installation]"
+        echo "if the path is not specified, default path is /opt/quick_server."
+        exit 1
+    fi
+    DEST_DIR=$1
+fi
+
 set -e
 
 apt-get install -y build-essential libpcre3-dev git-core unzip
 
-CUR_DIR=$(pwd)
-DEST_DIR=/opt/quick_server
+CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
 THIRD_PARTY_DIR=$DEST_DIR/third_party
 
@@ -61,7 +71,7 @@ cd $CUR_DIR/tool/
 
 #deploy tool script
 cp start.sh stop.sh status.sh reload.sh $DEST_DIR/openresty/nginx/. -f
-cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR -f 
+cp start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR -f
 ln -f -s $DEST_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
 #copy nginx and redis conf file
