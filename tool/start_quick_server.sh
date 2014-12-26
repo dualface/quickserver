@@ -2,7 +2,7 @@ CURRDIR=$(dirname $(readlink -f $0))
 NGINX_DIR=$CURRDIR/openresty/nginx/
 SRCDIR=$CURDIR/openresty/server/actions/tools/
 
-$CURDIR/redis/bin/redis-server $CURDIR/conf/redis.conf
+$CURRDIR/redis/bin/redis-server $CURRDIR/conf/redis.conf
 
 service mysql start
 

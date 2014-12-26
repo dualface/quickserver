@@ -1,4 +1,4 @@
-CURRDIR=$(dirname $(readlink -p $0))
+CURRDIR=$(dirname $(readlink -f $0))
 NGINX_DIR=$CURRDIR/openresty/nginx/
 
 PID=$(ps -ef | grep "sleep 60" | awk '{print $3}')
