@@ -23,3 +23,6 @@ These tests are basic functional tests. "curl" tool is used for HTTP protocol, a
    
 - user_login/
    - test user login function.
+
+- hello_world/
+   - hello world for new user:)    
