@@ -13,7 +13,8 @@
 
 1. 安装dcoker, 请参考 https://www.docker.com/ 。
 2. 运行命令: *docker pull chukong/quick-server* 。
-3. 接下来的步骤请参考：[用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
+
+> **注意** 接下来的步骤请参考：[用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
 
 ### 通过Shell脚本安装
 
@@ -30,6 +31,9 @@
 > **注意** 采用脚本安装方式，请自行在Ubuntu环境下安装MySql。
 
 > **注意** 该脚本依赖于dpkg包管理，目前只支持Ubuntu环境，理论支持Debian，未作测试。
+
+> **注意** 更加详细的内容请参考: [在Linux下通过脚本安装Quick Server
+](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
 
 ## 版本日志
 
