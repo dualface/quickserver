@@ -12,7 +12,8 @@
 
 1. Install Docker. Please refer to https://www.docker.com/
 2. Run command: docker pull chukong/quick-server
-3. And please refer this documents for next steps: [Deploy Quick-Server with Docker] (https://github.com/dualface/quickserver/wiki/%E7%94%A8Docker%E9%83%A8%E7%BD%B2Quick-Server)
+
+> **NOTE** please refer this documents for more details: [Deploy Quick-Server with Docker] (https://github.com/dualface/quickserver/wiki/%E7%94%A8Docker%E9%83%A8%E7%BD%B2Quick-Server)
 
 ### Install via Shell Script
 
@@ -25,6 +26,8 @@
    https://git.oschina.net/cheerayhuang/quick-x-server.git
    
 2. Run shell script **install_ubuntu.sh** in root of codes dir.
+
+> **NOTE** please refer this documents for more details: [Install Quick-Server on Linux](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
 
 ## Change Log
 
