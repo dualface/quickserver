@@ -34,6 +34,7 @@ local config = {
     },
 
     userDefinedCodes = {
+        luaRepoPrefix = "user_repo.user_codes",
         localRepo  = "/opt/user_codes/",
         localDest  = "/opt/quick_server/openresty/server/user_codes", 
         --localRepo = "/home/cheeray/work/user_codes",
