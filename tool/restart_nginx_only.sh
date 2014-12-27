@@ -5,3 +5,4 @@ cd $NGINX_DIR
 . ./sbin/reload.sh
 
 cd $CURRDIR
+
