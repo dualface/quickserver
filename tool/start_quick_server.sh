@@ -1,6 +1,6 @@
 CURRDIR=$(dirname $(readlink -f $0))
 NGINX_DIR=$CURRDIR/openresty/nginx/
-SRCDIR=$CURDIR/openresty/server/actions/tools/
+SRCDIR=$CURRDIR/openresty/server/actions/tools/
 
 $CURRDIR/redis/bin/redis-server $CURRDIR/conf/redis.conf
 
