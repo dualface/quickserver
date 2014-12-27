@@ -34,14 +34,14 @@ end
 function ServerAppBase:doRequest(actionName, data, userDefModule)
     local actionPackage = self.config.actionPackage
     if userDefModule then
-        actionPackage = "user_codes." .. userDefModule .. ".actions"
+        actionPackage = userDefModule .. ".actions"
     end
 
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
     actionModuleName = string.format("%s.%s%s", actionPackage, string.ucfirst(string.lower(actionModuleName)), self.config.actionModuleSuffix)
     actionMethodName = string.ucfirst(string.lower(actionMethodName)) .. "Action"
 
-    local actionModule = self:require(actionModuleName)
+    local actionModule = self:require(actionModuleName, userDefModule)
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
         throw(ERR_SERVER_INVALID_ACTION, "failed to load action module %s", actionModuleName)
@@ -125,7 +125,11 @@ function ServerAppBase:newService(name)
     return self:require(string.format("services.%sService", string.ucfirst(name))).new(self)
 end
 
-function ServerAppBase:require(moduleName)
+function ServerAppBase:require(moduleName, userDefModule)
+    if userDefModule then
+        moduleName = self.config.userDefinedCodes.luaRepoPrefix .. "." .. moduleName
+        return require(moduleName)
+    end
     moduleName = self.config.appModuleName .. "." .. moduleName
     return require(moduleName)
 end
