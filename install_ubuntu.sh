@@ -77,6 +77,8 @@ ln -f -s $DEST_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 #copy nginx and redis conf file
 cp $CUR_DIR/conf/nginx.conf $DEST_DIR/openresty/nginx/conf/. -f
 cp $CUR_DIR/conf/redis.conf $DEST_DIR/conf/. -f
+sed -i "s#/opt/quick_server/#$DEST_DIR#g" $DEST_DIR/openresty/nginx/conf/nginx.conf
+sed -i "s#/opt/quick_server/#$DEST_DIR#g" $DEST_DIR/conf/redis.conf
 mkdir -p $DEST_DIR/redis/rdb
 
 # install luarocks
