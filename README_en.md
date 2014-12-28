@@ -27,7 +27,16 @@
    
 2. Run shell script **install_ubuntu.sh** in root of codes dir.
 
-> **NOTE** please refer this documents for more details: [Install Quick-Server on Linux](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+> **NOTE** please refer this documents for more details: [Install Quick-Server on Linux with Shell](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+
+## Links
+- [Quick-Server Wiki](https://github.com/dualface/quickserver/wiki)
+  
+- [FAQ]()
+
+- [Install Quick-Server on Linux with Shell](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+  
+- [Deploy Quick-Server with Docker](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
 
 ## Change Log
 
