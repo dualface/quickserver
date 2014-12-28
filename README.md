@@ -35,6 +35,24 @@
 > **注意** 更加详细的内容请参考: [在Linux下通过脚本安装Quick Server
 ](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
 
+## 相关链接
+
+- [Quick-Server Wiki首页](https://github.com/dualface/quickserver/wiki)
+  
+  包括Quic-Server基本介绍，安装和使用。
+
+- [Quick-Server相关的常见问题]()
+
+  包括Quick-Server的安装，使用中遇到的问题。
+  
+- [在Linux下通过脚本安装Quick Server](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+  
+  在Ubuntu下使用命令行安装Quick-Server的过程。
+
+- [用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
+  
+  利用Docke直接下载容器安装Quick-Server。
+
 ## 版本日志
 
 ### 0.4.0-rc0
