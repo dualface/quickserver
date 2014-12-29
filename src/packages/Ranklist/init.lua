@@ -1,3 +1,3 @@
-local plugin = import("Ranklist")
+local plugin = import(".Ranklist")
 
 return plugin
