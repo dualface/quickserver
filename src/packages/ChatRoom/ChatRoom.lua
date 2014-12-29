@@ -10,7 +10,7 @@ local function Err(errCode, errMsg, ...)
 end
 
 function ChatRoom:ctor(app)
-    self.super:ctor(app)
+    -- self.super:ctor(app)
 
     if app then 
         if app.requestType == "websockets" then
