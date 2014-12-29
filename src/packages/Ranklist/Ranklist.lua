@@ -38,7 +38,7 @@ end
 local RankList = class("RankList") 
 
 function RankList:ctor(app)
-    self.super:ctor(app)
+    -- self.super:ctor(app)
 
     if app then 
         --self.rankList = app.getRankList(app)
