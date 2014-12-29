@@ -24,6 +24,7 @@ cc.FRAMEWORK_NAME = "quick-cocos2d-x server"
 
 require("framework.debug")
 require("framework.functions")
+require("framework.package_support")
 json = require("framework.json")
 
 require(cc.PACKAGE_NAME .. ".functions")
