@@ -526,4 +526,8 @@ function RankList:Revlimit(data)
     return self.reply
 end
 
+function RankList:ClearResult()
+    self.reply = {}
+end
+
 return RankList
