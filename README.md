@@ -55,7 +55,7 @@
 
 ### 0.4.0
 - 升级Openresty到1.7.7.x版本。
-- 大幅修改了安装脚本install_ubuntu.sh，让用户使用起来更简单。并修正了一些bug。
+- 修改了安装脚本install_ubuntu.sh，让用户使用起来更简单。并修正了一些bug。
     - 现在安装Openresty结束之后，会自动帮助用户在"/usr/bin"下创建一个nginx的软链接。
     - 所有的"wget"命令都加入了"--no-check-certificate"选项，避免检查证书时带来验证不过而无法下载的问题。
     - "status\_quick_server.sh"会在安装完成后拷贝到Quick-Server安装目录下。
@@ -69,7 +69,7 @@
     - 提供了简单的测试，可以让用户测试并且了解如何使用插件。
 - 删除了install_mac.sh脚本，mac环境下的安装将在后续的版本支持。
 - 其他改动：
-    - 大幅改动了Quick-Server wiki。
+    - 更新了 Quick-Server wiki。
     - 修复了一个运行用户自定义lua代码的bug，当部署用户代码时，Quick-Server应当首先创建目标目录。
     - 现在用户代码在Quick-Server中的目标目录不一定是在"openresty/server/"下了，可以通过"openresty/server/config.lua"中的"luaRepoPrefix"配置到"openresty"下的任何目录。
     - 废弃了之前的上传用户自定义lua代码的接口。
