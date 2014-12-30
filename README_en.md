@@ -58,6 +58,7 @@
     - there are two other methods "addandcount" and "sayletters" to show how to write a function with plugins.
 - CHANGE: delete install_mac.sh. The installation of mac env will be supported in next version.
 - OTHER MINOR CHANGES:
+    - IMPROVE: upgrade Quick-Server wiki. 
     - BUGFIX: when deploying lua codes defined by user, the target directory in Quick-Server shoule be created.
     - IMPROVE: The target directory in Quick-Server can be configured via "luaRepoPrefix" in config.lua for deploying lua codes defined by user.
     - CHANGE: obsolete the old interface of uploading user codes.
