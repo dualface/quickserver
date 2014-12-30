@@ -37,7 +37,7 @@
 
 - [Quick-Server Wiki首页](https://github.com/dualface/quickserver/wiki)
   
-  包括Quic-Server基本介绍，安装和使用。
+  包括Quick-Server基本介绍，安装和使用。
 
 - [Quick-Server相关的常见问题]()
 
