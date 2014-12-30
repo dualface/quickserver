@@ -3,9 +3,7 @@
 
 ---
 
-## 最新版本 0.3.9
-- **即将发布 0.4.0**
-- **0.4.0-rc0 已经发布**
+## 最新版本 0.4.0
 
 ## 安装
 
@@ -54,6 +52,31 @@
   利用Docke直接下载容器安装Quick-Server。
 
 ## 版本日志
+
+### 0.4.0
+- 升级Openresty到1.7.7.x版本。
+- 大幅修改了安装脚本install_ubuntu.sh，让用户使用起来更简单。并修正了一些bug。
+    - 现在安装Openresty结束之后，会自动帮助用户在"/usr/bin"下创建一个nginx的软链接。
+    - 所有的"wget"命令都加入了"--no-check-certificate"选项，避免检查证书时带来验证不过而无法下载的问题。
+    - "status\_quick_server.sh"会在安装完成后拷贝到Quick-Server安装目录下。
+    - 所有的工具脚本，现在都从"/opt"目录下移动到了Quick-Server的安装目录下。
+    - 增加了一个工具脚本"restart\_nginx_only.sh"。
+    - install_ubuntu.sh现在可以接收一个参数，用于指定安装目录。
+    - 与Quick-Server相关的configure文件，现在会在install_ubuntu.sh脚本中被自动修改：）
+- 支持插件机制。
+    - 给框架增加了一些方法，"load"，"bind"等等，用于支持载入插件。
+    - 提供了两个插件的例子："RanklistAction"和"ChatAction"。
+    - 提供了简单的测试，可以让用户测试并且了解如何使用插件。
+- 删除了install_mac.sh脚本，mac环境下的安装将在后续的版本支持。
+- 其他改动：
+    - 大幅改动了Quick-Server wiki。
+    - 修复了一个运行用户自定义lua代码的bug，当部署用户代码时，Quick-Server应当首先创建目标目录。
+    - 现在用户代码在Quick-Server中的目标目录不一定是在"openresty/server/"下了，可以通过"openresty/server/config.lua"中的"luaRepoPrefix"配置到"openresty"下的任何目录。
+    - 废弃了之前的上传用户自定义lua代码的接口。
+    - 增加了一个pre_condition.sql文件，并把sql文件都移到了源码目录"conf/sql"下, 方便用户在使用的时候快速配置MySql。
+    - 在nginx.conf中，不需要再设置nginx的用户为"root"。
+    - 为每一个源代码目录下的子目录增加了README.md文件。
+    - 修改了一些在"openresty/nginx/"下的对命令"nginix"封装的脚本。
 
 ### 0.4.0-rc0
 - 新增加了一个接口user.session用于生成session_id。
