@@ -2,9 +2,7 @@
 ## A Server Framework Based On OpenResty
 
 ---
-## Latest Version 0.3.9
-- **Coming Soon 0.4.0**
-- **0.4.0-rc0 is released**
+## Latest Version 0.4.0
 
 ## Installation
 
