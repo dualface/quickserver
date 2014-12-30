@@ -158,6 +158,35 @@ function math.round(num)
     return math.floor(num + 0.5)
 end
 
+function math.trunc(x)
+    if x <= 0 then
+        return math.ceil(x);
+    end
+
+    if math.ceil(x) == x then
+        x = math.ceil(x);
+    else
+        x = math.ceil(x) - 1;
+    end
+    return x;
+end
+
+function math.newrandomseed()
+    local ok, socket = pcall(function()
+        return require("socket")
+    end)
+
+    if ok then
+        math.randomseed(socket.gettime() * 1000)
+    else
+        math.randomseed(os.time())
+    end
+    math.random()
+    math.random()
+    math.random()
+    math.random()
+end
+
 function io.exists(path)
     local file = io.open(path, "r")
     if file then
@@ -339,18 +368,36 @@ function table.removeItem(list, item, removeAll)
     end
 end
 
-function table.length(t) 
-    local count = 0 
-    if type(t) ~= "table" then 
-        return 0 
+function table.length(t)
+    local count = 0
+    if type(t) ~= "table" then
+        return 0
     end
 
-    for _, _ in pairs(t) do 
+    for _, _ in pairs(t) do
         count = count + 1
-    end 
-    
+    end
+
     return count
-end 
+end
+
+function table.unique(t, bArray)
+    local check = {}
+    local n = {}
+    local idx = 1
+    for k, v in pairs(t) do
+        if not check[v] then
+            if bArray then
+                n[idx] = v
+                idx = idx + 1
+            else
+                n[k] = v
+            end
+            check[v] = true
+        end
+    end
+    return n
+end
 
 function string.htmlspecialchars(input)
     for k, v in pairs(string._htmlspecialchars_set) do
@@ -462,17 +509,3 @@ function string.formatNumberThousands(num)
     end
     return formatted
 end
-
-function math.trunc(x) 
-    if x <= 0 then
-        return math.ceil(x);
-    end
-
-    if math.ceil(x) == x then
-        x = math.ceil(x);
-    else
-        x = math.ceil(x) - 1;
-    end
-    return x;
-end
-
