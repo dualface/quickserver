@@ -1,6 +1,8 @@
 # Quick-Server
 ## 基于OpenResty的服务器框架
 
+---
+
 ## 最新版本 0.4.0
 
 ## 安装
