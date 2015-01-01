@@ -1,0 +1,62 @@
+
+* {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+body {
+    padding: 1em;
+}
+
+h1 {
+    font-size: 32px;
+    margin-top: 0;
+}
+
+div.widget {
+    padding: 1em;
+    border: 1px solid #eee;
+    margin: 1em 0;
+}
+
+div.widget h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    padding: 0;
+    line-height: 22px;
+}
+
+#logs ul {
+    display: block;
+    min-height: 80px;
+    border: 1px solid #eee;
+    list-style: none;
+    padding: 0.2em 0.5em;
+}
+
+#logs li {
+    list-style: none;
+    color: #933;
+    margin: 0;
+}
+
+input[type=text] {
+    min-width: 320px;
+    font-size: 12px;
+    margin: 0.5em 0;
+}
+
+input[type=button] {
+    border: 1px solid #ddd;
+    background: #eee;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    display: inline-block;
+    padding: 0.3em 1.0em;
+    margin: 0;
+}
+
+input[type=button]:active {
+    background: #ddd;
+}
