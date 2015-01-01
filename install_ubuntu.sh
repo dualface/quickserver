@@ -19,7 +19,7 @@ fi
 
 set -e
 
-apt-get install -y build-essential libpcre3-dev git-core unzip
+apt-get install -y build-essential libpcre3-dev libssl-dev git-core unzip
 
 CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
