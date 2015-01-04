@@ -94,9 +94,9 @@ make install
 # install lua extensions
 LUAROCKS_BIN=$DEST_DIR/openresty/luajit/bin/luarocks
 
-$LUAROCKS_BIN install luasocket
-$LUAROCKS_BIN install lua-cjson
-$LUAROCKS_BIN install luafilesystem
+$LUAROCKS_BIN install luasocket --only-from="http://luarocks.logiceditor.com/rocks"
+$LUAROCKS_BIN install lua-cjson --only-from="http://luarocks.logiceditor.com/rocks"
+$LUAROCKS_BIN install luafilesystem --only-from="http://luarocks.logiceditor.com/rocks"
 
 cd $BUILD_DIR
 wget --no-check-certificate http://pyyaml.org/download/libyaml/yaml-$LIBYAML_VER.tar.gz
@@ -106,7 +106,7 @@ cd yaml-$LIBYAML_VER
 make
 make install
 
-$LUAROCKS_BIN install lyaml YAML_DIR=$THIRD_PARTY_DIR
+$LUAROCKS_BIN install lyaml YAML_DIR=$THIRD_PARTY_DIR --only-from="http://luarocks.logiceditor.com/rocks"
 
 
 # install redis
