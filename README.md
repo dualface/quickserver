@@ -12,7 +12,7 @@
 1.  安装dcoker, 请参考 https://www.docker.com/ 。
 2.  运行命令: *docker pull chukong/quick-server* 。
 
-> **注意** 接下来的步骤请参考：[[用 Docker 部署 Quick Server]]
+> **注意** 接下来的步骤请参考：[用 Docker 部署 Quick Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8-Docker-%E9%83%A8%E7%BD%B2-Quick-Server)
 
 ### 通过Shell脚本安装
 
@@ -30,24 +30,23 @@
 
 > **注意** 该脚本依赖于dpkg包管理，目前只支持Ubuntu环境，理论支持Debian，未作测试。
 
-> **注意** 更加详细的内容请参考: [在Linux下通过脚本安装Quick Server
-](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+> **注意** 更加详细的内容请参考: [在 Linux 下通过脚本安装 Quick Server](https://github.com/dualface/quickserver/wiki/%E5%9C%A8-Linux-%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85-Quick-Server)
 
 ## 相关链接
 
--   [Quick-Server Wiki首页](https://github.com/dualface/quickserver/wiki)
+-   [Quick Server Wiki 首页](https://github.com/dualface/quickserver/wiki)
   
     包括Quick-Server基本介绍，安装和使用。
 
--   [Quick-Server相关的常见问题]()
+-   [Quick Server 相关的常见问题]()
 
     包括Quick-Server的安装，使用中遇到的问题。
   
--   [在Linux下通过脚本安装Quick Server](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
+-   [在 Linux 下通过脚本安装 Quick Server](https://github.com/dualface/quickserver/wiki/%E5%9C%A8-Linux-%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85-Quick-Server)
   
-    在Ubuntu下使用命令行安装Quick-Server的过程。
+    在 Linux 下使用命令行安装Quick-Server的过程。
 
--   [用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
+-   [用 Docker 部署 Quick Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8-Docker-%E9%83%A8%E7%BD%B2-Quick-Server)
   
     利用Docke直接下载容器安装Quick-Server。
 
@@ -82,4 +81,4 @@
     -   为每一个源代码目录下的子目录增加了README.md文件。
     -   修改了一些在"openresty/nginx/"下的对命令"nginix"封装的脚本。
 
-> **注意** 完整的版本日志信息可以参考 [Quick-Server安装以及版本信息](https://github.com/dualface/quickserver/wiki/Quick-Server%E5%AE%89%E8%A3%85%E4%BB%A5%E5%8F%8A%E7%89%88%E6%9C%AC%E4%BF%A1%E6%81%AF)
+> **注意** 完整的版本日志信息可以参考 [Quick Server 安装以及版本信息](https://github.com/dualface/quickserver/wiki/Quick-Server-%E5%AE%89%E8%A3%85%E4%BB%A5%E5%8F%8A%E7%89%88%E6%9C%AC%E4%BF%A1%E6%81%AF)
