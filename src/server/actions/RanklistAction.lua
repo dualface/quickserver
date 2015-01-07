@@ -22,7 +22,7 @@ end
 local function CheckParams(data, ...)
     local arg = {...} 
 
-    if table.length(arg) == 0 then 
+    if table.nums(arg) == 0 then 
         return true
     end 
     

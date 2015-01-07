@@ -1,4 +1,138 @@
+--[[
 
+Copyright (c) 2011-2015 chukong-inc.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+]]
+
+function printLog(tag, fmt, ...)
+    local t = {
+        "[",
+        string.upper(tostring(tag)),
+        "] ",
+        string.format(tostring(fmt), ...)
+    }
+    print(table.concat(t))
+end
+
+function printError(fmt, ...)
+    printLog("ERR", fmt, ...)
+    print(debug.traceback("", 2))
+end
+
+function printInfo(fmt, ...)
+    if type(DEBUG) ~= "number" or DEBUG < 2 then return end
+    printLog("INFO", fmt, ...)
+end
+
+local function dump_value_(v)
+    if type(v) == "string" then
+        v = "\"" .. v .. "\""
+    end
+    return tostring(v)
+end
+
+function dump(value, desciption, nesting)
+    if type(nesting) ~= "number" then nesting = 3 end
+
+    local lookupTable = {}
+    local result = {}
+
+    local traceback = string.split(debug.traceback("", 2), "\n")
+    print("dump from: " .. string.trim(traceback[3]))
+
+    local function dump_(value, desciption, indent, nest, keylen)
+        desciption = desciption or "<var>"
+        local spc = ""
+        if type(keylen) == "number" then
+            spc = string.rep(" ", keylen - string.len(dump_value_(desciption)))
+        end
+        if type(value) ~= "table" then
+            result[#result +1 ] = string.format("%s%s%s = %s", indent, dump_value_(desciption), spc, dump_value_(value))
+        elseif lookupTable[tostring(value)] then
+            result[#result +1 ] = string.format("%s%s%s = *REF*", indent, dump_value_(desciption), spc)
+        else
+            lookupTable[tostring(value)] = true
+            if nest > nesting then
+                result[#result +1 ] = string.format("%s%s = *MAX NESTING*", indent, dump_value_(desciption))
+            else
+                result[#result +1 ] = string.format("%s%s = {", indent, dump_value_(desciption))
+                local indent2 = indent.."    "
+                local keys = {}
+                local keylen = 0
+                local values = {}
+                for k, v in pairs(value) do
+                    keys[#keys + 1] = k
+                    local vk = dump_value_(k)
+                    local vkl = string.len(vk)
+                    if vkl > keylen then keylen = vkl end
+                    values[k] = v
+                end
+                table.sort(keys, function(a, b)
+                    if type(a) == "number" and type(b) == "number" then
+                        return a < b
+                    else
+                        return tostring(a) < tostring(b)
+                    end
+                end)
+                for i, k in ipairs(keys) do
+                    dump_(values[k], k, indent2, nest + 1, keylen)
+                end
+                result[#result +1] = string.format("%s}", indent)
+            end
+        end
+    end
+    dump_(value, desciption, "- ", 1)
+
+    for i, line in ipairs(result) do
+        print(line)
+    end
+end
+
+function printf(fmt, ...)
+    print(string.format(tostring(fmt), ...))
+end
+
+function checknumber(value, base)
+    return tonumber(value, base) or 0
+end
+
+function checkint(value)
+    return math.round(checknumber(value))
+end
+
+function checkbool(value)
+    return (value ~= nil and value ~= false)
+end
+
+function checktable(value)
+    if type(value) ~= "table" then value = {} end
+    return value
+end
+
+function isset(hashtable, key)
+    local t = type(hashtable)
+    return (t == "table" or t == "userdata") and hashtable[key] ~= nil
+end
+
+-- duplicate from above "check" functions for compatible.
 function tonum(v, base)
     return tonumber(v, base) or 0
 end
@@ -16,10 +150,27 @@ function totable(v)
     return v
 end
 
-function isset(arr, key)
-    local t = type(arr)
-    return (t == "table" or t == "userdata") and arr[key] ~= nil
+local setmetatableindex_
+setmetatableindex_ = function(t, index)
+    if type(t) == "userdata" then
+        local peer = tolua.getpeer(t)
+        if not peer then
+            peer = {}
+            tolua.setpeer(t, peer)
+        end
+        setmetatableindex_(peer, index)
+    else
+        local mt = getmetatable(t)
+        if not mt then mt = {} end
+        if not mt.__index then
+            mt.__index = index
+            setmetatable(t, mt)
+        elseif mt.__index ~= index then
+            setmetatableindex_(mt, index)
+        end
+    end
 end
+setmetatableindex = setmetatableindex_
 
 function clone(object)
     local lookup_table = {}
@@ -29,94 +180,119 @@ function clone(object)
         elseif lookup_table[object] then
             return lookup_table[object]
         end
-        local new_table = {}
-        lookup_table[object] = new_table
+        local newObject = {}
+        lookup_table[object] = newObject
         for key, value in pairs(object) do
-            new_table[_copy(key)] = _copy(value)
+            newObject[_copy(key)] = _copy(value)
         end
-        return setmetatable(new_table, getmetatable(object))
+        return setmetatable(newObject, getmetatable(object))
     end
     return _copy(object)
 end
 
-function class(classname, super)
-    local superType = type(super)
-    local cls
+function class(classname, ...)
+    local cls = {__cname = classname}
 
-    if superType ~= "function" and superType ~= "table" then
-        superType = nil
-        super = nil
+    local supers = {...}
+    for _, super in ipairs(supers) do
+        local superType = type(super)
+        assert(superType == "nil" or superType == "table" or superType == "function",
+            string.format("class() - create class \"%s\" with invalid super class type \"%s\"",
+                classname, superType))
+
+        if superType == "function" then
+            assert(cls.__create == nil,
+                string.format("class() - create class \"%s\" with more than one creating function",
+                    classname));
+            -- if super is function, set it to __create
+            cls.__create = super
+        elseif superType == "table" then
+            if super[".isclass"] then
+                -- super is native class
+                assert(cls.__create == nil,
+                    string.format("class() - create class \"%s\" with more than one creating function or native class",
+                        classname));
+                cls.__create = function() return super:create() end
+            else
+                -- super is pure lua class
+                cls.__supers = cls.__supers or {}
+                cls.__supers[#cls.__supers + 1] = super
+                if not cls.super then
+                    -- set first super pure lua class as class.super
+                    cls.super = super
+                end
+            end
+        else
+            error(string.format("class() - create class \"%s\" with invalid super type",
+                        classname), 0)
+        end
     end
 
-    if superType == "function" or (super and super.__ctype == 1) then
-        -- inherited from native C++ Object
-        cls = {}
-
-        if superType == "table" then
-            -- copy fields from super
-            for k,v in pairs(super) do cls[k] = v end
-            cls.__create = super.__create
-            cls.super    = super
-        else
-            cls.__create = super
-            cls.ctor = function() end
-        end
-
-        cls.__cname = classname
-        cls.__ctype = 1
-
-        function cls.new(...)
-            local instance = cls.__create(...)
-            -- copy fields from class to native object
-            for k,v in pairs(cls) do instance[k] = v end
-            instance.class = cls
-            instance:ctor(...)
-            return instance
-        end
-
+    cls.__index = cls
+    if not cls.__supers or #cls.__supers == 1 then
+        setmetatable(cls, {__index = cls.super})
     else
-        -- inherited from Lua Object
-        if super then
-            cls = {}
-            setmetatable(cls, {__index = super})
-            cls.super = super
+        setmetatable(cls, {__index = function(_, key)
+            local supers = cls.__supers
+            for i = 1, #supers do
+                local super = supers[i]
+                if super[key] then return super[key] end
+            end
+        end})
+    end
+
+    if not cls.ctor then
+        -- add default constructor
+        cls.ctor = function() end
+    end
+    cls.new = function(...)
+        local instance
+        if cls.__create then
+            instance = cls.__create(...)
         else
-            cls = {ctor = function() end}
+            instance = {}
         end
-
-        cls.__cname = classname
-        cls.__ctype = 2 -- lua
-        cls.__index = cls
-
-        function cls.new(...)
-            local instance = setmetatable({}, cls)
-            instance.class = cls
-            instance:ctor(...)
-            return instance
-        end
+        setmetatableindex(instance, cls)
+        instance.class = cls
+        instance:ctor(...)
+        return instance
+    end
+    cls.create = function(_, ...)
+        return cls.new(...)
     end
 
     return cls
 end
 
-function iskindof(obj, className)
-    local t = type(obj)
+local iskindof_
+iskindof_ = function(cls, name)
+    local __index = rawget(cls, "__index")
+    if type(__index) == "table" and rawget(__index, "__cname") == name then return true end
 
-    if t == "table" then
-        local mt = getmetatable(obj)
-        while mt and mt.__index do
-            if mt.__index.__cname == className then
-                return true
-            end
-            mt = mt.super
-        end
-        return false
-
-    elseif t == "userdata" then
-
-    else
-        return false
+    if rawget(cls, "__cname") == name then return true end
+    local __supers = rawget(cls, "__supers")
+    if not __supers then return false end
+    for _, super in ipairs(__supers) do
+        if iskindof_(super, name) then return true end
     end
+    return false
+end
+
+function iskindof(obj, classname)
+    local t = type(obj)
+    if t ~= "table" and t ~= "userdata" then return false end
+
+    local mt
+    if t == "userdata" then
+        if tolua.iskindof(obj, classname) then return true end
+        mt = tolua.getpeer(obj)
+    else
+        mt = getmetatable(obj)
+    end
+    if mt then
+        return iskindof_(mt, classname)
+    end
+    return false
 end
 
 function import(moduleName, currentModuleName)
@@ -148,14 +324,54 @@ function import(moduleName, currentModuleName)
     return require(moduleFullName)
 end
 
-function handler(target, method)
+function handler(obj, method)
     return function(...)
-        return method(target, ...)
+        return method(obj, ...)
     end
 end
 
-function math.round(num)
-    return math.floor(num + 0.5)
+function math.newrandomseed()
+    local ok, socket = pcall(function()
+        return require("socket")
+    end)
+
+    if ok then
+        math.randomseed(socket.gettime() * 1000)
+    else
+        math.randomseed(os.time())
+    end
+    math.random()
+    math.random()
+    math.random()
+    math.random()
+end
+
+function math.round(value)
+    value = checknumber(value)
+    return math.floor(value + 0.5)
+end
+
+function math.trunc(x) 
+    if x <= 0 then
+        return math.ceil(x);
+    end
+
+    if math.ceil(x) == x then
+        x = math.ceil(x);
+    else
+        x = math.ceil(x) - 1;
+    end
+    return x;
+end
+
+local pi_div_180 = math.pi / 180
+function math.angle2radian(angle)
+    return angle * pi_div_180
+end
+
+local pi_mul_180 = math.pi * 180
+function math.radian2angle(radian)
+    return radian / pi_mul_180
 end
 
 function io.exists(path)
@@ -235,17 +451,17 @@ function table.nums(t)
     return count
 end
 
-function table.keys(t)
+function table.keys(hashtable)
     local keys = {}
-    for k, v in pairs(t) do
+    for k, v in pairs(hashtable) do
         keys[#keys + 1] = k
     end
     return keys
 end
 
-function table.values(t)
+function table.values(hashtable)
     local values = {}
-    for k, v in pairs(t) do
+    for k, v in pairs(hashtable) do
         values[#values + 1] = v
     end
     return values
@@ -257,107 +473,83 @@ function table.merge(dest, src)
     end
 end
 
---[[--
+function table.insertto(dest, src, begin)
+    begin = checkint(begin)
+    if begin <= 0 then
+        begin = #dest + 1
+    end
 
-insert list.
-
-**Usage:**
-
-    local dest = {1, 2, 3}
-    local src  = {4, 5, 6}
-    table.insertTo(dest, src)
-    -- dest = {1, 2, 3, 4, 5, 6}
-	dest = {1, 2, 3}
-	table.insertTo(dest, src, 5)
-    -- dest = {1, 2, 3, nil, 4, 5, 6}
-
-
-@param table dest
-@param table src
-@param table begin insert position for dest
-]]
-function table.insertTo(dest, src, begin)
-	begin = tonumber(begin)
-	if begin == nil then
-		begin = #dest + 1
-	end
-
-	local len = #src
-	for i = 0, len - 1 do
-		dest[i + begin] = src[i + 1]
-	end
+    local len = #src
+    for i = 0, len - 1 do
+        dest[i + begin] = src[i + 1]
+    end
 end
 
---[[
-search target index at list.
-
-@param table list
-@param * target
-@param int from idx, default 1
-@param bool useNaxN, the len use table.maxn(true) or #(false) default:false
-@param return index of target at list, if not return -1
-]]
-function table.indexOf(list, target, from, useMaxN)
-	local len = (useMaxN and #list) or table.maxn(list)
-	if from == nil then
-		from = 1
-	end
-	for i = from, len do
-		if list[i] == target then
-			return i
-		end
-	end
-	return -1
+function table.indexof(array, value, begin)
+    for i = begin or 1, #array do
+        if array[i] == value then return i end
+    end
+    return false
 end
 
-function table.indexOfKey(list, key, value, from, useMaxN)
-	local len = (useMaxN and #list) or table.maxn(list)
-	if from == nil then
-		from = 1
-	end
-	local item = nil
-	for i = from, len do
-		item = list[i]
-		if item ~= nil and item[key] == value then
-			return i
-		end
-	end
-	return -1
+function table.keyof(hashtable, value)
+    for k, v in pairs(hashtable) do
+        if v == value then return k end
+    end
+    return nil
 end
 
-function table.removeItem(list, item, removeAll)
-    local rmCount = 0
-    for i = 1, #list do
-        if list[i - rmCount] == item then
-            table.remove(list, i - rmCount)
-            if removeAll then
-                rmCount = rmCount + 1
+function table.removebyvalue(array, value, removeall)
+    local c, i, max = 0, 1, #array
+    while i <= max do
+        if array[i] == value then
+            table.remove(array, i)
+            c = c + 1
+            i = i - 1
+            max = max - 1
+            if not removeall then break end
+        end
+        i = i + 1
+    end
+    return c
+end
+
+function table.map(t, fn)
+    for k, v in pairs(t) do
+        t[k] = fn(v, k)
+    end
+end
+
+function table.walk(t, fn)
+    for k,v in pairs(t) do
+        fn(v, k)
+    end
+end
+
+function table.filter(t, fn)
+    for k, v in pairs(t) do
+        if not fn(v, k) then t[k] = nil end
+    end
+end
+
+function table.unique(t, bArray)
+    local check = {}
+    local n = {}
+    local idx = 1
+    for k, v in pairs(t) do
+        if not check[v] then
+            if bArray then
+                n[idx] = v
+                idx = idx + 1
             else
-                break
+                n[k] = v
             end
+            check[v] = true
         end
     end
+    return n
 end
 
-function table.length(t) 
-    local count = 0 
-    if type(t) ~= "table" then 
-        return 0 
-    end
-
-    for _, _ in pairs(t) do 
-        count = count + 1
-    end 
-    
-    return count
-end 
-
-function string.htmlspecialchars(input)
-    for k, v in pairs(string._htmlspecialchars_set) do
-        input = string.gsub(input, k, v)
-    end
-    return input
-end
 string._htmlspecialchars_set = {}
 string._htmlspecialchars_set["&"] = "&amp;"
 string._htmlspecialchars_set["\""] = "&quot;"
@@ -365,7 +557,14 @@ string._htmlspecialchars_set["'"] = "&#039;"
 string._htmlspecialchars_set["<"] = "&lt;"
 string._htmlspecialchars_set[">"] = "&gt;"
 
-function string.htmlspecialcharsDecode(input)
+function string.htmlspecialchars(input)
+    for k, v in pairs(string._htmlspecialchars_set) do
+        input = string.gsub(input, k, v)
+    end
+    return input
+end
+
+function string.restorehtmlspecialchars(input)
     for k, v in pairs(string._htmlspecialchars_set) do
         input = string.gsub(input, v, k)
     end
@@ -384,62 +583,63 @@ function string.text2html(input)
     return input
 end
 
-function string.split(str, delimiter)
+function string.split(input, delimiter)
+    input = tostring(input)
+    delimiter = tostring(delimiter)
     if (delimiter=='') then return false end
     local pos,arr = 0, {}
     -- for each divider found
-    for st,sp in function() return string.find(str, delimiter, pos, true) end do
-        table.insert(arr, string.sub(str, pos, st - 1))
+    for st,sp in function() return string.find(input, delimiter, pos, true) end do
+        table.insert(arr, string.sub(input, pos, st - 1))
         pos = sp + 1
     end
-    table.insert(arr, string.sub(str, pos))
+    table.insert(arr, string.sub(input, pos))
     return arr
 end
 
-function string.ltrim(str)
-    return string.gsub(str, "^[ \t\n\r]+", "")
+function string.ltrim(input)
+    return string.gsub(input, "^[ \t\n\r]+", "")
 end
 
-function string.rtrim(str)
-    return string.gsub(str, "[ \t\n\r]+$", "")
+function string.rtrim(input)
+    return string.gsub(input, "[ \t\n\r]+$", "")
 end
 
-function string.trim(str)
-    str = string.gsub(str, "^[ \t\n\r]+", "")
-    return string.gsub(str, "[ \t\n\r]+$", "")
+function string.trim(input)
+    input = string.gsub(input, "^[ \t\n\r]+", "")
+    return string.gsub(input, "[ \t\n\r]+$", "")
 end
 
-function string.ucfirst(str)
-    return string.upper(string.sub(str, 1, 1)) .. string.sub(str, 2)
+function string.ucfirst(input)
+    return string.upper(string.sub(input, 1, 1)) .. string.sub(input, 2)
 end
 
-local function urlencodeChar(char)
+local function urlencodechar(char)
     return "%" .. string.format("%02X", string.byte(char))
 end
-
-function string.urlencode(str)
+function string.urlencode(input)
     -- convert line endings
-    str = string.gsub(tostring(str), "\n", "\r\n")
+    input = string.gsub(tostring(input), "\n", "\r\n")
     -- escape all characters but alphanumeric, '.' and '-'
-    str = string.gsub(str, "([^%w%.%- ])", urlencodeChar)
+    input = string.gsub(input, "([^%w%.%- ])", urlencodechar)
     -- convert spaces to "+" symbols
-    return string.gsub(str, " ", "+")
+    return string.gsub(input, " ", "+")
 end
 
-function string.urldecode(str)
-    str = string.gsub (str, "+", " ")
-    str = string.gsub (str, "%%(%x%x)", function(h) return string.char(tonum(h,16)) end)
-    str = string.gsub (str, "\r\n", "\n")
-    return str
+function string.urldecode(input)
+    input = string.gsub (input, "+", " ")
+    input = string.gsub (input, "%%(%x%x)", function(h) return string.char(checknumber(h,16)) end)
+    input = string.gsub (input, "\r\n", "\n")
+    return input
 end
 
-function string.utf8len(str)
-    local len  = #str
+function string.utf8len(input)
+    local len  = string.len(input)
     local left = len
     local cnt  = 0
     local arr  = {0, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc}
     while left ~= 0 do
-        local tmp = string.byte(str, -left)
+        local tmp = string.byte(input, -left)
         local i   = #arr
         while arr[i] do
             if tmp >= arr[i] then
@@ -453,8 +653,8 @@ function string.utf8len(str)
     return cnt
 end
 
-function string.formatNumberThousands(num)
-    local formatted = tostring(tonum(num))
+function string.formatnumberthousands(num)
+    local formatted = tostring(checknumber(num))
     local k
     while true do
         formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
@@ -462,17 +662,3 @@ function string.formatNumberThousands(num)
     end
     return formatted
 end
-
-function math.trunc(x) 
-    if x <= 0 then
-        return math.ceil(x);
-    end
-
-    if math.ceil(x) == x then
-        x = math.ceil(x);
-    else
-        x = math.ceil(x) - 1;
-    end
-    return x;
-end
-
