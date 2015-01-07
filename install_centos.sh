@@ -19,7 +19,7 @@ fi
 
 set -e
 
-apt-get install -y build-essential libpcre3-dev libssl-dev git-core unzip
+yum install -y pcre-devel zlib-devel openssl-devel wget unzip
 
 CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
@@ -83,8 +83,8 @@ mkdir -p $DEST_DIR/redis/rdb
 
 # install luarocks
 cd $BUILD_DIR
-wget --no-check-certificate http://luarocks.org/releases/luarocks-$LUAROCKS_VER.tar.gz
-tar zxf luarocks-$LUAROCKS_VER.tar.gz
+wget --no-check-certificate https://github.com/keplerproject/luarocks/archive/v$LUAROCKS_VER.zip -O luarocks-$LUAROCKS_VER.zip
+unzip luarocks-$LUAROCKS_VER.zip
 cd luarocks-$LUAROCKS_VER
 
 ./configure --prefix=$DEST_DIR/openresty/luajit --with-lua=$DEST_DIR/openresty/luajit --with-lua-include=$DEST_DIR/openresty/luajit/include/luajit-2.1
