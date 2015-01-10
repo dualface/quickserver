@@ -1,21 +1,14 @@
 local BeanstalkedService = class("BeanstalkedService")
-local beans = require("resty.beanstalkd")
 
 function BeanstalkedService:ctor(config) 
+    local beans = require("resty.beanstalkd")
     self.config = config or {host = "127.0.0.1", port = "11300", timeout = 10 * 1000}    
 
     self.beans = beans:new()
-
-    self.use = self.beans.use
-    self.watch = self.beans.watch
-    self.ignore = self.beans.ignore
-    self.put = self.beans.put
-    self.delete = self.beans.delete
-    self.reserve = self.beans.reserve
-    self.release = self.beans.release
-    self.bury = self.beans.bury
-    self.kick = self.beans.kick
-    self.peek = self.beans.peek
+    self.sock = self.beans.sock
+    self.connect = rawget(self.class, "connect")
+    self.close = rawget(self.class, "close")
+    setmetatable(self, {__index=function(table, key) return self.beans[key] end})
 end
 
 function BeanstalkedService:connect()
@@ -44,4 +37,4 @@ function BeanstalkedService:close()
 end
 
 
-rn BeanstalkedService
+return BeanstalkedService
