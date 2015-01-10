@@ -1,7 +1,5 @@
-local BeanstalkedPakcage = class("BeanstalkedPakcage")
+local _P = {}
 
-function BeanstalkedPakcage:ctor()
-    self.service = import(".service")
-end
+_P.service = import(".service")
 
-return BeanstalkedPakcage
+return _P

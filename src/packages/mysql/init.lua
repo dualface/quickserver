@@ -1,7 +1,5 @@
-local MysqlPackage = class("MysqlPackage") 
+local _P = {}
 
-function MysqlPackage:ctor()
-    self.service = import(".service")
-end
+_P.service = import(".service")
 
-return MysqlPackage 
+return _P
