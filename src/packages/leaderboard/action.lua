@@ -4,9 +4,9 @@ local function _err(...)
     return {err_msg = string.format(...)}
 end
 
-function LeaderboardAction:ctor(app, cls)
-    local sevice = import(".service").new(app) 
+local service = import(".service")
 
+function LeaderboardAction:ctor(app, cls)
     if cls == nil then 
        echoError("Please specify a class to carry pakcage actions,  or you can import pakcage service only.") 
        return 
@@ -14,12 +14,12 @@ function LeaderboardAction:ctor(app, cls)
 
     -- export action method
     local find = string.find
-    for k, v in pairs(self) do 
+    for k, v in pairs(self.class) do
         if type(v) == "function" and find(k, "Action$") then
             cls[k] = v 
         end
     end
-    cls.service = service
+    cls.service = service.new(app)
 end
 
 function LeaderboardAction:CountAction(data)
@@ -61,7 +61,7 @@ function LeaderboardAction:AddAction(data)
         return _err(err)
     end
     
-    return {ok = 1, uid = uid, percent = math.trunc(rank/c)}
+    return {ok = 1, uid = uid, percent = math.trunc(rank/c*100)}
 end
 
 function LeaderboardAction:RemoveAction(data)

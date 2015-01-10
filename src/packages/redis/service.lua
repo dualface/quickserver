@@ -32,12 +32,12 @@ function RedisService:close()
 end
 
 function RedisService:command(command, ...)
-    local method = self.instance[command]
+    local method = self.redis[command]
     if type(method) ~= "function" then 
         return nil, string.format("invalid command %s", tostring(command))
     end
 
-    return method(self.instance, ...)
+    return method(self.redis, ...)
 end
 
 function RedisService:pubsub(subscriptions)
@@ -56,7 +56,7 @@ function RedisService:pubsub(subscriptions)
 
     local function subscribe(f, channels)
         for _, channel in ipairs(channels) do
-            local result, err = f(self.instance, channel)
+            local result, err = f(self.redis, channel)
             if result then
                 subscribeMessages[#subscribeMessages + 1] = result
             end
@@ -65,7 +65,7 @@ function RedisService:pubsub(subscriptions)
 
     local function unsubscribe(f, channels)
         for _, channel in ipairs(channels) do
-            f(self.instance, channel)
+            f(self.redis, channel)
         end
     end
 
@@ -73,19 +73,19 @@ function RedisService:pubsub(subscriptions)
     local function abort()
         if aborting then return end
         if subscriptions.subscribe then
-            unsubscribe(self.instance.unsubscribe, subscriptions.subscribe)
+            unsubscribe(self.redis.unsubscribe, subscriptions.subscribe)
         end
         if subscriptions.psubscribe then
-            unsubscribe(self.instance.punsubscribe, subscriptions.psubscribe)
+            unsubscribe(self.redis.punsubscribe, subscriptions.psubscribe)
         end
         aborting = true
     end
 
     if subscriptions.subscribe then
-        subscribe(self.instance.subscribe, subscriptions.subscribe)
+        subscribe(self.redis.subscribe, subscriptions.subscribe)
     end
     if subscriptions.psubscribe then
-        subscribe(self.instance.psubscribe, subscriptions.psubscribe)
+        subscribe(self.redis.psubscribe, subscriptions.psubscribe)
     end
 
     return coroutine.wrap(function()
@@ -95,7 +95,7 @@ function RedisService:pubsub(subscriptions)
                 result = subscribeMessages[1]
                 table.remove(subscribeMessages, 1)
             else
-                result, err = self.instance:read_reply()
+                result, err = self.redis:read_reply()
             end
 
             if not result then
@@ -138,11 +138,11 @@ function RedisService:pubsub(subscriptions)
 end
 
 function RedisService:commitPipeline(commands)
-    self.instance:init_pipeline()
+    self.redis:init_pipeline()
     for _, arg in ipairs(commands) do
         self:command(arg[1], unpack(arg[2]))
     end
-    return self.instance:commit_pipeline()
+    return self.redis:commit_pipeline()
 end
 
 return RedisService
