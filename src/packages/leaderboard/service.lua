@@ -1,19 +1,16 @@
-local ERR_RANKLIST_INVALID_PARAM = 1000
-local ERR_RANKLIST_OPERATION_FAILED = 1100
-
 local LeaderboardService = class("LeaderboardService") 
 
 function LeaderboardService:ctor(app)
-    local config = app.config.redis or {}
+    local config = nil
+    if app then 
+        config = app.config.redis
+    end
     self.redis = cc.load("redis").service.new(config)
-
-    self.reply = {}
+    self.redis:connect()
 end 
 
-local function _err(errCode, errMsg, ...) 
-   local msg = string.format(errMsg, ...)
-
-   return {err_code=errCode, err_msg=msg} 
+function LeaderboardService:endService()
+    self.redis:close()
 end
 
 local function _checkParams(data, ...)
@@ -255,15 +252,15 @@ function LeaderboardService:Getrevrank(data)
 
     local listName = data.ranklist
     local key = data.uid
-    local rev_rank, err = rds:command("zrevrank", listName, key)
-    if not rev_rank then 
+    local revRank, err = rds:command("zrevrank", listName, key)
+    if not revRank then 
         return nil, err
     end
-    if tostring(rev_rank) == "userdata: NULL" then 
+    if tostring(revRank) == "userdata: NULL" then 
         return "null", nil
     end
 
-    return rev_rank+1, nil 
+    return revRank+1, nil 
 end 
 
 -- zrange 
@@ -329,7 +326,6 @@ function LeaderboardService:Getrevrankrange(data)
  
     if not _checkParams(data, "ranklist", "offset", "count") then 
         return nil, "'ranklist', 'offset' or 'count' is missed in param table."
-        return self.reply
     end
 
     local listName = data.ranklist
@@ -439,10 +435,6 @@ function LeaderboardService:Revlimit(data)
     end
 
     return true, nil
-end
-
-function LeaderboardService:ClearResult()
-    self.reply = {}
 end
 
 return LeaderboardService
