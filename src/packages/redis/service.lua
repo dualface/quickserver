@@ -33,7 +33,6 @@ end
 
 function RedisService:command(command, ...)
     local method = self.instance[command]
-    -- assert(type(method) == "function", string.format("RedisService:command() - invalid command %s", tostring(command)))
     if type(method) ~= "function" then 
         return nil, string.format("invalid command %s", tostring(command))
     end

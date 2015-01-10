@@ -1,7 +1,5 @@
-local RedisPackage = class("RedisPackage")
+local _P = {}
 
-function RedisPackage:ctor()
-    self.service = import(".service")
-end
+_P.service = import(".service")
 
-return RedisPackage 
+return _P
