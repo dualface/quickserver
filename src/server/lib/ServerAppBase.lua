@@ -38,7 +38,7 @@ function ServerAppBase:doRequest(actionName, data, userDefModule)
     end
 
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
-    actionModuleName = string.format("%s.%s%s", actionPackage, string.ucfirst(string.lower(actionModuleName)), self.config.actionModuleSuffix)
+    actionModuleName = string.format("%s.%s%s", actionPackage, actionModuleName, self.config.actionModuleSuffix)
     actionMethodName = string.ucfirst(string.lower(actionMethodName)) .. "Action"
 
     local actionModule = self:require(actionModuleName, userDefModule)
@@ -142,7 +142,11 @@ function ServerAppBase:normalizeActionName(actionName)
 
     local parts = string.split(actionName, ".")
     if #parts == 1 then parts[2] = 'index' end
-    return parts[1], parts[2]
+    method = string.lower(parts[#parts])
+    table.remove(parts, #parts)
+    parts[#parts] = string.ucfirst(string.lower(parts[#parts]))
+
+    return table.concat(parts, "."), string.ucfirst(method)
 end
 
 function ServerAppBase:newRedis(config)
