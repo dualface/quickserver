@@ -4,7 +4,7 @@ require("framework.debug")
 local json = require("framework.json")
 
 -- require mysql interface and config
-local MysqlEasy = require("server.lib.MysqlEasy")
+local MysqlEasy = import(".MysqlEasy")
 local config = require("server.config")
 local dbname = config.mysql.database
 
