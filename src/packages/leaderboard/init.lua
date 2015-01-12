@@ -1,6 +1,6 @@
 local _P = {}
 
 _P.service = import(".service")
-_P.action = improt(".action")
+_P.action = import(".action")
 
 return _P
