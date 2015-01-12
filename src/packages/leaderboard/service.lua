@@ -1,4 +1,4 @@
-local tabLength = table.length
+local tabLength = table.nums
 local strFormat = string.format
 
 local LeaderboardService = class("LeaderboardService") 
