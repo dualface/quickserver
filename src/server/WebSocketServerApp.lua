@@ -2,20 +2,20 @@
 local OnlineUsersService = import(".services.OnlineUsersService")
 local MessageService     = import(".services.MessageService")
 
-local TestServerApp = class("TestServerApp", cc.server.WebSocketsServerBase)
+local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
 local SESSION_COUNTER_KEY = "session_counter_key" 
 
-function TestServerApp:ctor(config)
-    TestServerApp.super.ctor(self, config)
+function WebSocketServerApp:ctor(config)
+    WebSocketServerApp.super.ctor(self, config)
 
     if self.config.debug then
         print("---------------- START -----------------")
         -- self:getComponent("components.behavior.EventProtocol"):setEventProtocolDebugEnabled(true)
     end
 
-    self:addEventListener(TestServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
-    self:addEventListener(TestServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
-    self:addEventListener(TestServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
+    self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
     self.onlineUsersService = OnlineUsersService.new(self)
     self.messageService = MessageService.new(self)
@@ -35,14 +35,14 @@ function TestServerApp:ctor(config)
 
 end
 
-function TestServerApp:doRequest(actionName, data, userDefModule)
+function WebSocketServerApp:doRequest(actionName, data, userDefModule)
     if self.config.debug then
         --printLog("ACTION", ">> call [%s]", actionName)
         echoInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
-                                 return TestServerApp.super.doRequest(self, actionName, data, userDefModule)
+                                 return WebSocketServerApp.super.doRequest(self, actionName, data, userDefModule)
                              end, 
                              function(err) 
                                  local beg, rear = string.find(err, "module.*not found") 
@@ -63,37 +63,37 @@ function TestServerApp:doRequest(actionName, data, userDefModule)
     return result
 end
 
-function TestServerApp:getUID()
+function WebSocketServerApp:getUID()
     if not self.uid then
         throw(ERR_SERVER_INVALID_PARAMETERS, "not set uid")
     end
     return self.uid
 end
 
-function TestServerApp:setUID(uid)
+function WebSocketServerApp:setUID(uid)
     self.uid = uid
 end
 
 
 ---- events callback
 
-function TestServerApp:onWebSocketsReady(event)
+function WebSocketServerApp:onWebSocketsReady(event)
 end
 
-function TestServerApp:onWebSocketsClose(event)
+function WebSocketServerApp:onWebSocketsClose(event)
     self:unsubscribePushMessageChannel()
 end
 
-function TestServerApp:onClientAbort(event)
+function WebSocketServerApp:onClientAbort(event)
     self:unsubscribePushMessageChannel()
 end
 
 
 ---- internal methods
 
-function TestServerApp:subscribePushMessageChannel()
-    assert(type(self.uid) == "string" and self.uid ~= "", "TestServerApp:subscribePushMessageChannel() - invalid uid")
-    assert(self.subscribePushMessageChannelEnabled ~= true, "TestServerApp:subscribePushMessageChannel() - already subscribed")
+function WebSocketServerApp:subscribePushMessageChannel()
+    assert(type(self.uid) == "string" and self.uid ~= "", "WebSocketServerApp:subscribePushMessageChannel() - invalid uid")
+    assert(self.subscribePushMessageChannelEnabled ~= true, "WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
 
     -- subscribe
     self.onlineUsersChannel = string.format(ONLINE_USERS_CHANNEL_PATTERN, self.uid)
@@ -166,8 +166,8 @@ function TestServerApp:subscribePushMessageChannel()
     ngx.thread.spawn(subscribe)
 end
 
-function TestServerApp:unsubscribePushMessageChannel()
+function WebSocketServerApp:unsubscribePushMessageChannel()
     self:getRedis():command("publish", self.onlineUsersChannel, string.format("quit %d", self.sessionId))
 end
 
-return TestServerApp
+return WebSocketServerApp

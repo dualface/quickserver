@@ -1,6 +1,4 @@
-
-require("server.lib.init")
-require("server.lib.errors")
+require("framework.init")
 
 -- create server app instance
 local config = require("server.config")

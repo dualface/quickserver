@@ -6,8 +6,7 @@ ServerAppBase.APP_QUIT_EVENT         = "APP_QUIT_EVENT"
 ServerAppBase.CLIENT_ABORT_EVENT     = "CLIENT_ABORT_EVENT"
 
 function ServerAppBase:ctor(config)
-    cc.GameObject.extend(self)
-    self:addComponent("components.behavior.EventProtocol"):exportMethods()
+    cc.bind(self, "event")
 
     self.isRunning = true
     self.config = clone(totable(config))
@@ -236,4 +235,3 @@ function ServerAppBase:getRankList()
 end 
 
 return ServerAppBase
-
