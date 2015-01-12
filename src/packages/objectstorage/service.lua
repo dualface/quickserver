@@ -438,7 +438,6 @@ function ObjectstorageService:showIndex(data)
 
     local sharedIndexes = ngx.shared.INDEXES
     if sharedIndexes == nil then 
-        throw(ERR_SERVER_UNKNOWN_ERROR, "shared INDEXES is nil.")
         return nil, "ngx_shared_dict 'INDEXES' is not created." 
     end
 
