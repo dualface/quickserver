@@ -1,200 +1,191 @@
+local strFormat = string.format
+local mathTrunc = math.trunc
+
 local LeaderboardAction = class("LeaderboardAction")
 
-local function _err(...)
-    return {err_msg = string.format(...)}
+local function err_(...)
+    return {err_msg = strFormat(...)}
 end
 
 local service = import(".service")
 
-function LeaderboardAction:ctor(app, cls)
-    if cls == nil then 
-       echoError("Please specify a class to carry pakcage actions,  or you can import pakcage service only.") 
-       return 
-    end
-
-    -- export action method
-    local find = string.find
-    for k, v in pairs(self.class) do
-        if type(v) == "function" and find(k, "Action$") then
-            cls[k] = v 
-        end
-    end
-    cls.service = service.new(app)
+function LeaderboardAction:ctor(app)
+    self.service = service.new(app)
 end
 
-function LeaderboardAction:CountAction(data)
+function LeaderboardAction:countAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local ok, err = s:Count(data)
+    local ok, err = s:count(data)
     if not ok then 
-        return _err(err)
+        return err_(err)
     end
 
     return {count = ok}
 end
 
-function LeaderboardAction:AddAction(data)
+function LeaderboardAction:addAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
     local err = nil
     local uid = nil
-    uid, err = s:Add(data)
+    uid, err = s:add(data)
     if not uid then
-        return _err(err)
+        return err_(err)
     end
 
     local rank = nil 
-    rank, err = s:Getrank(data)
+    rank, err = s:getRank(data)
     if not rank then
-        return _err(err)
+        return err_(err)
     end
 
     local c = nil
-    c, err = s:Count(data)
+    c, err = s:count(data)
     if not c then
-        return _err(err)
+        return err_(err)
     end
     
-    return {ok = 1, uid = uid, percent = math.trunc(rank/c*100)}
+    return {ok = 1, uid = uid, percent = mathTrunc(rank/c*100)}
 end
 
-function LeaderboardAction:RemoveAction(data)
+function LeaderboardAction:removeAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local ok, err = s:Remove(data)
+    local ok, err = s:remove(data)
     if not ok then
-        return _err(err)        
+        return err_(err)        
     end
 
     return {ok = 1} 
 end
 
-function LeaderboardAction:ScoreAction(data) 
+function LeaderboardAction:scoreAction(data) 
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
     
-    local score, err = s:Score(data)
+    local score, err = s:score(data)
     if not score then
-        return _err(err)
+        return err_(err)
     end
 
     return {score=score} 
 end
 
-function LeaderboardAction:GetscorerangeAction(data)
+function LeaderboardAction:getscorerangeAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local res, err = s:Getscorerange(data)
+    local res, err = s:getScoreRange(data)
     if not res then
-        return _err(err)
+        return err_(err)
     end
 
     return {scores = res} 
 end
 
-function LeaderboardAction:GetrankAction(data) 
+function LeaderboardAction:getrankAction(data) 
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local rank, err = s:Getrank(data)
+    local rank, err = s:getRank(data)
     if not rank then
-        return _err(err)
+        return err_(err)
     end
 
-    local score, err = s:Score(data)
+    local score, err = s:score(data)
     if not score then
-        return _err(err)
+        return err_(err)
     end
 
     return {rank = rank, score = score} 
 end 
 
-function LeaderboardAction:GetrevrankAction(data) 
+function LeaderboardAction:getrevrankAction(data) 
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local revRank, err = s:Getrevrank(data)
+    local revRank, err = s:getRevRank(data)
     if not revRank then
-        return _err(err)
+        return err_(err)
     end
 
-    local score, err = s:Score(data)
+    local score, err = s:score(data)
     if not score then
-        return _err(err)
+        return err_(err)
     end
 
     return {rev_rank = revRank, score = score} 
 end 
 
-function LeaderboardAction:GetrankrangeAction(data)
+function LeaderboardAction:getrankrangeAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local res, err = s:Getrankrange(data) 
+    local res, err = s:getRankRange(data) 
     if not res then
-        return _err(err)
+        return err_(err)
     end
     
     return {scores = res} 
 end
 
-function LeaderboardAction:GetrevrankrangeAction(data)
+function LeaderboardAction:getrevrankrangeAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local res, err = s:Getrevrankrange(data)
+    local res, err = s:getRevRankrange(data)
     if not res then
-        return _err(err)
+        return err_(err)
     end
 
     return {scores = res} 
 end
 
-function LeaderboardAction:LimitAction(data)
+function LeaderboardAction:limitAction(data)
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local ok, err = s:Limit(data)
+    local ok, err = s:limit(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {ok = 1} 
 end
 
-function LeaderboardAction:RevlimitAction(data) 
+function LeaderboardAction:revlimitAction(data) 
     local s = self.service
     if not s then
-        return _err("LeaderboardAction is not initialized.")
+        return err_("LeaderboardAction is not initialized.")
     end
 
-    local ok, err = s:Revlimit(data)
+    local ok, err = s:revLimit(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {ok = 1} 

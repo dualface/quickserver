@@ -1,3 +1,6 @@
+local tabLength = table.length
+local strFormat = string.format
+
 local LeaderboardService = class("LeaderboardService") 
 
 function LeaderboardService:ctor(app)
@@ -13,10 +16,10 @@ function LeaderboardService:endService()
     self.redis:close()
 end
 
-local function _checkParams(data, ...)
+local function checkParams_(data, ...)
     local arg = {...} 
 
-    if table.length(arg) == 0 then 
+    if tabLength(arg) == 0 then 
         return true
     end 
     
@@ -31,7 +34,7 @@ end
 
 -- zcard 
 -- param: ranklist 
-function LeaderboardService:Count(data)
+function LeaderboardService:count(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -41,7 +44,7 @@ function LeaderboardService:Count(data)
         return nil, "Service redis is not initialized."
     end 
 
-    if not _checkParams(data, "ranklist") then 
+    if not checkParams_(data, "ranklist") then 
         return nil, "'ranklist' is missed in param table."
     end 
     local listName = data.ranklist
@@ -49,7 +52,7 @@ function LeaderboardService:Count(data)
     return rds:command("zcard", listName) 
 end
 
-function LeaderboardService:_generateUID(nickname) 
+function LeaderboardService:generateUID_(nickname) 
     local rds = self.redis
 
     if rds:command("hget", "__ranklist_uid", nickname.."+") ~= "1" then
@@ -70,7 +73,7 @@ end
 
 -- zadd
 -- param: ranklist, value 
-function LeaderboardService:Add(data)  
+function LeaderboardService:add(data)  
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -80,21 +83,21 @@ function LeaderboardService:Add(data)
         return nil, "Service redis is not initialized."
     end
 
-    if _checkParams(data, "ranklist", "nickname", "value") then  
-        data.uid = self:_generateUID(data.nickname) 
-    elseif not _checkParams(data, "uid", "ranklist", "value") then 
+    if checkParams_(data, "ranklist", "nickname", "value") then  
+        data.uid = self:generateUID_(data.nickname) 
+    elseif not checkParams_(data, "uid", "ranklist", "value") then 
         return nil, "'uid', 'ranklist' or 'value' is missed in param table."
     end 
 
     if rds:command("hget", "__ranklist_uid", data.uid) ~= "1" then 
-        return nil, string.format("'uid(%s)' doesn't exist.", data.uid)
+        return nil, strFormat("'uid(%s)' doesn't exist.", data.uid)
     end
 
     local listName = data.ranklist
     local key = data.uid
     local value = tonumber(data.value)
     if type(value) ~= "number" then 
-        return nil, string.format("'value(%s)' is not a number.", tostring(data.value))
+        return nil, strFormat("'value(%s)' is not a number.", tostring(data.value))
     end 
     local ok, err = rds:command("zadd", listName, value, key)
     if not ok then 
@@ -106,7 +109,7 @@ end
 
 -- zrem
 -- param: ranklist
-function LeaderboardService:Remove(data)
+function LeaderboardService:remove(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -116,7 +119,7 @@ function LeaderboardService:Remove(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "uid", "ranklist") then 
+    if not checkParams_(data, "uid", "ranklist") then 
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
@@ -134,7 +137,7 @@ end
 
 -- zscore
 -- param: ranklist
-function LeaderboardService:Score(data) 
+function LeaderboardService:score(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -144,7 +147,7 @@ function LeaderboardService:Score(data)
         return nil, "Service redis is not initialized."
     end
 
-    if not _checkParams(data, "uid", "ranklist") then 
+    if not checkParams_(data, "uid", "ranklist") then 
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
     
@@ -164,7 +167,7 @@ end
 
 -- zrangebysocre
 -- param: ranklist, min, max 
-function LeaderboardService:Getscorerange(data)
+function LeaderboardService:getScoreRange(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -174,7 +177,7 @@ function LeaderboardService:Getscorerange(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "ranklist", "min", "max") then 
+    if not checkParams_(data, "ranklist", "min", "max") then 
         return nil, "'ranklist', 'min' or 'max' is missed in param table."
     end
 
@@ -182,7 +185,7 @@ function LeaderboardService:Getscorerange(data)
     local upper = tonumber(data.max)
     local lower = tonumber(data.min)
     if not upper or not lower then
-        return nil, string.format("'max(%s)' or 'min(%s)' is not a number.", tostring(data.max), tostring(data.min))
+        return nil, strFormat("'max(%s)' or 'min(%s)' is not a number.", tostring(data.max), tostring(data.min))
     end
 
     local r, err = rds:command("zrangebyscore", listName, lower, upper)
@@ -207,7 +210,7 @@ end
 
 -- zrank 
 -- param: ranklist
-function LeaderboardService:Getrank(data) 
+function LeaderboardService:getRank(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -217,7 +220,7 @@ function LeaderboardService:Getrank(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "uid", "ranklist") then 
+    if not checkParams_(data, "uid", "ranklist") then 
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
@@ -236,7 +239,7 @@ end
 
 -- zrevrank 
 -- param: ranklist
-function LeaderboardService:Getrevrank(data) 
+function LeaderboardService:getRevRank(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -246,7 +249,7 @@ function LeaderboardService:Getrevrank(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "uid", "ranklist") then 
+    if not checkParams_(data, "uid", "ranklist") then 
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
@@ -265,7 +268,7 @@ end
 
 -- zrange 
 -- param: ranklist, offset, count 
-function LeaderboardService:Getrankrange(data)
+function LeaderboardService:getRankRange(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -275,7 +278,7 @@ function LeaderboardService:Getrankrange(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "ranklist", "offset", "count") then 
+    if not checkParams_(data, "ranklist", "offset", "count") then 
         return nil, "'ranklist', 'offset' or 'count' is missed in param table."
     end
 
@@ -283,7 +286,7 @@ function LeaderboardService:Getrankrange(data)
     local offset = tonumber(data.offset)
     local count = tonumber(data.count)
     if not offset or not count then
-        return nil, string.format("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
+        return nil, strFormat("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
     end
     offset = offset - 1
 
@@ -314,7 +317,7 @@ end
 
 -- zrevrange
 -- param: ranklist, offset, count 
-function LeaderboardService:Getrevrankrange(data)
+function LeaderboardService:getRevRankRange(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -324,7 +327,7 @@ function LeaderboardService:Getrevrankrange(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "ranklist", "offset", "count") then 
+    if not checkParams_(data, "ranklist", "offset", "count") then 
         return nil, "'ranklist', 'offset' or 'count' is missed in param table."
     end
 
@@ -332,7 +335,7 @@ function LeaderboardService:Getrevrankrange(data)
     local offset = tonumber(data.offset)
     local count = tonumber(data.count) 
     if not offset or not count then
-        return nil, string.format("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
+        return nil, strFormat("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
     end 
     offset = offset - 1
 
@@ -363,7 +366,7 @@ end
 
 -- zremrangebyrank, used for reduce some element from tail
 -- param: ranklist, count
-function LeaderboardService:Limit(data)
+function LeaderboardService:limit(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -373,14 +376,14 @@ function LeaderboardService:Limit(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "ranklist", "count") then 
+    if not checkParams_(data, "ranklist", "count") then 
         return nil, "'ranklist' or 'count' is missed in param table."
     end
 
     local listName = data.ranklist
     local count = tonumber(data.count)
     if not count then 
-        return nil, string.format("'count(%s) is not a number.", tostring(data.count))
+        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
     end 
 
     if count < 0 then 
@@ -397,7 +400,7 @@ end
 
 -- zremrangebyrank, used for reduce some element from head, contrary to zset:Limit()
 -- param: ranklist, count
-function LeaderboardService:Revlimit(data) 
+function LeaderboardService:revLimit(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
@@ -407,14 +410,14 @@ function LeaderboardService:Revlimit(data)
         return nil, "Service redis is not initialized."
     end
  
-    if not _checkParams(data, "ranklist", "count") then 
+    if not checkParams_(data, "ranklist", "count") then 
         return nil, "'ranklist' or 'count' is missed in param table."
     end
 
     local listName = data.ranklist
     local count = tonumber(data.count)
     if not count then 
-        return nil, string.format("'count(%s) is not a number.", tostring(data.count))
+        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
     end
 
     if count < 0 then
