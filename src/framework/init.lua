@@ -5,10 +5,10 @@ cc = cc or {}
 
 require("framework.debug")
 require("framework.functions")
+require("framework.errors")
 require("framework.package_support")
 json = require("framework.json")
 
-require("server.lib.errors")
 cc.server = {}
 cc.server.ServerAppBase         = require("server.lib.ServerAppBase")
 cc.server.WebSocketsServerBase  = require("server.lib.WebSocketsServerBase")
