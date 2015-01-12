@@ -1,22 +1,25 @@
-local ObjectstorageService = class("ObjectstorageService")
+local sha1 = ngx.sha1_bin
+local base64 = ngx.encode_base64
+local remoteAddr = ngx.var.remote_addr
+local localtime = ngx.localtime
+local tabInsert = table.insert
+local tabConcat = table.concat
+local strGsub = string.gsub 
+local strSub = string.sub
+local strLower = string.lower
+local strUpper = string.upper
+local strFormat = string.format
+local jsonEncode = json.encode
+local jsonDecode = json.decode
 
 local keywords = {
     TIME = 1, 
-    time = 1, 
     IP = 1, 
-    ip = 1
 }
 
-local function _constructParams(rawData)
-    local sha1_bin
-    local bas64
-    if ngx then 
-        sha1 = ngx.sha1_bin
-        base64 = ngx.encode_base64
-    else 
-        throw(ERR_SERVER_UNKNOWN_ERROR, "ngx is nil")
-    end
+local ObjectstorageService = class("ObjectstorageService")
 
+local function constructParams_(rawData)
     local body = {}
     for _, t in pairs(rawData) do 
         for k, v in pairs(t) do
@@ -25,9 +28,9 @@ local function _constructParams(rawData)
                 end
         end
     end 
-    local id = base64(sha1(json.encode(body)))
-    id = string.gsub(id, [[/]], [[-]])  -- delete "/" symbol
-    local res = {id = string.sub(id, 1, -2), body = json.encode(body)}
+    local id = base64(sha1(jsonEncode(body)))
+    id = strGsub(id, [[/]], [[-]])  -- delete "/" symbol
+    local res = {id = strSub(id, 1, -2), body = jsonEncode(body)}
 
     return res, body 
 end
@@ -39,21 +42,21 @@ function ObjectstorageService:ctor(app)
     end
     self.mysql = cc.load("mysql").service.new(config)
     self.mysql:connect()
-    self.indexSql = require("packages.objectstorage._indexsql")
+    self.indexSql = require("packages.objectstorage.indexsql")
 end
 
 function ObjectstorageService:endService()
     self.mysql:close()
 end
 
-function ObjectstorageService:_updateIndexes(indexes, body, id)
+function ObjectstorageService:updateIndexes_(indexes, body, id)
     local indexSql = self.indexSql
     if indexSql == nil then
         return nil, "Service objectstorage is not initialized."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -61,8 +64,8 @@ function ObjectstorageService:_updateIndexes(indexes, body, id)
     local sharedIndexes = ngx.shared.INDEXES
     for _, p in pairs(indexes) do 
         if sharedIndexes:get(p) == nil then 
-            local createIndexSql = indexSql.CreateIndex(p)
-            local ok, err = mySql:query(createIndexSql)
+            local createIndexSql = indexSql.createIndex(p)
+            local ok, err = mysql:query(createIndexSql)
             if not ok then
                 return nil, err
             end
@@ -75,7 +78,7 @@ function ObjectstorageService:_updateIndexes(indexes, body, id)
         if sharedIndexes:get(k) == 1 then 
             local tblName = k .. "_index"
             local p = {[k]=v, ["entity_id"]=id}
-            local ok, err = mySql:insert(tblName, p)
+            local ok, err = mysql:insert(tblName, p)
             if not ok then 
                 return nil, err
             end
@@ -87,9 +90,9 @@ end
 
 
 -- not used, clean redundant items by cleaner.lua now
-function ObjectstorageService:_deleteIndexes(body, id) 
-    local mySql = self.Mysql
-    if mySql == nil then 
+function ObjectstorageService:deleteIndexes_(body, id) 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -98,7 +101,7 @@ function ObjectstorageService:_deleteIndexes(body, id)
         if sharedIndexes:get(k) == 1 then 
             local tblName = k .. "_index"
             local where = {entity_id = id}
-            local ok, err = mySql:del(tblName, where)
+            local ok, err = mysql:del(tblName, where)
             if not ok then 
                 return nil, err
             end
@@ -108,9 +111,9 @@ function ObjectstorageService:_deleteIndexes(body, id)
     return true, nil
 end
 
-function ObjectstorageService:_findIndexes(where)
-    local mySql = self.Mysql
-    if mySql == nil then 
+function ObjectstorageService:findIndexes_(where)
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized." 
     end
 
@@ -119,8 +122,8 @@ function ObjectstorageService:_findIndexes(where)
         return nil, "Service objectstorage is not initialized."
     end
 
-    local sql = indexSql.FindIndex(where)
-    local res, err = mySql:query(sql)
+    local sql = indexSql.findIndex(where)
+    local res, err = mysql:query(sql)
     if not res then 
         return nil, err
     end 
@@ -128,32 +131,33 @@ function ObjectstorageService:_findIndexes(where)
     return res, nil
 end
 
-function ObjectstorageService:_TIME()
-    return ngx.localtime()
+function ObjectstorageService:time_()
+    return localtime()
 end
 
-function ObjectstorageService:_IP()
-    return ngx.var.remote_addr 
+function ObjectstorageService:ip_()
+    return remoteAddr 
 end
 
-function ObjectstorageService:_handleInfos(infos, rawData)
+function ObjectstorageService:handleInfos_(infos, rawData)
     for _, v in pairs(infos) do 
+        v = strUpper(v)
         if keywords[v] then 
-            local method = string.upper(v)
+            local method = strLower(v)
             local tmp = {}
-            tmp[method] = self["_"..method](self) 
-            table.insert(rawData, tmp)
+            tmp[v] = self[method .. "_"](self) 
+            tabInsert(rawData, tmp)
         end 
     end
 end
 
-function ObjectstorageService:Saveobj(data) 
+function ObjectstorageService:saveObj(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -169,11 +173,11 @@ function ObjectstorageService:Saveobj(data)
             return nil, "'addtional_info' is not an array."
         end
 
-        self:_handleInfos(infos, rawData)
+        self:handleInfos_(infos, rawData)
     end
 
-    local params, body = _constructParams(rawData)
-    local ok, err = mySql:insert("entity", params) 
+    local params, body = constructParams_(rawData)
+    local ok, err = mysql:insert("entity", params) 
     if not ok then 
         return nil, err
     end 
@@ -183,12 +187,12 @@ function ObjectstorageService:Saveobj(data)
     if infos ~= nil then 
         for _, v in pairs(infos) do
             if keywords[v] then 
-                table.insert(indexes, string.upper(v))
+                tabInsert(indexes, strUpper(v))
             end
         end
     end
     if type(indexes) == "table" then 
-        ok, err = self:_updateIndexes(indexes, body, params.id)
+        ok, err = self:updateIndexes_(indexes, body, params.id)
         if not ok then 
             return nil, err
         end
@@ -197,13 +201,13 @@ function ObjectstorageService:Saveobj(data)
     return params.id, nil
 end 
 
-function ObjectstorageService:Updateobj(data)
+function ObjectstorageService:updateObj(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -217,7 +221,7 @@ function ObjectstorageService:Updateobj(data)
         return nil, "'id' is missed in param table."
     end
 
-    local res, err = mySql:query("select * from entity where id='"..id.."';")
+    local res, err = mysql:query("select * from entity where id='"..id.."';")
     if not res then 
         return nil, err
     end
@@ -232,17 +236,17 @@ function ObjectstorageService:Updateobj(data)
             return nil, "'addtional_info' is not an array."
         end
 
-        self:_handleInfos(infos, rawData)
+        self:handleInfos_(infos, rawData)
     end
 
-    local oriProperty = json.decode(res[1].body)
-    local params, newProperty = _constructParams(rawData)
+    local oriProperty = jsonDecode(res[1].body)
+    local params, newProperty = constructParams_(rawData)
     for k,v in pairs(newProperty) do 
         oriProperty[k] = v 
     end 
-    params.body = json.encode(oriProperty) 
+    params.body = jsonEncode(oriProperty) 
     
-    res, err = mySql:update("entity", params, {id=id}) 
+    res, err = mysql:update("entity", params, {id=id}) 
     if not res then 
         return nil, err
     end 
@@ -252,7 +256,7 @@ function ObjectstorageService:Updateobj(data)
     if infos ~= nil then
         for _, v in pairs(infos) do
             if keywords[v] then 
-                table.insert(indexes, string.upper(v))
+                tabInsert(indexes, strUpper(v))
             end
         end
     end
@@ -266,13 +270,13 @@ function ObjectstorageService:Updateobj(data)
     return param.id, nil
 end
 
-function ObjectstorageService:Deleteobj(data)
+function ObjectstorageService:deleteObj(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -281,7 +285,7 @@ function ObjectstorageService:Deleteobj(data)
         return nil, "'id' is missed in param table."
     end
 
-    local ok, err = mySql:del("entity", {id=id}) 
+    local ok, err = mysql:del("entity", {id=id}) 
     if not ok then 
         return nil, err
     end 
@@ -292,13 +296,13 @@ function ObjectstorageService:Deleteobj(data)
     return id, nil
 end
 
-function ObjectstorageService:Findobj(data) 
+function ObjectstorageService:findObj(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -311,7 +315,7 @@ function ObjectstorageService:Findobj(data)
             return nil, "'id' is missed in param table."
         end
 
-        res, err = mySql:query("select * from entity where id='"..id.."';")
+        res, err = mysql:query("select * from entity where id='"..id.."';")
         if not res then 
             return nil, err
         end    
@@ -331,7 +335,7 @@ function ObjectstorageService:Findobj(data)
 
         -- begin to handle index
         local where = {[property]=value}
-        res, err = self:_findIndexes(where)
+        res, err = self:findIndexes_(where)
         if not res then 
             return nil, err
         end
@@ -345,9 +349,9 @@ function ObjectstorageService:Findobj(data)
             whereFields[#whereFields+1] = "id='" .. id .. "'"
         end
 
-        local sql = string.format("select * from entity where %s;", table.concat(whereFields, " OR "))  
+        local sql = strFormat("select * from entity where %s;", tabConcat(whereFields, " OR "))  
 
-        res, err = mySql:query(sql)
+        res, err = mysql:query(sql)
         if not res then
             return nil, err
         end
@@ -361,13 +365,13 @@ function ObjectstorageService:Findobj(data)
     return res, nil 
 end
 
-function ObjectstorageService:Createindex(data)
+function ObjectstorageService:createindex(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -381,8 +385,8 @@ function ObjectstorageService:Createindex(data)
         return nil, "'property' is missed in param table."
     end 
 
-    local createIndexSql = indexSql.CreateIndex(property)
-    local ok, err = mySql:query(createIndexSql)
+    local createIndexSql = indexSql.createIndex(property)
+    local ok, err = mysql:query(createIndexSql)
     if not ok then
         return nil, err
     end
@@ -394,13 +398,13 @@ function ObjectstorageService:Createindex(data)
     return true, nil 
 end
 
-function ObjectstorageService:Deleteindex(data) 
+function ObjectstorageService:deleteIndex(data) 
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
 
-    local mySql = self.Mysql
-    if mySql == nil then 
+    local mysql = self.mysql
+    if mysql == nil then 
         return nil, "Service mysql is not initialized."
     end
 
@@ -414,8 +418,8 @@ function ObjectstorageService:Deleteindex(data)
         return nil, "'property' is missed in param table."
     end
 
-    local dropIndexSql = indexSql.DropIndex(property)
-    local ok, err = mySql:query(dropIndexSql)
+    local dropIndexSql = indexSql.dropIndex(property)
+    local ok, err = mysql:query(dropIndexSql)
     if not ok then
         return nil, err
     end
@@ -427,7 +431,7 @@ function ObjectstorageService:Deleteindex(data)
     return true, nil
 end
 
-function ObjectstorageService:Showindex(data)
+function ObjectstorageService:showIndex(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end

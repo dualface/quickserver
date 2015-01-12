@@ -4,14 +4,14 @@ require("framework.debug")
 local json = require("framework.json")
 
 -- require mysql interface and config
-local MysqlEasy = import(".MysqlEasy")
+local mysqlEasy = import(".MysqlEasy")
 local config = require("server.config")
 local dbname = config.mysql.database
 
 echoInfo("---BEGIN---")
 
-local function NewMysql()
-    local mysql, err = MysqlEasy.new(config.mysql)
+local function newMysql()
+    local mysql, err = mysqlEasy.new(config.mysql)
 
     if err then
         echoErr("failed to connect mysql, %s", err)
@@ -21,13 +21,13 @@ local function NewMysql()
     return mysql
 end
 
-local mysql = NewMysql()
+local mysql = newMysql()
 if not mysql then 
     return 
 end
 
-local function DumpRes(res, layer) 
-    assert(type(res) == "table", "DumpRes(): param should be table")
+local function dumpRes_(res, layer) 
+    assert(type(res) == "table", "dumpRes_(): param should be table")
 
     local repStr = string.rep("    ", layer)
     
@@ -39,14 +39,14 @@ local function DumpRes(res, layer)
             echoInfo("%s[%s] = %s", repStr, k, v)
         else 
             echoInfo("%s[%s] = table_begin", repStr, k)
-            DumpRes(v, layer+1)
+            dumpRes_(v, layer+1)
             echoInfo("%s[%s] = table_end", repStr, k)
         end
     end
 end
 
-local function GetTableName(tbl) 
-    assert(type(tbl) == "table", "GetTableName(): params should be table")
+local function getTableName_(tbl) 
+    assert(type(tbl) == "table", "getTableName_(): params should be table")
 
     local res = {}
     local tmp = "Tables_in_" .. dbname 
@@ -58,7 +58,7 @@ local function GetTableName(tbl)
     return res
 end
 
-local function CleanTable(tbl) 
+local function cleanTable_(tbl) 
     local sql = string.format("select entity_id from %s;", tbl)
     local res, err = mysql:query(sql)
     if not res then
@@ -78,7 +78,7 @@ local function CleanTable(tbl)
     return nil
 end
 
-local function UpdateTable(k, v, id)
+local function updateTable_(k, v, id)
     local tblName = k .. "_index"
     local sql = string.format("select * from %s where entity_id = '%s';", tblName, id)
     local res, err = mysql:query(sql) 
@@ -97,18 +97,18 @@ local function UpdateTable(k, v, id)
     return err
 end
 
-local function CleanIndexes()
+local function cleanIndexes()
     local res, err = mysql:query("show tables;")
     if not res then 
         echoError("mysql:query() failed: %s", err)
         return 
     end
-    local tables = GetTableName(res)
+    local tables = getTableName_(res)
     local properties = {}  -- record indexed properties
 
     for _, k in ipairs(tables) do 
         if string.find(k, "_index$", 0) ~= nil then 
-            err = CleanTable(k)
+            err = cleanTable_(k)
             if err then 
                 echoError("Delete redundant item from index table %s failed: %s", k, err)
             end
@@ -119,7 +119,7 @@ local function CleanIndexes()
     return properties
 end
 
-local function UpdateIndexes(properties)
+local function updateIndexes(properties)
     local res, err = mysql:query("select * from entity;")
     if not res then 
         echoError("mysql:query() failed: %s", err)
@@ -130,7 +130,7 @@ local function UpdateIndexes(properties)
         local tbl = json.decode(obj.body)
         for k, v in pairs(tbl) do 
             if properties[k] then 
-                err = UpdateTable(k, v, obj.id) 
+                err = updateTable_(k, v, obj.id) 
                 if err then 
                     echoError("Update %s_index table failed: %s", k, err)
                 end
@@ -139,8 +139,8 @@ local function UpdateIndexes(properties)
     end
 end
 
-local properties = CleanIndexes()
-UpdateIndexes(properties)
+local properties = cleanIndexes()
+updateIndexes(properties)
 
 echoInfo("---DONE---")
 

@@ -1,120 +1,110 @@
+local strFormat = string.format
+
 local ObjectstorageAction = class("ObjectstorageAction")
 
-local function _err(...) 
-   return {err_msg = string.format(...)} 
+local function err_(...) 
+   return {err_msg = strFormat(...)} 
 end
 
 local service = import(".service")
 
-function ObjectstorageAction:ctor(app, cls)
-    if cls == nil then 
-       echoError("Please specify a class to carry pakcage actions,  or you can import pakcage service only.") 
-       return 
-    end
-
-    -- export action method
-    local find = string.find
-    for k, v in pairs(self.class) do
-        if type(v) == "function" and find(k, "Action$") then
-            cls[k] = v 
-        end
-    end
-    cls.service = service.new(app)
+function ObjectstorageAction:ctor(app)
+    self.service = service.new(app)
 end
 
-function ObjectstorageAction:SaveobjAction(data) 
+function ObjectstorageAction:saveobjAction(data) 
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:SaveObj(data)
+    local ok, err = s:saveObj(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {id = ok} 
 end 
 
-function ObjectstorageAction:UpdateobjAction(data)
+function ObjectstorageAction:updateobjAction(data)
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:Updateobj(data)
+    local ok, err = s:updateObj(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {id = ok}
 end
 
-function ObjectstorageAction:DeleteobjAction(data)
+function ObjectstorageAction:deleteobjAction(data)
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:Deleteobj(data)
+    local ok, err = s:deleteObj(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {id = ok}
 end
 
-function ObjectstorageAction:FindobjAction(data) 
+function ObjectstorageAction:findobjAction(data) 
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local res, err = s:Findobj(data)
+    local res, err = s:findObj(data)
     if not res then
-        return _err(err)
+        return err_(err)
     end
 
     return {objs=res}
 end
 
-function ObjectstorageAction:CreateindexAction(data)
+function ObjectstorageAction:createindexAction(data)
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:Createindex(data)
+    local ok, err = s:createIndex(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {ok = 1} 
 end
 
-function ObjectstorageAction:DeleteindexAction(data) 
+function ObjectstorageAction:deleteindexAction(data) 
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:Deleteindex(data)
+    local ok, err = s:deleteIndex(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {ok = 1}
 end
 
-function ObjectstorageAction:ShowindexAction(data)
+function ObjectstorageAction:showindexAction(data)
     local s = self.service
     if not s then
-        return _err("ObjectstorageAction is not initialized.")
+        return err_("ObjectstorageAction is not initialized.")
     end
 
-    local ok, err = s:Showindex(data)
+    local ok, err = s:showIndex(data)
     if not ok then
-        return _err(err)
+        return err_(err)
     end
 
     return {ok = 1}

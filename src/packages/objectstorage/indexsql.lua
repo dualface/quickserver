@@ -4,43 +4,43 @@ local assert = assert
 local pairs = pairs
 module(...)
 
-local CreateIndexSql = [[ 
+local createIndexSql = [[ 
 CREATE TABLE IF NOT EXISTS %s (
     entity_id VARCHAR(32) NOT NULL UNIQUE,
     %s VARCHAR(512) NOT NULL, 
     PRIMARY KEY(%s, entity_id)
 ) ENGINE=InnoDB; ]]
 
-local DropIndexSql = [[
+local dropIndexSql = [[
 DROP TABLE %s;
 ]]
 
-local DeleteIndexSql = [[
+local deleteIndexSql = [[
 ]]
 
-local FindIndexSql = [[
+local findIndexSql = [[
 SELECT entity_id FROM %s WHERE %s = '%s';
 ]]
 
-local InsertIndexSql = [[
+local insertIndexSql = [[
 INSERT INTO %s (%s,%s) VALUES (%s,%s);
 ]]
 
-function CreateIndex(property)
+function createIndex(property)
     local tableName = property.."_index"
     local sql = fmt(CreateIndexSql, tableName, property, property)
 
     return sql
 end
 
-function DropIndex(property) 
+function dropIndex(property) 
     local tableName = property .. "_index"
     local sql = fmt(DropIndexSql, tableName) 
 
     return sql
 end
 
-function FindIndex(propertyTbl) 
+function findIndex(propertyTbl) 
     assert(type(propertyTbl) == "table", "param in FindIdSql() is NOT a table.")
 
     local n = pairs(propertyTbl)
@@ -51,10 +51,9 @@ function FindIndex(propertyTbl)
     return sql
 end
 
-function InsertIndex(property, id, value)
+function insertIndex(property, id, value)
     local tableName = property .. "_index"
     local sql = fmt(InsertIndexSql, tableName, "entity_id", property, id, value) 
 
     return sql
 end
-
