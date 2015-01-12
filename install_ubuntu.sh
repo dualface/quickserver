@@ -66,8 +66,9 @@ make install
 # compile lua codes to bytecode, and deploy them.
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_DIR/openresty/luajit/bin/lua
+cp -rf $CUR_DIR/src/* $DEST_DIR/openresty/.
 cd $CUR_DIR/tool/
-./compile_bytecode.sh $DEST_DIR
+#./compile_bytecode.sh $DEST_DIR
 
 #deploy tool script
 cp start.sh stop.sh reload.sh $DEST_DIR/openresty/nginx/sbin/. -f
