@@ -9,8 +9,7 @@ function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
 
     if self.config.debug then
-        print("---------------- START -----------------")
-        -- self:getComponent("components.behavior.EventProtocol"):setEventProtocolDebugEnabled(true)
+        printInfo("---------------- START -----------------")
     end
 
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
@@ -37,8 +36,7 @@ end
 
 function WebSocketServerApp:doRequest(actionName, data, userDefModule)
     if self.config.debug then
-        --printLog("ACTION", ">> call [%s]", actionName)
-        echoInfo("ACTION >> call [%s]", actionName)
+        printInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
@@ -54,10 +52,7 @@ function WebSocketServerApp:doRequest(actionName, data, userDefModule)
 
     if self.config.debug then
         local j = json.encode(result)
-        --printLog("ACTION", "<< ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
-        echoInfo("ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
-        --printLog("ACTION", "<<<<")
-        --echoInfo("ACTION <<")
+        printInfo("ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
     end
 
     return result
@@ -113,7 +108,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
         for msg, abort in loop do
             if msg.kind == "subscribe" then
                 if self.config.debug then
-                    echoInfo("subscribed channel [%s], sessid = %d", msg.channel, self.sessionId)
+                    printInfo("subscribed channel [%s], sessid = %d", msg.channel, self.sessionId)
                 end
             elseif msg.kind == "message" then
                 if self.config.debug then
@@ -121,7 +116,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
                     if string.len(msg_) > 20 then
                         msg_ = string.sub(msg_, 1, 20) .. " ..."
                     end
-                    echoInfo("get message [%s] from channel [%s]", msg_, channel)
+                    printInfo("get message [%s] from channel [%s]", msg_, channel)
                 end
 
                 local cmd = string.sub(msg.payload, 1, 4)
@@ -152,7 +147,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
         redis = nil
 
         if self.config.debug then
-            echoInfo("unsubscribed from channel [%s], sessid = %d", channel, self.sessionId)
+            printInfo("unsubscribed from channel [%s], sessid = %d", channel, self.sessionId)
             print("----------------- QUIT -----------------")
         end
 

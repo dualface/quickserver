@@ -8,13 +8,13 @@ local mysqlEasy = import(".MysqlEasy")
 local config = require("server.config")
 local dbname = config.mysql.database
 
-echoInfo("---BEGIN---")
+printInfo("---BEGIN---")
 
 local function newMysql()
     local mysql, err = mysqlEasy.new(config.mysql)
 
     if err then
-        echoErr("failed to connect mysql, %s", err)
+        printError("failed to connect mysql, %s", err)
         return nil
     end
 
@@ -34,13 +34,13 @@ local function dumpRes_(res, layer)
     for k,v in pairs(res) do 
         local t = type(v)
         if t == "string" then 
-            echoInfo("%s[%s] = \"%s\"", repStr, k, v)
+            printInfo("%s[%s] = \"%s\"", repStr, k, v)
         elseif t == "number" or t == "boolean" or t == nil then 
-            echoInfo("%s[%s] = %s", repStr, k, v)
+            printInfo("%s[%s] = %s", repStr, k, v)
         else 
-            echoInfo("%s[%s] = table_begin", repStr, k)
+            printInfo("%s[%s] = table_begin", repStr, k)
             dumpRes_(v, layer+1)
-            echoInfo("%s[%s] = table_end", repStr, k)
+            printInfo("%s[%s] = table_end", repStr, k)
         end
     end
 end
@@ -70,7 +70,7 @@ local function cleanTable_(tbl)
         res = mysql:query(sql)  -- don't care errors 
         if next(res) == nil then 
             sql = string.format("delete from %s where entity_id = '%s';", tbl, k.entity_id)
-            echoInfo("sql = %s", sql)
+            printInfo("sql = %s", sql)
             mysql:query(sql)
         end
     end
@@ -100,7 +100,7 @@ end
 local function cleanIndexes()
     local res, err = mysql:query("show tables;")
     if not res then 
-        echoError("mysql:query() failed: %s", err)
+        printError("mysql:query() failed: %s", err)
         return 
     end
     local tables = getTableName_(res)
@@ -110,7 +110,7 @@ local function cleanIndexes()
         if string.find(k, "_index$", 0) ~= nil then 
             err = cleanTable_(k)
             if err then 
-                echoError("Delete redundant item from index table %s failed: %s", k, err)
+                printError("Delete redundant item from index table %s failed: %s", k, err)
             end
             properties[string.sub(k, 1, -7)] = 1
         end
@@ -122,7 +122,7 @@ end
 local function updateIndexes(properties)
     local res, err = mysql:query("select * from entity;")
     if not res then 
-        echoError("mysql:query() failed: %s", err)
+        printError("mysql:query() failed: %s", err)
         return 
     end
 
@@ -132,7 +132,7 @@ local function updateIndexes(properties)
             if properties[k] then 
                 err = updateTable_(k, v, obj.id) 
                 if err then 
-                    echoError("Update %s_index table failed: %s", k, err)
+                    printError("Update %s_index table failed: %s", k, err)
                 end
             end
         end 
@@ -142,5 +142,5 @@ end
 local properties = cleanIndexes()
 updateIndexes(properties)
 
-echoInfo("---DONE---")
+printInfo("---DONE---")
 

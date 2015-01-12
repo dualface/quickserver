@@ -18,11 +18,11 @@ local function GetActionFromURI(uri, uriPrefix)
 
     local action = nil
     if type(prefix) ~= "table" then 
-        echoInfo(type(prefix))
+        printInfo(type(prefix))
         local pos = string.find(string.upper(uri), string.upper(prefix)) 
         action = string.sub(uri, pos+string.len(prefix)+1, -1)
     else 
-       echoInfo("Can't get actions from uri.") 
+       printInfo("Can't get actions from uri.") 
        return "", nil
     end
 
@@ -56,7 +56,7 @@ function HttpServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        echoInfo("failed to register the on_abort callback, ", err)
+        printInfo("failed to register the on_abort callback, ", err)
     end
 
     if self.config.session then
@@ -78,7 +78,7 @@ function HttpServerBase:runEventLoop()
         rawAction.action, rawAction.userDefModule = GetActionFromURI(uri, uriPrefix)
     end
     
-    echoInfo("requst via HTTP,  Action: %s", rawAction.action)
+    printInfo("requst via HTTP,  Action: %s", rawAction.action)
     self:dumpParams()
 
     local result = self:doRequest(rawAction.action, self.requestParameters, rawAction.userDefModule)
@@ -93,16 +93,11 @@ function HttpServerBase:runEventLoop()
             ngx.say("unexpected result: ", tostring(result))
         end
     end
-    
-    -- replease mysql & redis connections
-    self:relRedis()
-    self:relMysql()
 end
 
--- for test
+-- for debug 
 function HttpServerBase:dumpParams()
-    echoInfo("DUMP HTTP params: %s", json.encode(self.requestParameters))
-
+    printInfo("DUMP HTTP params: %s", json.encode(self.requestParameters))
 end
 
 return HttpServerBase

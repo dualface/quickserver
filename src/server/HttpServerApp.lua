@@ -4,8 +4,7 @@ function HttpServerApp:ctor(config)
     HttpServerApp.super.ctor(self, config)
 
     if self.config.debug then
-        print("---------------- START -----------------")
-        -- self:getComponent("components.behavior.EventProtocol"):setEventProtocolDebugEnabled(true)
+        printInfo("---------------- START -----------------")
     end
 
     self:addEventListener(HttpServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
@@ -14,8 +13,7 @@ end
 
 function HttpServerApp:doRequest(actionName, data, userDefModule)
     if self.config.debug then
-        --printLog("ACTION", ">> call [%s]", actionName)
-        echoInfo("ACTION >> call [%s]", actionName)
+        printInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
@@ -31,10 +29,7 @@ function HttpServerApp:doRequest(actionName, data, userDefModule)
 
     if self.config.debug then
         local j = json.encode(result)
-        --printLog("ACTION", "<< ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
-        echoInfo("ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
-        --printLog("ACTION", "<<<<")
-        --echoInfo("ACTION <<")
+        printInfo("ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
     end
 
     return result

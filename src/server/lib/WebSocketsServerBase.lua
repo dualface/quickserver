@@ -18,7 +18,7 @@ function WebSocketsServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        echoInfo("failed to register the on_abort callback, ", err)
+        printInfo("failed to register the on_abort callback, ", err)
     end
 
     if self.config.session then
@@ -45,7 +45,7 @@ function WebSocketsServerBase:runEventLoop()
     })
 
     if not wb then
-        echoInfo("failed to new websocket: ".. err)
+        printInfo("failed to new websocket: ".. err)
         return ngx.HTTP_SERVICE_UNAVAILABLE
     end
 
@@ -57,7 +57,7 @@ function WebSocketsServerBase:runEventLoop()
     while true do
         local data, typ, err = wb:recv_frame()
         if wb.fatal then
-            echoInfo("failed to receive frame, %s", err)
+            printInfo("failed to receive frame, %s", err)
             if err == "again" then
                 goto recv_next_message
             end
@@ -69,7 +69,7 @@ function WebSocketsServerBase:runEventLoop()
             -- timeout, send ping
             local bytes, err = wb:send_ping()
             if not bytes and self.config.debug then
-                echoInfo("failed to send ping, %s", err)
+                printInfo("failed to send ping, %s", err)
             end
         elseif typ == "close" then
             break -- exit event loop
@@ -77,22 +77,22 @@ function WebSocketsServerBase:runEventLoop()
             -- send pong
             local bytes, err = wb:send_pong()
             if not bytes and self.config.debug then
-                echoInfo("failed to send pong, %s", err)
+                printInfo("failed to send pong, %s", err)
             end
         elseif typ == "pong" then
             -- ngx.log(ngx.ERR, "client ponged")
         elseif typ == "text" then
             local ok, err = self:processWebSocketsMessage(data, typ)
             if not ok then
-                echoInfo("process text message failed: %s", err)
+                printInfo("process text message failed: %s", err)
             end
         elseif typ == "binary" then
             local ok, err = self:processWebSocketsMessage(data, typ)
             if not ok then
-                echoInfo("process binary message failed: %s", err)
+                printInfo("process binary message failed: %s", err)
             end
         else
-            echoInfo("unknwon typ %s", tostring(typ))
+            printInfo("unknwon typ %s", tostring(typ))
         end
 
 ::recv_next_message::
@@ -102,16 +102,12 @@ function WebSocketsServerBase:runEventLoop()
     self:dispatchEvent({name = WebSocketsServerBase.WEBSOCKETS_CLOSE_EVENT})
     wb:send_close()
     self.websockets = nil
-
-    -- release mysql & redis connections
-    self:relRedis()
-    self:relMysql()
-
+    
     -- dec online numbers in the channel
     if self.websocketInfo.channel ~= nil then
         local chs = ngx.shared.CHANNELS
         chs:incr(self.websocketInfo.channel, -1)
-        echoInfo("number in channel = %s", tostring(chs:get(self.websocketInfo.channel)))
+        printInfo("number in channel = %s", tostring(chs:get(self.websocketInfo.channel)))
     end
 
     return ret
@@ -131,7 +127,7 @@ function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
     local actionName = message.action
     local userDefModule = message.user_def_mod
 
-    echoInfo("msgid: %s, action: %s, user_def_mod: %s", message._msgid, message.action, message.user_def_mod)
+    printInfo("msgid: %s, action: %s, user_def_mod: %s", message._msgid, message.action, message.user_def_mod)
 
     local result = self:doRequest(actionName, message, userDefModule)
     if type(result) == "table" then
@@ -139,16 +135,16 @@ function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
             result._msgid = msgid
         else
             if self.config.debug then
-                echoInfo("unused result from action %s", actionName)
+                printInfo("unused result from action %s", actionName)
             end
             result = nil
         end
     elseif result ~= nil then
         if msgid then
-            echoInfo("invalid result from action %s for message %s", actionName, msgid)
+            printInfo("invalid result from action %s for message %s", actionName, msgid)
             result = {error = result}
         else
-            echoInfo("invalid result from action %s", actionName)
+            printInfo("invalid result from action %s", actionName)
             result = nil
         end
     end

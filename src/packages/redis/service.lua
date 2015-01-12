@@ -100,7 +100,7 @@ function RedisService:pubsub(subscriptions)
 
             if not result then
                 if err ~= "timeout" then
-                    echoInfo(err)
+                    printInfo(err)
                     abort()
                     break
                 end
