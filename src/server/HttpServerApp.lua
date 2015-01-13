@@ -11,13 +11,13 @@ function HttpServerApp:ctor(config)
 
 end
 
-function HttpServerApp:doRequest(actionName, data, userDefModule)
+function HttpServerApp:doRequest(actionName, data)
     if self.config.debug then
         printInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
-                                 return HttpServerApp.super.doRequest(self, actionName, data, userDefModule)
+                                 return HttpServerApp.super.doRequest(self, actionName, data)
                              end,
                              function(err)
                                  local beg, rear = string.find(err, "module.*not found") 

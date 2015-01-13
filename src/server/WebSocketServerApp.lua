@@ -34,13 +34,13 @@ function WebSocketServerApp:ctor(config)
 
 end
 
-function WebSocketServerApp:doRequest(actionName, data, userDefModule)
+function WebSocketServerApp:doRequest(actionName, data)
     if self.config.debug then
         printInfo("ACTION >> call [%s]", actionName)
     end
 
     local _, result = xpcall(function()
-                                 return WebSocketServerApp.super.doRequest(self, actionName, data, userDefModule)
+                                 return WebSocketServerApp.super.doRequest(self, actionName, data)
                              end, 
                              function(err) 
                                  local beg, rear = string.find(err, "module.*not found") 

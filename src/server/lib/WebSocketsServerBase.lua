@@ -40,8 +40,6 @@ function WebSocketsServerBase:runEventLoop()
     local wb, err = server:new({
         timeout = self.config.websocketsTimeout,
         max_payload_len = self.config.websocketsMaxPayloadLen,
-        --timeout = 5000,
-        --max_payload_len = 65535,
     })
 
     if not wb then
@@ -125,11 +123,10 @@ function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
 
     local msgid = message._msgid
     local actionName = message.action
-    local userDefModule = message.user_def_mod
 
     printInfo("msgid: %s, action: %s, user_def_mod: %s", message._msgid, message.action, message.user_def_mod)
 
-    local result = self:doRequest(actionName, message, userDefModule)
+    local result = self:doRequest(actionName, message)
     if type(result) == "table" then
         if msgid then
             result._msgid = msgid

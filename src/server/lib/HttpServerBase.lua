@@ -1,33 +1,6 @@
-
 local ServerAppBase = import(".ServerAppBase")
 
 local HttpServerBase = class("HttpServerBase", ServerAppBase)
-
-local function GetActionFromURI(uri, uriPrefix) 
-    local prefix = uriPrefix 
-    local userDefModule = nil
-    if type(uriPrefix) == "table" then  
-        for k,v in pairs(prefix) do 
-            if string.find(string.upper(uri), string.upper(v)) then 
-                prefix = v
-                userDefModule = k
-                break
-            end
-        end
-    end
-
-    local action = nil
-    if type(prefix) ~= "table" then 
-        printInfo(type(prefix))
-        local pos = string.find(string.upper(uri), string.upper(prefix)) 
-        action = string.sub(uri, pos+string.len(prefix)+1, -1)
-    else 
-       printInfo("Can't get actions from uri.") 
-       return "", nil
-    end
-
-    return string.gsub(action, "/", "."), userDefModule 
-end
 
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
@@ -71,17 +44,12 @@ function HttpServerBase:runEventLoop()
 
     local uriPrefix = self.config.userDefinedCodes.uriPrefix
     local uri = self.uri
-    local rawAction = {}
-    if string.find(string.upper(uri), LOCAL_URI_PREFIX) then
-        rawAction.action = GetActionFromURI(uri, LOCAL_URI_PREFIX)  
-    else 
-        rawAction.action, rawAction.userDefModule = GetActionFromURI(uri, uriPrefix)
-    end
-    
-    printInfo("requst via HTTP,  Action: %s", rawAction.action)
+    local rawAction = string.gsub(uri, "/", ".")
+
+    printInfo("requst via HTTP,  Action: %s", rawAction)
     self:dumpParams()
 
-    local result = self:doRequest(rawAction.action, self.requestParameters, rawAction.userDefModule)
+    local result = self:doRequest(rawAction, self.requestParameters)
 
     -- simple http rsp
     if result  then

@@ -28,17 +28,14 @@ function ServerAppBase:runEventLoop()
     throw(ERR_SERVER_OPERATION_FAILED, "ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
-function ServerAppBase:doRequest(actionName, data, userDefModule)
+function ServerAppBase:doRequest(actionName, data)
     local actionPackage = self.config.actionPackage
-    if userDefModule then
-        actionPackage = userDefModule .. ".actions"
-    end
     
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
     actionMethodName = actionMethodName .. "Action"
     local actionModulePath = string.format("%s.%s%s", actionPackage, actionModuleName, self.config.actionModuleSuffix)
 
-    local actionModule = self.actionModules_[actionModuleName] or self:require(actionModulePath, userDefModule)
+    local actionModule = self.actionModules_[actionModuleName] or self:require(actionModulePath)
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
         throw(ERR_SERVER_INVALID_ACTION, "failed to load action module %s", actionModuleName)
@@ -69,12 +66,9 @@ function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     self.actionModules_[actionModuleName] = actionModule
 end
 
-function ServerAppBase:require(moduleName, userDefModule)
-    if userDefModule then
-        moduleName = self.config.userDefinedCodes.luaRepoPrefix .. "." .. moduleName
-        return require(moduleName)
-    end
+function ServerAppBase:require(moduleName)
     moduleName = self.config.appModuleName .. "." .. moduleName
+
     return require(moduleName)
 end
 
