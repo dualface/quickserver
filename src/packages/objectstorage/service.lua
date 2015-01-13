@@ -41,7 +41,6 @@ function ObjectstorageService:ctor(app)
         config = app.config.mysql
     end
     self.mysql = cc.load("mysql").service.new(config)
-    self.mysql:connect()
     self.indexSql = require("packages.objectstorage.indexsql")
 end
 
