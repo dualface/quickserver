@@ -3,8 +3,8 @@ local redis = require("resty.redis")
 
 local RestyRedisAdapter = class("RestyRedisAdapter")
 
-function RestyRedisAdapter:ctor(easy)
-    self.config = easy.config
+function RestyRedisAdapter:ctor(config)
+    self.config = config
     self.instance = redis:new()
     self.name = "RestyRedisAdapter"
 end
@@ -15,6 +15,9 @@ function RestyRedisAdapter:connect()
 end
 
 function RestyRedisAdapter:close()
+    if self.config.useConnPool then
+        return self.instance:set_keepalive(10000, 100)
+    end
     return self.instance:close()
 end
 

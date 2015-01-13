@@ -2,8 +2,8 @@ local redis = require("3rd.redis.redis_lua")
 
 local RedisLuaAdapter = class("RedisLuaAdapter")
 
-function RedisLuaAdapter:ctor(easy)
-    self.config = easy.config
+function RedisLuaAdapter:ctor(config)
+    self.config = config
     self.name = "RedisLuaAdapter"
 end
 

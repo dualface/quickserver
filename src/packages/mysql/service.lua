@@ -1,37 +1,27 @@
 local MysqlService = class("MysqlService") 
 
 function MysqlService:ctor(config)
-    local mysql = require("resty.mysql")
+    local adapter 
+    if ngx then
+        adapter = require("adapter.MysqlRestyAdapter")
+    else
+        adapter = require("adapter.MysqlLuaAdapter")
+    end
 
     if not config or type(config) ~= "table" then 
         return nil, "config of mysql connections is nil."
     end
+
     self.config = config
-    self.mysql = mysql:new()
-end
-
-function MysqlService:connect()
-    local mysql = self.mysql
-    local config = self.config
-    if not mysql then
-        return nil, "Package mysql is not initialized."
-    end
-
-    mysql:set_timeout(config.timeout)
-    return mysql:connect(config) 
+    self.mysql = adapter.new(config)
 end
 
 function MysqlService:close()
     local mysql = self.mysql
-    local config = self.config
     if not mysql then
         return nil, "Package mysql is not initialized."
     end
 
-    if config.useConnPool then
-        return mysql:set_keepalive(10000, 100)
-    end
-    
     return mysql:close()
 end
 

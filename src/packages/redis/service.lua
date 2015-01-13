@@ -29,7 +29,7 @@ function RedisService:ctor(config)
     self.pipline = require("RedisPipeline")
 
     self.config = config or {host = "127.0.0.1", port = 6379, timeout = 10*1000}
-    self.redis = adapter.new(self)
+    self.redis = adapter.new(self.config)
 end
 
 function RedisService:connect()
