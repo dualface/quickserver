@@ -10,11 +10,11 @@ end
 local service = import(".service")
 
 function LeaderboardAction:ctor(app)
-    self.service = service.new(app)
+    self.leaderboardService = service.new(app)
 end
 
 function LeaderboardAction:countAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -28,7 +28,7 @@ function LeaderboardAction:countAction(data)
 end
 
 function LeaderboardAction:addAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -56,7 +56,7 @@ function LeaderboardAction:addAction(data)
 end
 
 function LeaderboardAction:removeAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -70,7 +70,7 @@ function LeaderboardAction:removeAction(data)
 end
 
 function LeaderboardAction:scoreAction(data) 
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -84,7 +84,7 @@ function LeaderboardAction:scoreAction(data)
 end
 
 function LeaderboardAction:getscorerangeAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -98,7 +98,7 @@ function LeaderboardAction:getscorerangeAction(data)
 end
 
 function LeaderboardAction:getrankAction(data) 
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -117,7 +117,7 @@ function LeaderboardAction:getrankAction(data)
 end 
 
 function LeaderboardAction:getrevrankAction(data) 
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -136,7 +136,7 @@ function LeaderboardAction:getrevrankAction(data)
 end 
 
 function LeaderboardAction:getrankrangeAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -150,7 +150,7 @@ function LeaderboardAction:getrankrangeAction(data)
 end
 
 function LeaderboardAction:getrevrankrangeAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -164,7 +164,7 @@ function LeaderboardAction:getrevrankrangeAction(data)
 end
 
 function LeaderboardAction:limitAction(data)
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end
@@ -178,7 +178,7 @@ function LeaderboardAction:limitAction(data)
 end
 
 function LeaderboardAction:revlimitAction(data) 
-    local s = self.service
+    local s = self.leaderboardService
     if not s then
         return err_("LeaderboardAction is not initialized.")
     end

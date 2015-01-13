@@ -9,11 +9,11 @@ end
 local service = import(".service")
 
 function ObjectstorageAction:ctor(app)
-    self.service = service.new(app)
+    self.objStorageService = service.new(app)
 end
 
 function ObjectstorageAction:saveobjAction(data) 
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -27,7 +27,7 @@ function ObjectstorageAction:saveobjAction(data)
 end 
 
 function ObjectstorageAction:updateobjAction(data)
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -41,7 +41,7 @@ function ObjectstorageAction:updateobjAction(data)
 end
 
 function ObjectstorageAction:deleteobjAction(data)
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -55,7 +55,7 @@ function ObjectstorageAction:deleteobjAction(data)
 end
 
 function ObjectstorageAction:findobjAction(data) 
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -69,7 +69,7 @@ function ObjectstorageAction:findobjAction(data)
 end
 
 function ObjectstorageAction:createindexAction(data)
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -83,7 +83,7 @@ function ObjectstorageAction:createindexAction(data)
 end
 
 function ObjectstorageAction:deleteindexAction(data) 
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
@@ -97,7 +97,7 @@ function ObjectstorageAction:deleteindexAction(data)
 end
 
 function ObjectstorageAction:showindexAction(data)
-    local s = self.service
+    local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
     end
