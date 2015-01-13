@@ -1,9 +1,4 @@
-
-local OnlineUsersService = import(".services.OnlineUsersService")
-local MessageService     = import(".services.MessageService")
-
 local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
-local SESSION_COUNTER_KEY = "session_counter_key" 
 
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
@@ -15,23 +10,6 @@ function WebSocketServerApp:ctor(config)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
-
-    self.onlineUsersService = OnlineUsersService.new(self)
-    self.messageService = MessageService.new(self)
-
-    -- 创建一个 session id
-    local redis = self:getRedis()
-    local sessid, err = redis:command("INCR", SESSION_COUNTER_KEY)
-    if err then
-        sessid, err = redis:command("SET", SESSION_COUNTER_KEY, 1)
-        if err then 
-            throw(ERR_SERVER_REDIS_ERROR, err)
-        end 
-    end
-    self.sessionId = sessid
-
-    local mysql = self:getMysql()
-
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
