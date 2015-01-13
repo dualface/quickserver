@@ -1,15 +1,15 @@
 local MysqlService = class("MysqlService") 
 
-function MysqlService:ctor(config)
-    local adapter 
-    if ngx then
-        adapter = require("adapter.MysqlRestyAdapter")
-    else
-        adapter = require("adapter.MysqlLuaAdapter")
-    end
+local adapter 
+if ngx then
+    adapter = import(".adapter.MysqlRestyAdapter")
+else
+    adapter = import(".adapter.MysqlLuaAdapter")
+end
 
+function MysqlService:ctor(config)
     if not config or type(config) ~= "table" then 
-        return nil, "config of mysql connections is nil."
+        return nil, "config is invalid."
     end
 
     self.config = config

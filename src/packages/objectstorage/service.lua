@@ -261,13 +261,13 @@ function ObjectstorageService:updateObj(data)
         end
     end
     if type(indexes) == "table" then 
-        res, err = self:_updateIndexes(indexes, oriProperty, params.id)
+        res, err = self:updateIndexes_(indexes, oriProperty, params.id)
         if not res then 
             return nil, err
         end
     end
 
-    return param.id, nil
+    return params.id, nil
 end
 
 function ObjectstorageService:deleteObj(data)

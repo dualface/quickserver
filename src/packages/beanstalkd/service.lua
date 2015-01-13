@@ -1,11 +1,15 @@
 local BeanstalkdService = class("BeanstalkdService")
 
+local adapter
+if ngx then
+    adapter = require("adapter.RestyBeanstalkdAdapter")
+else    
+    adapter = require("adapter.BeanstalkdHaricotAdapter")
+end
+
 function BeanstalkdService:ctor(config) 
-    local adapter
-    if ngx then
-        adapter = require("adapter.RestyBeanstalkdAdapter")
-    else    
-        adapter = require("adapter.BeanstalkdHaricotAdapter")
+    if not config or type(config) ~= "table" then 
+        return nil, "config is invalid."
     end
 
     self.config = config or {host = "127.0.0.1", port = "11300", timeout = 10 * 1000}    

@@ -18,15 +18,19 @@ local RESULT_CONVERTER = {
     },
 }
 
+local adapter 
+if ngx then 
+    adapter = import(".adapter.RestyRedisAdapter")
+else
+    adapter = import(".adapter.RedisLuaAdapter")
+end
+local trans = import(".RedisTransaction")
+local pipline = import(".RedisPipeline")
+
 function RedisService:ctor(config) 
-    local adapter 
-    if ngx then 
-        adapter = require("adapter.RestyRedisAdapater")
-    else
-        adapter = require("adapter.RedisLuaAdapter")
+    if not config or type(config) ~= "table" then 
+        return nil, "config is invalid."
     end
-    self.trans = require("RedisTransaction")
-    self.pipline = require("RedisPipeline")
 
     self.config = config or {host = "127.0.0.1", port = 6379, timeout = 10*1000}
     self.redis = adapter.new(self.config)
@@ -70,15 +74,20 @@ function RedisService:command(command, ...)
 end
 
 function RedisService:pubsub(subscriptions)
+    local redis = self.redis
+    if not redis then 
+        return nil, "Package redis is not initialized."    
+    end
+
     return self.redis:pubsub(subscriptions)
 end
 
 function RedisService:newPipeline()
-    return self.pipline.new(self)
+    return pipline.new(self)
 end
 
 function RedisService:newTransaction(...)
-    return self.trans.new(self, ...)
+    return trans.new(self, ...)
 end
 
 function RedisService:hashToArray(hash)
