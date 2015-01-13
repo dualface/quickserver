@@ -1,148 +1,104 @@
 local RedisService = class("RedisService")
 
+local RESULT_CONVERTER = {
+    exists = {
+        RedisLuaAdapter = function(self, r)
+            if r == true then
+                return 1
+            else
+                return 0
+            end
+        end,
+    },
+
+    hgetall = {
+        RestyRedisAdapter = function(self, r)
+            return self:arrayToHash(r)
+        end,
+    },
+}
+
 function RedisService:ctor(config) 
-    local red = require("resty.redis")
+    local adapter 
+    if ngx then 
+        adapter = require("adapter.RestyRedisAdapater")
+    else
+        adapter = require("adapter.RedisLuaAdapter")
+    end
+    self.trans = require("RedisTransaction")
+    self.pipline = require("RedisPipeline")
+
     self.config = config or {host = "127.0.0.1", port = 6379, timeout = 10*1000}
-    self.redis = red:new()
+    self.redis = adapter.new(self)
 end
 
 function RedisService:connect()
     local redis = self.redis
-    local config = self.config
     if not redis then 
         return nil, "Package redis is not initialized."    
     end
 
-    redis:set_timeout(config.timeout)
-    return redis:connect(config.host, config.port)
+    return redis:connect()
 end
 
 function RedisService:close() 
     local redis = self.redis
-    local config = self.config
     if not redis then 
         return nil, "Package redis is not initialized."    
     end
-
-    if config.useConnPool then 
-        return redis:set_keepalive(10000, 100) 
-    end 
 
     return redis:close()
 end
 
 function RedisService:command(command, ...)
-    local method = self.redis[command]
-    if type(method) ~= "function" then 
-        return nil, string.format("invalid command %s", tostring(command))
+    local redis = self.redis
+    if not redis then 
+        return nil, "Package redis is not initialized."    
     end
 
-    return method(self.redis, ...)
+    command = string.lower(command)
+    local res, err = redis:command(command, ...)
+    if not err then
+        -- converting result
+        local convert = RESULT_CONVERTER[command]
+        if convert and convert[redis.name] then
+            res = convert[redis.name](self, res)
+        end
+    end
+
+    return res, err
 end
 
 function RedisService:pubsub(subscriptions)
-    if type(subscriptions) ~= "table" then
-        return nil, "invalid subscriptions argument"
-    end
-
-    if type(subscriptions.subscribe) == "string" then
-        subscriptions.subscribe = {subscriptions.subscribe}
-    end
-    if type(subscriptions.psubscribe) == "string" then
-        subscriptions.psubscribe = {subscriptions.psubscribe}
-    end
-
-    local subscribeMessages = {}
-
-    local function subscribe(f, channels)
-        for _, channel in ipairs(channels) do
-            local result, err = f(self.redis, channel)
-            if result then
-                subscribeMessages[#subscribeMessages + 1] = result
-            end
-        end
-    end
-
-    local function unsubscribe(f, channels)
-        for _, channel in ipairs(channels) do
-            f(self.redis, channel)
-        end
-    end
-
-    local aborting, subscriptionsCount = false, 0
-    local function abort()
-        if aborting then return end
-        if subscriptions.subscribe then
-            unsubscribe(self.redis.unsubscribe, subscriptions.subscribe)
-        end
-        if subscriptions.psubscribe then
-            unsubscribe(self.redis.punsubscribe, subscriptions.psubscribe)
-        end
-        aborting = true
-    end
-
-    if subscriptions.subscribe then
-        subscribe(self.redis.subscribe, subscriptions.subscribe)
-    end
-    if subscriptions.psubscribe then
-        subscribe(self.redis.psubscribe, subscriptions.psubscribe)
-    end
-
-    return coroutine.wrap(function()
-        while true do
-            local result, err
-            if #subscribeMessages > 0 then
-                result = subscribeMessages[1]
-                table.remove(subscribeMessages, 1)
-            else
-                result, err = self.redis:read_reply()
-            end
-
-            if not result then
-                if err ~= "timeout" then
-                    printInfo(err)
-                    abort()
-                    break
-                end
-            else
-                local message
-                if result[1] == "pmessage" then
-                    message = {
-                        kind = result[1],
-                        pattern = result[2],
-                        channel = result[3],
-                        payload = result[4],
-                    }
-                else
-                    message = {
-                        kind = result[1],
-                        channel = result[2],
-                        payload = result[3],
-                    }
-                end
-
-                if string.match(message.kind, '^p?subscribe$') then
-                    subscriptionsCount = subscriptionsCount + 1
-                end
-                if string.match(message.kind, '^p?unsubscribe$') then
-                    subscriptionsCount = subscriptionsCount - 1
-                end
-
-                if aborting and subscriptionsCount == 0 then
-                    break
-                end
-                coroutine.yield(message, abort)
-            end
-        end
-    end)
+    return self.redis:pubsub(subscriptions)
 end
 
-function RedisService:commitPipeline(commands)
-    self.redis:init_pipeline()
-    for _, arg in ipairs(commands) do
-        self:command(arg[1], unpack(arg[2]))
+function RedisService:newPipeline()
+    return self.pipline.new(self)
+end
+
+function RedisService:newTransaction(...)
+    return self.trans.new(self, ...)
+end
+
+function RedisService:hashToArray(hash)
+    local arr = {}
+    for k, v in pairs(hash) do
+        arr[#arr + 1] = k
+        arr[#arr + 1] = v
     end
-    return self.redis:commit_pipeline()
+
+    return arr
+end
+
+function RedisService:arrayToHash(arr)
+    local c = #arr
+    local hash = {}
+    for i = 1, c, 2 do
+        hash[arr[i]] = arr[i + 1]
+    end
+
+    return hash
 end
 
 return RedisService
