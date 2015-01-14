@@ -14,9 +14,9 @@ function WebSocketServerApp:ctor(config)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
     self.redis = cc.load("redis").service.new(config.redis)
-    redis:connect()
+    self.redis:connect()
    
-    local ok, err = redis:command("INCR", webSocketUidKey)
+    local ok, err = self.redis:command("INCR", webSocketUidKey)
     if not ok then
         throw(ERR_SERVER_OPERATION_FAILED, err)
     end
@@ -73,7 +73,6 @@ end
 ---- internal methods
 
 function WebSocketServerApp:subscribePushMessageChannel()
-    assert(type(self.uid) == "string" and self.uid ~= "", "WebSocketServerApp:subscribePushMessageChannel() - invalid uid")
     assert(self.subscribeMessageChannelEnabled ~= true, "WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
 
     local chatChannel = self.chatChannel
