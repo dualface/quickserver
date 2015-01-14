@@ -7,9 +7,7 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://127.0.0.1:8088/test');
-    //115.28.88.113, cheeray-aliyun
-    //128.199.140.15:8088, cheeray-do
+    ws = new WebSocket('ws://127.0.0.1:8088/WebSocket');
     ws.onopen = function () {
         log('connected');
     };
@@ -32,42 +30,31 @@ function disconnect() {
     return false;
 }
 
-
-function GetCodes() {
+function BeginJob() {
     if (ws === null) return log('please connect first');
-    
+    var p1 = document.getElementById('p1').value;
+    document.getElementById('p1').value = "";
+
+    var job = {
+        "action": "test.storeobj",
+        "job_id": msg_id+10000,
+        "rawdata":[
+        {"k1": p1}
+        ],
+        "index": ["k1"]
+    }
+
     var data = {
         "_msgid": msg_id, 
-        "action": "user.uploadCoDEs", 
-        "commit" : "29c1",
-        "session_id": "397a20a4e4490badf26018bc70bc18f9"
+        "action": "examples.test.newjOb", 
+        "delay": 10,
+        "job": job
     }
 
     var jsonData = JSON.stringify(data)
-        ws.send(jsonData);
+    ws.send(jsonData);
     msg_id = msg_id + 1
-
-        log('Uploadcodes: ' + jsonData);
-
-    return false;
-}
-
-function SayHello() {
-    if (ws === null) return log('please connect first');
-    
-    var data = {
-        "_msgid": msg_id, 
-        "action": "Say.saYHello", 
-        "user_def_mod": "module1", 
-        "name" : "a_name_via_ws",
-        "session_id": "397a20a4e4490badf26018bc70bc18f9"
-    }
-
-    var jsonData = JSON.stringify(data)
-        ws.send(jsonData);
-    msg_id = msg_id + 1
-
-        log('SayHello: ' + jsonData);
+    log('send : ' + jsonData);
 
     return false;
 }
@@ -83,18 +70,17 @@ function log(text) {
 
 </head>
 <body>
-<form onsubmit="return SayHello();">
+<form onsubmit="return BeginJob();">
     <button type="button" onclick="return connect();">
         Connect
     </button>
     <button type="button" onclick="return disconnect();">
         Disconnect
     </button>
-    <button type="button" onclick="return GetCodes();">
-        GetCodes 
-    </button>
-    <button type="submit">Say Hello</button>
-</form>
+    content: <input id="p1" type="text">
+
+    <button type="submit">Begin</button>
+</form >
 
 <ol id="log"></ol>
 </body>

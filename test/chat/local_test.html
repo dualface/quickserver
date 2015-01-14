@@ -7,9 +7,7 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://127.0.0.1:8088/test');
-    //115.28.88.113, cheeray-aliyun
-    //128.199.140.15:8088, cheeray-do
+    ws = new WebSocket('ws://127.0.0.1:8088/WebSocket');
     ws.onopen = function () {
         log('connected');
     };
@@ -32,7 +30,7 @@ function disconnect() {
     return false;
 }
 
-function SendNULL() {
+/*function receiveMsg() {
     if (ws === null) return log('please connect first');
     var p1 = document.getElementById('p1').value;
     document.getElementById('p1').value = "";
@@ -49,7 +47,8 @@ function SendNULL() {
     log('saveobj: ' + jsonData);
 
     return false;
-}
+}*/
+
 function Send() {
     if (ws === null) return log('please connect first');
     var p1 = document.getElementById('p1').value;
@@ -57,16 +56,15 @@ function Send() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "chat.broadCast", 
-        "session_id" : "d6dd0b41948fbe1b4b27c89974ddf15b",
-        "content": p1,
-        "user": "hqy"
+        "action": "examples.test.broadCast", 
+        "payload": p1,
+        "nickname": "hqy"
     }
 
     var jsonData = JSON.stringify(data)
     ws.send(jsonData);
     msg_id = msg_id + 1
-    log('saveobj: ' + jsonData);
+    log('send : ' + jsonData);
 
     return false;
 }
@@ -93,9 +91,6 @@ function log(text) {
 
     <button type="submit">Send</button>
 </form >
-<form onsubmit="return SendNULL();">
-<button type="submit">heartbeat</button>
-</form>
 
 <ol id="log"></ol>
 </body>

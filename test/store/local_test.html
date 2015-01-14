@@ -8,8 +8,6 @@ var msg_id = 0;
 function connect() {
     if (ws !== null) return log('already connected');
     ws = new WebSocket('ws://127.0.0.1:8088/WebSocket');
-    //115.28.88.113, cheeray-aliyun
-    //128.199.140.15:8088, cheeray-do
     ws.onopen = function () {
         log('connected');
     };
