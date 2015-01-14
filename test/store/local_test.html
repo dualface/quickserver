@@ -7,7 +7,7 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://127.0.0.1:8088/test');
+    ws = new WebSocket('ws://127.0.0.1:8088/WebSocket');
     //115.28.88.113, cheeray-aliyun
     //128.199.140.15:8088, cheeray-do
     ws.onopen = function () {
@@ -39,7 +39,7 @@ function FindObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.FIndObj", 
+        "action": "examples.test.FIndObj", 
         "id": p1
         //"property": "i_name",
         //"property_value": "first"
@@ -61,7 +61,7 @@ function DeleteObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.deleteobj", 
+        "action": "examples.test.deleteobj", 
         "id": p1
     }
 
@@ -85,7 +85,7 @@ function  UpdateObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.UPdAteOBJ", 
+        "action": "examples.test.UPdAteOBJ", 
         "id": p1,
         "rawdata": [
         {"i_name": p2}, 
@@ -115,8 +115,7 @@ function SaveObj() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.SAVEOBJ", 
-        "session_id" : "57701d739035b6e9ef88de0819e20966",
+        "action": "examples.test.SAVEOBJ", 
         "rawdata": [
         {"key1": p1}, 
         {"property": p2},
@@ -142,7 +141,7 @@ function CreateIndex() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.creAteindex", 
+        "action": "examples.test.creAteindex", 
         "property": p1
     }
 
@@ -160,7 +159,7 @@ function ShowIndex() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.ShowIndex" 
+        "action": "examples.test.ShowIndex" 
     }
 
     var jsonData = JSON.stringify(data);
@@ -178,7 +177,7 @@ function DeleteIndex() {
 
     var data = {
         "_msgid": msg_id, 
-        "action": "Store.DeleteIndex", 
+        "action": "examples.test.DeleteIndex", 
         "property": p1
     }
 

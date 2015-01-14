@@ -39,10 +39,6 @@ end
 
 -- actually it is not a loop, since it is based on http.
 function HttpServerBase:runEventLoop()
-    -- "/_SERVER/*" points to default local service.
-    local LOCAL_URI_PREFIX = [[_SERVER]]
-
-    local uriPrefix = self.config.userDefinedCodes.uriPrefix
     local uri = self.uri
     local rawAction = string.gsub(uri, "/", ".")
 
