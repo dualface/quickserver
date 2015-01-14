@@ -1,4 +1,3 @@
-
 local config = {
     appModuleName             = "server",
     debug                     = true,
@@ -7,7 +6,9 @@ local config = {
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
     websocketsMessageFormat   = "json",
 
-    pushMessageChannelPattern = "channel.%s",
+    chatChannelPattern = "channel.chat.%s",
+    jobChannelPattern = "channel.job.%s",
+
     sharedMemoryDictName      = "TestApp",
 
     sessionExpired = 1200,
@@ -31,18 +32,6 @@ local config = {
         user       = "test",
         password   = "123456",
         timeout    = 10 * 1000,
-    },
-
-    userDefinedCodes = {
-        luaRepoPrefix = "user_repo.user_codes",
-        localRepo  = "/opt/user_codes/",
-        localDest  = "/opt/quick_server/openresty/server/user_codes", 
-        --localRepo = "/home/cheeray/work/user_codes",
-        --localDest = "/home/cheeray/work/quick-server/src/server/user_codes",
-        uriPrefix  = {
-            module1 = "http_test1", 
-            module2 = "http_test2", 
-        },
     },
     
     chat = {

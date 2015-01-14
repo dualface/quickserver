@@ -1,5 +1,7 @@
 local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
 
+local webSocketUidKey = "websocket_uid_key_"
+
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
 
@@ -10,6 +12,20 @@ function WebSocketServerApp:ctor(config)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
+
+    self.redis = cc.load("redis").service.new(config.redis)
+    redis:connect()
+   
+    local ok, err = redis:command("INCR", webSocketUidKey)
+    if not ok then
+        throw(ERR_SERVER_OPERATION_FAILED, err)
+    end
+    self.webSocketUid = ok
+
+    self.chatChannel = string.format(config.chatChannelPattern, ok / 1000)
+    self.jobChannel = string.format(config.jobChannelPattern, ok / 100)
+    self.quitChannel = "channel.quit"
+    self.subscribeMessageChannelEnabled = false 
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
@@ -18,15 +34,15 @@ function WebSocketServerApp:doRequest(actionName, data)
     end
 
     local _, result = xpcall(function()
-                                 return WebSocketServerApp.super.doRequest(self, actionName, data)
-                             end, 
-                             function(err) 
-                                 local beg, rear = string.find(err, "module.*not found") 
-                                 if beg then 
-                                     err = string.sub(err, beg, rear)
-                                 end
-                                 return {error = string.format([[Handle request failed: %s]], string.gsub(err, [[\]], ""))} 
-                             end)
+        return WebSocketServerApp.super.doRequest(self, actionName, data)
+    end, 
+    function(err) 
+        local beg, rear = string.find(err, "module.*not found") 
+        if beg then 
+            err = string.sub(err, beg, rear)
+        end
+        return {error = string.format([[Handle request failed: %s]], string.gsub(err, [[\]], ""))} 
+    end)
 
     if self.config.debug then
         local j = json.encode(result)
@@ -36,28 +52,20 @@ function WebSocketServerApp:doRequest(actionName, data)
     return result
 end
 
-function WebSocketServerApp:getUID()
-    if not self.uid then
-        throw(ERR_SERVER_INVALID_PARAMETERS, "not set uid")
-    end
-    return self.uid
-end
-
-function WebSocketServerApp:setUID(uid)
-    self.uid = uid
-end
-
-
 ---- events callback
 
-function WebSocketServerApp:onWebSocketsReady(event)
+function WebSocketServerApp.onWebSocketsReady(event)
+    local self = event.tag
+    self:subscribePushMessageChannel()
 end
 
-function WebSocketServerApp:onWebSocketsClose(event)
+function WebSocketServerApp.onWebSocketsClose(event)
+    local self = event.tag
     self:unsubscribePushMessageChannel()
 end
 
-function WebSocketServerApp:onClientAbort(event)
+function WebSocketServerApp.onClientAbort(event)
+    local self = event.tag
     self:unsubscribePushMessageChannel()
 end
 
@@ -66,21 +74,23 @@ end
 
 function WebSocketServerApp:subscribePushMessageChannel()
     assert(type(self.uid) == "string" and self.uid ~= "", "WebSocketServerApp:subscribePushMessageChannel() - invalid uid")
-    assert(self.subscribePushMessageChannelEnabled ~= true, "WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
+    assert(self.subscribeMessageChannelEnabled ~= true, "WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
+
+    local chatChannel = self.chatChannel
+    local jobChannel = self.jobChannel 
+    local quitChannel = self.quitChannel
+
+    local chat_id = 1
 
     -- subscribe
-    self.onlineUsersChannel = string.format(ONLINE_USERS_CHANNEL_PATTERN, self.uid)
-
     local function subscribe()
-        self.subscribePushMessageChannelEnabled = true
-
-        local channel = self.onlineUsersChannel
+        self.subscribeMessageChannelEnabled = true
         local isRunning = true
 
-        local redis = self:newRedis()
-        local loop, err = redis:pubsub({subscribe = channel})
+        local redis = self.redis
+        local loop, err = redis:pubsub({subscribe = {jobChannel, chatChannel, quitChannel}})
         if err then
-            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s] failed, %s", channel, err)
+            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s, %s] failed, %s", jobChannel, chatChannel, err)
         end
 
         for msg, abort in loop do
@@ -94,28 +104,45 @@ function WebSocketServerApp:subscribePushMessageChannel()
                     if string.len(msg_) > 20 then
                         msg_ = string.sub(msg_, 1, 20) .. " ..."
                     end
-                    printInfo("get message [%s] from channel [%s]", msg_, channel)
+                    printInfo("get message [%s] from channel [%s]", msg_, msg.channel)
                 end
 
-                local cmd = string.sub(msg.payload, 1, 4)
-                if cmd == "keep" then
-                    local sessid = checkint(string.sub(msg.payload, 6))
-                    if sessid ~= self.sessionId then
-                        if self.websockets then
-                            self.websockets:send_text(json.encode({name = "kick"}))
-                            self:closeClientConnect() -- 关闭客户端连接
-                        end
-                    end
-                elseif cmd == "quit" then
-                    local sessid = checkint(string.sub(msg.payload, 6))
-                    if sessid == self.sessionId then
+                local payload = msg.payload
+                local channel = msg.channel
+                if channel == quitChannel then
+                    local uid = tonumber(string.sub(payload, 6))
+                    if uid == self.websocketUid then
                         isRunning = false
                         abort()
                         break
                     end
-                else
-                    -- forward message to client
-                    self.websockets:send_text(msg.payload)
+                elseif channel == chatChannel then  
+                    local reply = {}
+                    local r = json.decode(payload)
+                    if type(r) ~= "table" then
+                        reply.err_msg = "invalid chat message is received."
+                    else
+                        reply.time = ngx.localtime() 
+                        reply.chat_id = chat_id
+                        reply.payload = r.payload
+                        reply.nickname = r.nickname
+
+                        chat_id = chat_id + 1
+                    end
+                    self.websockets:send_text(json.encode(reply))
+                elseif channel == jobChannel then
+                    local reply = {}
+                    local r = json.decode(payload)
+                    if type(r) ~= "table" then
+                        reply.err_msg = "invalid job message is received."
+                        self.websockets:send_text(json.encode(reply))
+                    elseif r.sender_id == self.webSocketUid then 
+                        reply.job_id = r.job_id
+                        reply.payload = r.payload
+                        reply.start_time = r.start_time
+                        reply.end_time = ngx.localtime()
+                        self.websockets:send_text(json.encode(reply))
+                    end
                 end
             end
         end
@@ -126,10 +153,10 @@ function WebSocketServerApp:subscribePushMessageChannel()
 
         if self.config.debug then
             printInfo("unsubscribed from channel [%s], sessid = %d", channel, self.sessionId)
-            print("----------------- QUIT -----------------")
+            printInfo("----------------- QUIT -----------------")
         end
 
-        self.subscribePushMessageChannelEnabled = false
+        self.subscribeMessageChannelEnabled = false
 
         if isRunning then
             self:subscribePushMessageChannel()
@@ -140,7 +167,10 @@ function WebSocketServerApp:subscribePushMessageChannel()
 end
 
 function WebSocketServerApp:unsubscribePushMessageChannel()
-    self:getRedis():command("publish", self.onlineUsersChannel, string.format("quit %d", self.sessionId))
+    local redis = self.redis
+
+    -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
+    redis:command("publish", self.quitChannel, "QUIT-" .. self.webSocketUid)
 end
 
 return WebSocketServerApp

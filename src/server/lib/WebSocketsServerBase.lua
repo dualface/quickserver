@@ -20,12 +20,6 @@ function WebSocketsServerBase:ctor(config)
     if not ok then
         printInfo("failed to register the on_abort callback, ", err)
     end
-
-    if self.config.session then
-        self.session = cc.server.Session.new(self)
-    end
-
-    self.websocketInfo= {}
 end
 
 function WebSocketsServerBase:closeClientConnect()
@@ -101,13 +95,6 @@ function WebSocketsServerBase:runEventLoop()
     wb:send_close()
     self.websockets = nil
     
-    -- dec online numbers in the channel
-    if self.websocketInfo.channel ~= nil then
-        local chs = ngx.shared.CHANNELS
-        chs:incr(self.websocketInfo.channel, -1)
-        printInfo("number in channel = %s", tostring(chs:get(self.websocketInfo.channel)))
-    end
-
     return ret
 end
 
