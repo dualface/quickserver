@@ -107,7 +107,7 @@ function ObjectstorageAction:showindexAction(data)
         return err_(err)
     end
 
-    return {ok = 1}
+    return {keys = ok}
 end
 
 return ObjectstorageAction

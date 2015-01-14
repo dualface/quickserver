@@ -364,7 +364,7 @@ function ObjectstorageService:findObj(data)
     return res, nil 
 end
 
-function ObjectstorageService:createindex(data)
+function ObjectstorageService:createIndex(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."
     end
