@@ -2,9 +2,9 @@ local BeanstalkdService = class("BeanstalkdService")
 
 local adapter
 if ngx then
-    adapter = require("adapter.RestyBeanstalkdAdapter")
+    adapter = import(".adapter.RestyBeanstalkdAdapter")
 else    
-    adapter = require("adapter.BeanstalkdHaricotAdapter")
+    adapter = import(".adapter.BeanstalkdHaricotAdapter")
 end
 
 function BeanstalkdService:ctor(config) 
