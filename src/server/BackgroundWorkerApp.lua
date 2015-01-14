@@ -1,4 +1,3 @@
-
 local BackgroundWorkerApp = class("BackgroundWorkerApp", cc.server.CommandLineServerBase)
 
 function BackgroundWorkerApp:ctor(config)
@@ -44,9 +43,9 @@ function BackgroundWorkerApp:runEventLoop()
             bean:command("delete", job.id)
         else
             local actionName = data.action
-            local result = self:doRequest(actionName, data)
+            local _, result = self:doRequest(actionName, data)
             if self.config.debug then
-                echoInfo("job [%s], run action %s finished.", job.id, actionName)
+                printInfo("job [%s], run action %s finished.", job.id, actionName)
             end
             bean:command("delete", job.id)
 
@@ -55,7 +54,9 @@ function BackgroundWorkerApp:runEventLoop()
             reply.job_id = data.job_id
             reply.start_time = data.start_time
             reply.payload = result
+            reply.owner = data.owner
 
+            printInfo("reply = %s, data.channel = %s", json.encode(reply), tostring(data.channel))
             redis:command("publish", data.channel, json.encode(reply))
         end
 

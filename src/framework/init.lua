@@ -13,6 +13,7 @@ cc.server = {}
 cc.server.ServerAppBase         = require("server.lib.ServerAppBase")
 cc.server.WebSocketsServerBase  = require("server.lib.WebSocketsServerBase")
 cc.server.HttpServerBase        = require("server.lib.HttpServerBase")
+cc.server.CommandLineServerBase = require("server.lib.CommandLineServerBase")
 
 -- register the build-in packages 
 cc.register("event", require("framework.components.event"))

@@ -14,6 +14,7 @@ function JobService:ctor(app)
     self.bean:command("use", app.config.workQueue) 
 
     self.channel = app.jobChannel
+    self.owner = app.webSocketUid
 end
 
 local function checkParams_(data, ...)
@@ -47,11 +48,11 @@ function JobService:newJob(data)
     end 
     
     local job = data.job
-    local priority = tonumber(data.priority)
     job.start_time = localtime()
     job.channel = self.channel  -- which the result is published to
+    job.owner = self.owner
 
-    bean:command("put", jsonEncode(job), priority, job.delay)
+    bean:command("put", jsonEncode(job), tonumber(data.priority), tonumber(data.delay))
 
     return true, nil 
 end

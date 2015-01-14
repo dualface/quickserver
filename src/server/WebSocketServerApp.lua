@@ -139,7 +139,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
                     if type(r) ~= "table" then
                         reply.err_msg = "invalid job message is received."
                         self.websockets:send_text(json.encode(reply))
-                    elseif r.sender_id == self.webSocketUid then 
+                    elseif r.owner == self.webSocketUid then 
                         reply.job_id = r.job_id
                         reply.payload = r.payload
                         reply.start_time = r.start_time
