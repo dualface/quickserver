@@ -3,15 +3,23 @@ local config = {
     debug                     = true,
 
     websocketsTimeout         = 60 * 1000, -- 60s
+    websocketsTryTimes        = 
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
     websocketsMessageFormat   = "json",
+    maxWebsocketRetryCount    = 60, 
 
     chatChannelPattern = "channel.chat.%s",
     jobChannelPattern = "channel.job.%s",
+    chatChannelCapacity = 1000,
+    jobChannelCapacity = 100, 
+    maxSubscribeRetryCount = 60,
 
     sharedMemoryDictName      = "TestApp",
 
     sessionExpired = 1200,
+
+    workQueue = "BackgroundWork",
+    workerMessageFormat = "json",
 
     redis = {
         host       = "127.0.0.1",

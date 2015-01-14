@@ -1,4 +1,3 @@
-
 local ServerAppBase = import(".ServerAppBase")
 
 local CommandLineServerBase = class("CommandLineServerBase", ServerAppBase)

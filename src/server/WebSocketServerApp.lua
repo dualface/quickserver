@@ -22,10 +22,11 @@ function WebSocketServerApp:ctor(config)
     end
     self.webSocketUid = ok
 
-    self.chatChannel = string.format(config.chatChannelPattern, ok / 1000)
-    self.jobChannel = string.format(config.jobChannelPattern, ok / 100)
+    self.chatChannel = string.format(config.chatChannelPattern, math.trunc(ok / self.config.chatChannelCapacity))
+    self.jobChannel = string.format(config.jobChannelPattern, math.trunc(ok / self.config.jobChannelCapacity))
     self.quitChannel = "channel.quit"
     self.subscribeMessageChannelEnabled = false 
+    self.subscribeRetryCount = 1
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
@@ -73,7 +74,10 @@ end
 ---- internal methods
 
 function WebSocketServerApp:subscribePushMessageChannel()
-    assert(self.subscribeMessageChannelEnabled ~= true, "WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
+    if self.subscribeMessageChannelEnabled then
+        printInfo("WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
+        return nil
+    end
 
     local chatChannel = self.chatChannel
     local jobChannel = self.jobChannel 
@@ -157,7 +161,8 @@ function WebSocketServerApp:subscribePushMessageChannel()
 
         self.subscribeMessageChannelEnabled = false
 
-        if isRunning then
+        if isRunning and self.subscribeRetryCount < self.config.maxSubscribeRetryCount then
+            self.subscribeRetryCount = self.subscribeRetryCount + 1
             self:subscribePushMessageChannel()
         end
     end

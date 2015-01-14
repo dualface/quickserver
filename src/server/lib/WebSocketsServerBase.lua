@@ -45,12 +45,15 @@ function WebSocketsServerBase:runEventLoop()
     self:dispatchEvent({name = WebSocketsServerBase.WEBSOCKETS_READY_EVENT})
 
     local ret = ngx.OK
+    local againCount = 0
+    local maxAgainCount = self.config.maxWebsocketRetryCount
     -- event loop
     while true do
         local data, typ, err = wb:recv_frame()
         if wb.fatal then
             printInfo("failed to receive frame, %s", err)
-            if err == "again" then
+            if err == "again" and againCount < maxAgainCount then
+                againCount = againCount + 1
                 goto recv_next_message
             end
             ret = 444
@@ -108,15 +111,13 @@ function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
         return false, message
     end
 
-    local msgid = message._msgid
+    local msgid = message.msg_id
     local actionName = message.action
-
-    printInfo("msgid: %s, action: %s, user_def_mod: %s", message._msgid, message.action, message.user_def_mod)
 
     local result = self:doRequest(actionName, message)
     if type(result) == "table" then
         if msgid then
-            result._msgid = msgid
+            result.msg_id = msgid
         else
             if self.config.debug then
                 printInfo("unused result from action %s", actionName)
