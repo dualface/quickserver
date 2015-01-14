@@ -32,8 +32,6 @@ local function checkParams_(data, ...)
     return true 
 end
 
--- zcard 
--- param: ranklist 
 function LeaderboardService:count(data)
     if type(data) ~= "table" then 
         return nil, "Parameter is not a table."

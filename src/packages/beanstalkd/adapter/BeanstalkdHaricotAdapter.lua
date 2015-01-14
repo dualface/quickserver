@@ -1,4 +1,4 @@
-local haricot = import(".haricot")
+local haricot = require("3rd.beanstalkd.haricot")
 
 local BeanstalkdHaricotAdapter = class("BeanstalkdHaricotAdapter")
 

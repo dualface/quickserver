@@ -20,6 +20,8 @@ function MysqlRestyAdapter:ctor(config)
         return ok, err
     end
 
+    self.config = config
+
     self.db_:query("SET NAMES 'utf8'")
 end
 
