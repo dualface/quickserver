@@ -1,9 +1,7 @@
-local base = cc.load("objectstorage").action
+local TestWorker = class("TestWorker")
 
-local TestWorker = class("TestWorker", base)
-
-function TestWorker:ctor(app)
-    self.super:ctor(app)
+function TestWorker:sayhelloAction(data)
+    return {hello = data.k}
 end
 
 return TestWorker
