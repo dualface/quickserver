@@ -3,7 +3,6 @@ local config = {
     debug                     = true,
 
     websocketsTimeout         = 60 * 1000, -- 60s
-    websocketsTryTimes        = 
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
     websocketsMessageFormat   = "json",
     maxWebsocketRetryCount    = 60, 
