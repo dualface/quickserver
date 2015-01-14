@@ -1,11 +1,10 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export LUA_PATH="/opt/qs/openresty/?.lua;/opt/qs/openresty/lualib/?.lua;;"
+
+DIR=$(dirname $(readlink -f $0))
 LUABIN=lua
-SCRIPT=worker_bootstrap.lua
-SCRIPTS_ROOT_DIR=$(dirname $DIR)
-FRAMEWORK_ROOT_DIR=/mnt/framework
+SCRIPT=BackgroundBootstrap.lua
 
 cd $DIR
 
-echo $LUABIN -e "package.path='$SCRIPTS_ROOT_DIR/?.lua;$FRAMEWORK_ROOT_DIR/?.lua;;'" $SCRIPT
-$LUABIN -e "package.path='$SCRIPTS_ROOT_DIR/?.lua;$FRAMEWORK_ROOT_DIR/?.lua;;'" $SCRIPT
+$LUABIN $DIR/$SCRIPT
