@@ -36,7 +36,7 @@ function FindObj() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.FIndObj", 
         "id": p1
         //"property": "i_name",
@@ -58,7 +58,7 @@ function DeleteObj() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.deleteobj", 
         "id": p1
     }
@@ -82,7 +82,7 @@ function  UpdateObj() {
     document.getElementById('p3').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.UPdAteOBJ", 
         "id": p1,
         "rawdata": [
@@ -112,7 +112,7 @@ function SaveObj() {
     document.getElementById('p3').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.SAVEOBJ", 
         "rawdata": [
         {"key1": p1}, 
@@ -138,7 +138,7 @@ function CreateIndex() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.creAteindex", 
         "property": p1
     }
@@ -156,7 +156,7 @@ function ShowIndex() {
     if (ws === null) return log('please connect first');
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.ShowIndex" 
     }
 
@@ -174,7 +174,7 @@ function DeleteIndex() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
+        "msg_id": msg_id, 
         "action": "examples.test.DeleteIndex", 
         "property": p1
     }
