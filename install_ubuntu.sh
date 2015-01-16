@@ -67,6 +67,8 @@ make install
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
 ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_DIR/openresty/luajit/bin/lua
 cp -rf $CUR_DIR/src/* $DEST_DIR/openresty/.
+cp -rf $DEST_DIR/openresty/lib/* $DEST_DIR/openresty/lualib/.
+rm -rf $DEST_DIR/openresty/lib
 cd $CUR_DIR/tool/
 #./compile_bytecode.sh $DEST_DIR
 
