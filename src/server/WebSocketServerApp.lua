@@ -13,20 +13,22 @@ function WebSocketServerApp:ctor(config)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
-    self.redis = cc.load("redis").service.new(config.redis)
-    self.redis:connect()
-   
-    local ok, err = self.redis:command("INCR", webSocketUidKey)
+    local redis = cc.load("redis").service.new(config.redis)
+    redis:connect()
+    local ok, err = redis:command("INCR", webSocketUidKey)
     if not ok then
         throw(ERR_SERVER_OPERATION_FAILED, err)
     end
+    redis:close()
     self.webSocketUid = ok
 
     self.chatChannel = string.format(config.chatChannelPattern, math.trunc(ok / self.config.chatChannelCapacity))
     self.jobChannel = string.format(config.jobChannelPattern, math.trunc(ok / self.config.jobChannelCapacity))
     self.quitChannel = "channel.quit"
+
     self.subscribeMessageChannelEnabled = false 
     self.subscribeRetryCount = 1
+    self.chatId = 1
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
@@ -57,25 +59,25 @@ end
 
 function WebSocketServerApp.onWebSocketsReady(event)
     local self = event.tag
-    self:subscribePushMessageChannel()
+    self:subscribePushMessageChannel_()
 end
 
 function WebSocketServerApp.onWebSocketsClose(event)
     local self = event.tag
-    self:unsubscribePushMessageChannel()
+    self:unsubscribePushMessageChannel_()
 end
 
 function WebSocketServerApp.onClientAbort(event)
     local self = event.tag
-    self:unsubscribePushMessageChannel()
+    self:unsubscribePushMessageChannel_()
 end
 
 
 ---- internal methods
 
-function WebSocketServerApp:subscribePushMessageChannel()
+function WebSocketServerApp:subscribePushMessageChannel_()
     if self.subscribeMessageChannelEnabled then
-        printInfo("WebSocketServerApp:subscribePushMessageChannel() - already subscribed")
+        printInfo("WebSocketServerApp:subscribePushMessageChannel_() - already subscribed")
         return nil
     end
 
@@ -83,14 +85,14 @@ function WebSocketServerApp:subscribePushMessageChannel()
     local jobChannel = self.jobChannel 
     local quitChannel = self.quitChannel
 
-    local chat_id = 1
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
 
     -- subscribe
     local function subscribe()
         self.subscribeMessageChannelEnabled = true
         local isRunning = true
 
-        local redis = self.redis
         local loop, err = redis:pubsub({subscribe = {jobChannel, chatChannel, quitChannel}})
         if err then
             throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s, %s] failed, %s", jobChannel, chatChannel, err)
@@ -99,7 +101,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
         for msg, abort in loop do
             if msg.kind == "subscribe" then
                 if self.config.debug then
-                    printInfo("subscribed channel [%s], sessid = %d", msg.channel, self.sessionId)
+                    printInfo("subscribed channel [%s], websocketUid = %d", msg.channel, self.webSocketUid)
                 end
             elseif msg.kind == "message" then
                 if self.config.debug then
@@ -116,6 +118,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
                     local uid = tonumber(string.sub(payload, 6))
                     if uid == self.websocketUid then
                         isRunning = false
+                        printInfo("get QUIT from channel.quit, websocketsUid = %d", self.webSocketUid)
                         abort()
                         break
                     end
@@ -126,11 +129,11 @@ function WebSocketServerApp:subscribePushMessageChannel()
                         reply.err_msg = "invalid chat message is received."
                     else
                         reply.time = ngx.localtime() 
-                        reply.chat_id = chat_id
+                        reply.chat_id = self.chatId
                         reply.payload = r.payload
                         reply.nickname = r.nickname
 
-                        chat_id = chat_id + 1
+                        self.chatId = self.chatId + 1
                     end
                     self.websockets:send_text(json.encode(reply))
                 elseif channel == jobChannel then
@@ -155,7 +158,7 @@ function WebSocketServerApp:subscribePushMessageChannel()
         redis = nil
 
         if self.config.debug then
-            printInfo("unsubscribed from channel [%s], sessid = %d", channel, self.sessionId)
+            printInfo("quit from subscribe loop, webSocketUid = %d", self.webSocketUid)
             printInfo("----------------- QUIT -----------------")
         end
 
@@ -163,18 +166,18 @@ function WebSocketServerApp:subscribePushMessageChannel()
 
         if isRunning and self.subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self.subscribeRetryCount = self.subscribeRetryCount + 1
-            self:subscribePushMessageChannel()
+            self:subscribePushMessageChannel_()
         end
     end
 
-    ngx.thread.spawn(subscribe)
+    self.subscribeCo = ngx.thread.spawn(subscribe)
 end
 
-function WebSocketServerApp:unsubscribePushMessageChannel()
-    local redis = self.redis
-
+function WebSocketServerApp:unsubscribePushMessageChannel_()
+    local redis = cc.load("redis").service.new(self.config.redis) 
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
     redis:command("publish", self.quitChannel, "QUIT-" .. self.webSocketUid)
+    redis:close()
 end
 
 return WebSocketServerApp
