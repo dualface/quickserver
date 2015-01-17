@@ -24,16 +24,6 @@ THE SOFTWARE.
 
 ]]
 
-if ngx and ngx.log then
-    print = function(...)
-        local arg = {...}
-        for k,v in pairs(arg) do
-            arg[k] = tostring(v)
-        end
-        ngx.log(ngx.ERR, table.concat(arg, "\t"))
-    end
-end
-
 function throw(errorType, fmt, ...)
     local arg = {...}
     for k,v in pairs(arg) do

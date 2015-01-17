@@ -22,24 +22,45 @@ THE SOFTWARE.
 
 ]]
 
+-- internal function, advise you not to call it directly.
 function printLog(tag, fmt, ...)
+    if ngx and ngx.log then
+        ngx.log(ngx[tag], string.format(tostring(fmt), ...))
+        if tag == "ERR" then
+            ngx.log(ngx.ERR, debug.traceback("", 3))
+        end
+        return nil
+    end
+
     local t = {
         "[",
         string.upper(tostring(tag)),
         "] ",
         string.format(tostring(fmt), ...)
     }
+    if tag == "ERR" then
+        table.insert(t, debug.traceback("", 3))
+    end
     print(table.concat(t))
 end
 
 function printError(fmt, ...)
     printLog("ERR", fmt, ...)
-    print(debug.traceback("", 2))
+end
+
+function printDebug(fmt, ...)
+    if type(DEBUG) ~= "number" or DEBUG < 3 then return end
+    printLog("DEBUG", fmt, ...)
 end
 
 function printInfo(fmt, ...)
     if type(DEBUG) ~= "number" or DEBUG < 2 then return end
     printLog("INFO", fmt, ...)
+end
+
+function printWarn(fmt, ...)
+    if type(DEBUG) ~= "number" or DEBUG < 1 then return end
+    printLog("WARN", fmt, ...)
 end
 
 local function dump_value_(v)
