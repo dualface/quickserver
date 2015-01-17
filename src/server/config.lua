@@ -17,7 +17,7 @@ local config = {
 
     sessionExpired = 1200,
 
-    workQueue = "BackgroundWork",
+    backgroundJobTube = "jobTube",
     workerMessageFormat = "json",
 
     redis = {
