@@ -1,6 +1,6 @@
 local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
 
-local webSocketUidKey = "websocket_uid_key_"
+local websocketUidKey = "websocket_uid_key_"
 
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
@@ -15,12 +15,12 @@ function WebSocketServerApp:ctor(config)
 
     local redis = cc.load("redis").service.new(config.redis)
     redis:connect()
-    local ok, err = redis:command("INCR", webSocketUidKey)
+    local ok, err = redis:command("INCR", websocketUidKey)
     if not ok then
         throw(ERR_SERVER_OPERATION_FAILED, err)
     end
     redis:close()
-    self.webSocketUid = ok
+    self.websocketUid = ok
 
     self.chatChannel = string.format(config.chatChannelPattern, math.trunc(ok / self.config.chatChannelCapacity))
     self.jobChannel = string.format(config.jobChannelPattern, math.trunc(ok / self.config.jobChannelCapacity))
@@ -68,8 +68,6 @@ function WebSocketServerApp.onWebSocketsClose(event)
 end
 
 function WebSocketServerApp.onClientAbort(event)
-    local self = event.tag
-    self:unsubscribePushMessageChannel_()
 end
 
 
@@ -101,7 +99,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         for msg, abort in loop do
             if msg.kind == "subscribe" then
                 if self.config.debug then
-                    printInfo("subscribed channel [%s], websocketUid = %d", msg.channel, self.webSocketUid)
+                    printInfo("subscribed channel [%s], websocketUid = %d", msg.channel, self.websocketUid)
                 end
             elseif msg.kind == "message" then
                 if self.config.debug then
@@ -109,7 +107,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                     if string.len(msg_) > 20 then
                         msg_ = string.sub(msg_, 1, 20) .. " ..."
                     end
-                    printInfo("get message [%s] from channel [%s]", msg_, msg.channel)
+                    printInfo("get message [%s] from channel [%s], websocketUid = %d", msg_, msg.channel, self.websocketUid)
                 end
 
                 local payload = msg.payload
@@ -118,7 +116,6 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                     local uid = tonumber(string.sub(payload, 6))
                     if uid == self.websocketUid then
                         isRunning = false
-                        printInfo("get QUIT from channel.quit, websocketsUid = %d", self.webSocketUid)
                         abort()
                         break
                     end
@@ -142,7 +139,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                     if type(r) ~= "table" then
                         reply.err_msg = "invalid job message is received."
                         self.websockets:send_text(json.encode(reply))
-                    elseif r.owner == self.webSocketUid then 
+                    elseif r.owner == self.websocketUid then 
                         reply.job_id = r.job_id
                         reply.payload = r.payload
                         reply.start_time = r.start_time
@@ -158,7 +155,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         redis = nil
 
         if self.config.debug then
-            printInfo("quit from subscribe loop, webSocketUid = %d", self.webSocketUid)
+            printInfo("quit from subscribe loop, websocketUid = %d", self.websocketUid)
             printInfo("----------------- QUIT -----------------")
         end
 
@@ -170,13 +167,19 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         end
     end
 
-    self.subscribeCo = ngx.thread.spawn(subscribe)
+    ngx.thread.spawn(subscribe)
 end
 
 function WebSocketServerApp:unsubscribePushMessageChannel_()
     local redis = cc.load("redis").service.new(self.config.redis) 
+    redis:connect()
+
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
-    redis:command("publish", self.quitChannel, "QUIT-" .. self.webSocketUid)
+    local ok, err = redis:command("publish", self.quitChannel, "QUIT-" .. self.websocketUid)
+    if not ok then
+        printInfo("publish QUIT failed: err = %s", tostring(err))
+    end
+
     redis:close()
 end
 
