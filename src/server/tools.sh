@@ -1,12 +1,10 @@
 #!/bin/bash
+export LUA_PATH="/opt/qs/openresty/?.lua;/opt/qs/openresty/lualib/?.lua;;"
 
-. ~/.profile
-
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR=$(dirname $(readlink -f $0))
 LUABIN=lua
-SCRIPT=tools.lua
-SCRIPTS_ROOT_DIR=$(dirname $DIR)
+SCRIPT=CmdToolsBootstrap.lua
 
 cd $DIR
 
-$LUABIN -e "package.path='$SCRIPTS_ROOT_DIR/?.lua;;'" $SCRIPT $*
+$LUABIN $DIR/$SCRIPT $*

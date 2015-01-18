@@ -10,8 +10,8 @@ example:
     * show this help
     tools help
 
-    * create map
-    tools map.create
+    * show the tail of nginx log 
+    tools example.server.taillog 5 
 
 ]])
 
