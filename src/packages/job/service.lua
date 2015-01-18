@@ -11,7 +11,7 @@ function JobService:ctor(app)
     end
     self.bean = cc.load("beanstalkd").service.new(config)
     self.bean:connect()
-    self.bean:command("use", app.config.backgroundJobTube) 
+    self.bean:command("use", app.config.broadcastJobTube) 
 
     self.channel = app.jobChannel
     self.owner = app.websocketUid
