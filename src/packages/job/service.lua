@@ -14,7 +14,7 @@ function JobService:ctor(app)
     self.bean:command("use", app.config.backgroundJobTube) 
 
     self.channel = app.jobChannel
-    self.owner = app.webSocketUid
+    self.owner = app.websocketUid
 end
 
 local function checkParams_(data, ...)

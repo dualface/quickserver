@@ -36,9 +36,11 @@ function BeginJob() {
     document.getElementById('p1').value = "";
 
     var job = {
-        "action": "test.sayhello",
+        "action": "examples.test.saveObj",
         "job_id": msg_id+10000,
-        "k":p1
+        "rawdata": [
+        {"hello": p1}
+        ]
     }
 
     var data = {

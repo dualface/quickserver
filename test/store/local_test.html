@@ -64,10 +64,10 @@ function DeleteObj() {
     }
 
     var jsonData = JSON.stringify(data)
-        ws.send(jsonData);
+    ws.send(jsonData);
     msg_id = msg_id + 1
 
-        log('DeleteObj: '+ jsonData);
+    log('DeleteObj: '+ jsonData);
 
     return false;
 }
@@ -90,7 +90,6 @@ function  UpdateObj() {
         {"property": p3}
         ],
         "indexes": ["i_name_bk"],
-        "addtional_info": ["IP", "time"]
     }
 
     var jsonData = JSON.stringify(data)
@@ -120,7 +119,6 @@ function SaveObj() {
         {"i_name": p3}
         ],
             "indexes": ["i_name", "property"]
-            //"addtional_info": ["IP", "TIME"]
     }
 
     var jsonData = JSON.stringify(data)
