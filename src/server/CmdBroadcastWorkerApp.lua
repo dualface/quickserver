@@ -1,7 +1,7 @@
-local BackgroundWorkerApp = class("BackgroundWorkerApp", cc.server.CommandLineServerBase)
+local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineServerBase)
 
-function BackgroundWorkerApp:ctor(config)
-    BackgroundWorkerApp.super.ctor(self, config)
+function CmdBroadcastWorker:ctor(config)
+    CmdBroadcastWorker.super.ctor(self, config)
     self.config.workerMaxRequestCount = config.workerMaxRequestCount or 100
     self.config.actionPackage = "workers"
     self.config.actionModuleSuffix = "Worker"
@@ -13,16 +13,16 @@ function BackgroundWorkerApp:ctor(config)
     self.bean:connect()
 end
 
-function BackgroundWorkerApp:doRequest(actionName, data)
+function CmdBroadcastWorker:doRequest(actionName, data)
     return pcall(function()
-        return BackgroundWorkerApp.super.doRequest(self, actionName, data)
+        return CmdBroadcastWorker.super.doRequest(self, actionName, data)
     end, function(msg) return msg end)
 end
 
-function BackgroundWorkerApp:runEventLoop()
+function CmdBroadcastWorker:runEventLoop()
     -- connect to beanstalkd, wait job
     local bean = self.bean
-    bean:command("watch", self.config.workQueue)
+    bean:command("watch", self.config.broadcastJobTube)
 
     local redis = self.redis
 
@@ -65,9 +65,10 @@ function BackgroundWorkerApp:runEventLoop()
     end
 
     bean:close()
+    redis:close()
 end
 
-function BackgroundWorkerApp:parseJobMessage(rawMessage)
+function CmdBroadcastWorker:parseJobMessage(rawMessage)
     if self.config.workerMessageFormat == "json" then
         local message = json.decode(rawMessage)
         if type(message) == "table" then
@@ -80,4 +81,4 @@ function BackgroundWorkerApp:parseJobMessage(rawMessage)
     end
 end
 
-return BackgroundWorkerApp
+return CmdBroadcastWorker
