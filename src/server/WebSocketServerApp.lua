@@ -17,7 +17,7 @@ function WebSocketServerApp:ctor(config)
     redis:connect()
     local ok, err = redis:command("INCR", websocketUidKey)
     if not ok then
-        throw(ERR_SERVER_OPERATION_FAILED, err)
+        throw(ERR_SERVER_OPERATION_FAILED, "Generate websocketUid failed: %s", err)
     end
     redis:close()
     self.websocketUid = ok
@@ -25,7 +25,6 @@ function WebSocketServerApp:ctor(config)
     self.chatChannel = string.format(config.chatChannelPattern, math.trunc(ok / self.config.chatChannelCapacity))
     self.jobChannel = string.format(config.jobChannelPattern, math.trunc(ok / self.config.jobChannelCapacity))
     self.quitChannel = "channel.quit"
-
     self.subscribeMessageChannelEnabled = false 
     self.subscribeRetryCount = 1
     self.chatId = 1
@@ -65,6 +64,8 @@ end
 function WebSocketServerApp.onWebSocketsClose(event)
     local self = event.tag
     self:unsubscribePushMessageChannel_()
+
+    printInfo("---------------- QUIT -----------------")
 end
 
 function WebSocketServerApp.onClientAbort(event)
@@ -86,14 +87,13 @@ function WebSocketServerApp:subscribePushMessageChannel_()
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
 
-    -- subscribe
-    local function subscribe()
+    local function subscribe_()
         self.subscribeMessageChannelEnabled = true
         local isRunning = true
 
         local loop, err = redis:pubsub({subscribe = {jobChannel, chatChannel, quitChannel}})
         if err then
-            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s, %s] failed, %s", jobChannel, chatChannel, err)
+            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s, %s] failed: %s", jobChannel, chatChannel, err)
         end
 
         for msg, abort in loop do
@@ -156,7 +156,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
 
         if self.config.debug then
             printInfo("quit from subscribe loop, websocketUid = %d", self.websocketUid)
-            printInfo("----------------- QUIT -----------------")
+            printInfo("---------- SUBSCRIBE THREAD QUIT ----------")
         end
 
         self.subscribeMessageChannelEnabled = false
@@ -167,7 +167,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         end
     end
 
-    ngx.thread.spawn(subscribe)
+    ngx.thread.spawn(subscribe_)
 end
 
 function WebSocketServerApp:unsubscribePushMessageChannel_()

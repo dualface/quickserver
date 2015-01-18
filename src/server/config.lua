@@ -5,20 +5,17 @@ local config = {
     websocketsTimeout         = 60 * 1000, -- 60s
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
     websocketsMessageFormat   = "json",
-    maxWebsocketRetryCount    = 60, 
+    maxWebsocketRetryCount    = 10,
 
     chatChannelPattern = "channel.chat.%s",
     jobChannelPattern = "channel.job.%s",
-    chatChannelCapacity = 1000,
-    jobChannelCapacity = 100, 
-    maxSubscribeRetryCount = 60,
+    chatChannelCapacity = 10000,
+    jobChannelCapacity = 10000,
+    maxSubscribeRetryCount = 10,
 
-    sharedMemoryDictName      = "TestApp",
-
-    sessionExpired = 1200,
-
-    backgroundJobTube = "jobTube",
-    workerMessageFormat = "json",
+    jobMessageFormat = "json",
+    broadcastJobTube = "jobTube",
+    broadcastJobRetryInterval = 30,
 
     redis = {
         host       = "127.0.0.1",
@@ -29,7 +26,6 @@ local config = {
     beanstalkd = {
         host       = "127.0.0.1",
         port       = 11300,
-        timeout    = 10 * 1000, -- 10 seconds
     },
 
     mysql = {
