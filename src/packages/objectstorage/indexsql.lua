@@ -28,14 +28,14 @@ INSERT INTO %s (%s,%s) VALUES (%s,%s);
 
 function createIndex(property)
     local tableName = property.."_index"
-    local sql = fmt(CreateIndexSql, tableName, property, property)
+    local sql = fmt(createIndexSql, tableName, property, property)
 
     return sql
 end
 
 function dropIndex(property) 
     local tableName = property .. "_index"
-    local sql = fmt(DropIndexSql, tableName) 
+    local sql = fmt(dropIndexSql, tableName) 
 
     return sql
 end
@@ -46,14 +46,14 @@ function findIndex(propertyTbl)
     local n = pairs(propertyTbl)
     local k, v = n(propertyTbl) 
     local tableName = k .. "_index"
-    local sql = fmt(FindIndexSql, tableName, k, v)
+    local sql = fmt(findIndexSql, tableName, k, v)
 
     return sql
 end
 
 function insertIndex(property, id, value)
     local tableName = property .. "_index"
-    local sql = fmt(InsertIndexSql, tableName, "entity_id", property, id, value) 
+    local sql = fmt(insertIndexSql, tableName, "entity_id", property, id, value) 
 
     return sql
 end
