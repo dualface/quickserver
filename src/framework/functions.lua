@@ -27,7 +27,7 @@ function printLog(tag, fmt, ...)
     if ngx and ngx.log then
         ngx.log(ngx[tag], string.format(tostring(fmt), ...))
         if tag == "ERR" then
-            ngx.log(ngx.ERR, debug.traceback("", 3))
+            ngx.log(ngx.ERR, debug.traceback("", 2))
         end
         return nil
     end
@@ -39,7 +39,7 @@ function printLog(tag, fmt, ...)
         string.format(tostring(fmt), ...)
     }
     if tag == "ERR" then
-        table.insert(t, debug.traceback("", 3))
+        table.insert(t, debug.traceback("", 2))
     end
     print(table.concat(t))
 end
