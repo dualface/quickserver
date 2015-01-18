@@ -1,16 +1,16 @@
-local TestToolsApp = class("TestToolsApp", cc.server.CommandLineServerBase)
+local CmdToolsApp = class("CmdToolsApp", cc.server.CommandLineServerBase)
 
-function TestToolsApp:ctor(config, arg)
-    TestToolsApp.super.ctor(self, config)
+function CmdToolsApp:ctor(config, arg)
+    CmdToolsApp.super.ctor(self, config)
     self.arg = arg
     self.config.actionPackage = "tools"
     self.config.actionModuleSuffix = "Tool"
 end
 
-function TestToolsApp:doRequest(actionName, data)
+function CmdToolsApp:doRequest(actionName, data)
     printf("> run tool %s\n", actionName)
     local ok, result = xpcall(function()
-        return TestToolsApp.super.doRequest(self, actionName, data)
+        return CmdToolsApp.super.doRequest(self, actionName, data)
     end, function(msg)
         return msg .. "\n" .. debug.traceback("", 4)
     end)
@@ -19,7 +19,7 @@ function TestToolsApp:doRequest(actionName, data)
     end
 end
 
-function TestToolsApp:runEventLoop()
+function CmdToolsApp:runEventLoop()
     local actionName = self.arg[1]
     if not actionName then actionName = "help" end
     local arg = clone(self.arg)
@@ -27,4 +27,4 @@ function TestToolsApp:runEventLoop()
     return self:doRequest(actionName, arg)
 end
 
-return TestToolsApp
+return CmdToolsApp
