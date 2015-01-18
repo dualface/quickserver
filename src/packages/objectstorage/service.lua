@@ -1,7 +1,5 @@
 local sha1 = ngx.sha1_bin
 local base64 = ngx.encode_base64
-local remoteAddr = ngx.var.remote_addr
-local localtime = ngx.localtime
 local tabInsert = table.insert
 local tabConcat = table.concat
 local strGsub = string.gsub 
@@ -11,11 +9,6 @@ local strUpper = string.upper
 local strFormat = string.format
 local jsonEncode = json.encode
 local jsonDecode = json.decode
-
-local keywords = {
-    TIME = 1, 
-    IP = 1, 
-}
 
 local ObjectstorageService = class("ObjectstorageService")
 
@@ -130,14 +123,6 @@ function ObjectstorageService:findIndexes_(where)
     return res, nil
 end
 
-function ObjectstorageService:time_()
-    return localtime()
-end
-
-function ObjectstorageService:ip_()
-    return remoteAddr 
-end
-
 function ObjectstorageService:handleInfos_(infos, rawData)
     for _, v in pairs(infos) do 
         v = strUpper(v)
@@ -163,16 +148,6 @@ function ObjectstorageService:saveObj(data)
     local rawData = data.rawdata
     if rawData == nil or type(rawData) ~= "table" then 
         return nil, "'rawData' is missed in param table." 
-    end
-
-    -- handle addtional_info, such as "IP" and "TIME"
-    local infos = data.addtional_info 
-    if infos ~= nil then
-        if type(infos) ~= "table" then 
-            return nil, "'addtional_info' is not an array."
-        end
-
-        self:handleInfos_(infos, rawData)
     end
 
     local params, body = constructParams_(rawData)
@@ -226,16 +201,6 @@ function ObjectstorageService:updateObj(data)
     end
     if next(res) == nil then 
         return "null", nil
-    end
-
-    -- handle addtional_info, such as "IP" and "TIME"
-    local infos = data.addtional_info 
-    if infos ~= nil then
-        if type(infos) ~= "table" then 
-            return nil, "'addtional_info' is not an array."
-        end
-
-        self:handleInfos_(infos, rawData)
     end
 
     local oriProperty = jsonDecode(res[1].body)
