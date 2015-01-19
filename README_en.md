@@ -20,26 +20,26 @@
 
     github:
     https://github.com/dualface/quickserver.git
-   
+
     OSChina mirror:
     https://git.oschina.net/cheerayhuang/quick-x-server.git
-   
+
 2.  Run shell script **install_ubuntu.sh** in root of codes dir.
 
 > **NOTE** please refer this documents for more details: [Install Quick-Server on Linux with Shell](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
 
 ## Links
 -   [Quick-Server Wiki](https://github.com/dualface/quickserver/wiki)
-  
+
 -   [FAQ]()
 
 -   [Install Quick-Server on Linux with Shell](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
-  
+
 -   [Deploy Quick-Server with Docker](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
 
 ## Change Log
 
-### 0.4.0 
+### 0.4.0
 -   UPGRADE: From Openresty 1.7.2.x to 1.7.7.x.
 -   IMPROVE: make install_ubunutu.sh better in order that user can install Quick-Server convenienty, and fix some bugs in it.
     -   create a symbol link for nginx, after Openresty installation.
@@ -54,12 +54,12 @@
     -   Give two plugin examples: "Ranklist" and "ChatRoom", converted from "RanklistAction" and "ChatAction".
     -   Add simple functionality tests for above plugins.
 -   IMPROVE: Add a demo action named "HelloworldAction"
-    -   include a simple method "/sayhello" to show "hello world". 
+    -   include a simple method "/sayhello" to show "hello world".
     -   there are two other methods "addandcount" and "sayletters" to show how to write a function with plugins.
     -   Add "helloworld" client which supports both html and websocket.
 -   CHANGE: delete install_mac.sh. The installation of mac env will be supported in next version.
 -   OTHER MINOR CHANGES:
-    -   IMPROVE: upgrade Quick-Server wiki. 
+    -   IMPROVE: upgrade Quick-Server wiki.
     -   BUGFIX: when deploying lua codes defined by user, the target directory in Quick-Server shoule be created.
     -   IMPROVE: The target directory in Quick-Server can be configured via "luaRepoPrefix" in config.lua for deploying lua codes defined by user.
     -   CHANGE: obsolete the old interface of uploading user codes.
@@ -68,5 +68,5 @@
     -   IMPROVE: Add README file for each sub-dir.
     -   CHANGE: change some shells which are used to encapsulate "nginx" command in "openresty/nginx".
 
-> **NOTE** More change log please refer to https://github.com/dualface/quickserver/blob/master/CHANGELOG 
+> **NOTE** More change log please refer to https://github.com/dualface/quickserver/blob/master/CHANGELOG
 

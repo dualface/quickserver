@@ -10,8 +10,8 @@ example:
     * show this help
     tools help
 
-    * show the tail of nginx log 
-    tools example.server.taillog 5 
+    * show the tail of nginx log
+    tools example.server.taillog 5
 
 ]])
 

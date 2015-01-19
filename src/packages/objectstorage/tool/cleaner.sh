@@ -5,9 +5,9 @@ DIR=$(pwd)
 INTER=60
 
 while [ "1" = "1" ]
-do 
+do
     lua $DIR/cleaner.lua
 
-    sleep $INTER 
+    sleep $INTER
 done
 

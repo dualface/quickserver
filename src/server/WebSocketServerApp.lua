@@ -1,3 +1,29 @@
+--[[
+
+Copyright (c) 2011-2015 chukong-inc.com
+
+https://github.com/dualface/quickserver
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+]]
+
 local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
 
 local websocketUidKey = "websocket_uid_key_"
@@ -25,7 +51,7 @@ function WebSocketServerApp:ctor(config)
     self.chatChannel = string.format(config.chatChannelPattern, math.trunc(ok / self.config.chatChannelCapacity))
     self.jobChannel = string.format(config.jobChannelPattern, math.trunc(ok / self.config.jobChannelCapacity))
     self.quitChannel = "channel.quit"
-    self.subscribeMessageChannelEnabled = false 
+    self.subscribeMessageChannelEnabled = false
     self.subscribeRetryCount = 1
     self.chatId = 1
 end
@@ -37,13 +63,13 @@ function WebSocketServerApp:doRequest(actionName, data)
 
     local _, result = xpcall(function()
         return WebSocketServerApp.super.doRequest(self, actionName, data)
-    end, 
-    function(err) 
-        local beg, rear = string.find(err, "module.*not found") 
-        if beg then 
+    end,
+    function(err)
+        local beg, rear = string.find(err, "module.*not found")
+        if beg then
             err = string.sub(err, beg, rear)
         end
-        return {error = string.format([[Handle request failed: %s]], string.gsub(err, [[\]], ""))} 
+        return {error = string.format([[Handle request failed: %s]], string.gsub(err, [[\]], ""))}
     end)
 
     if self.config.debug then
@@ -81,7 +107,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
     end
 
     local chatChannel = self.chatChannel
-    local jobChannel = self.jobChannel 
+    local jobChannel = self.jobChannel
     local quitChannel = self.quitChannel
 
     local redis = cc.load("redis").service.new(self.config.redis)
@@ -119,13 +145,13 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                         abort()
                         break
                     end
-                elseif channel == chatChannel then  
+                elseif channel == chatChannel then
                     local reply = {}
                     local r = json.decode(payload)
                     if type(r) ~= "table" then
                         reply.err_msg = "invalid chat message is received."
                     else
-                        reply.time = ngx.localtime() 
+                        reply.time = ngx.localtime()
                         reply.chat_id = self.chatId
                         reply.payload = r.payload
                         reply.nickname = r.nickname
@@ -139,7 +165,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                     if type(r) ~= "table" then
                         reply.err_msg = "invalid job message is received."
                         self.websockets:send_text(json.encode(reply))
-                    elseif r.owner == self.websocketUid then 
+                    elseif r.owner == self.websocketUid then
                         reply.job_id = r.job_id
                         reply.payload = r.payload
                         reply.start_time = r.start_time
@@ -171,7 +197,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
 end
 
 function WebSocketServerApp:unsubscribePushMessageChannel_()
-    local redis = cc.load("redis").service.new(self.config.redis) 
+    local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
 
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.

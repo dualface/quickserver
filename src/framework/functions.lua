@@ -2,6 +2,8 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
+https://github.com/dualface/quickserver
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -372,7 +374,7 @@ function math.round(value)
     return math.floor(value + 0.5)
 end
 
-function math.trunc(x) 
+function math.trunc(x)
     if x <= 0 then
         return math.ceil(x);
     end

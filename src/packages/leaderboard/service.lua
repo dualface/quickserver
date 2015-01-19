@@ -1,56 +1,82 @@
+--[[
+
+Copyright (c) 2011-2015 chukong-inc.com
+
+https://github.com/dualface/quickserver
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+]]
+
 local tabLength = table.nums
 local strFormat = string.format
 
-local LeaderboardService = class("LeaderboardService") 
+local LeaderboardService = class("LeaderboardService")
 
 function LeaderboardService:ctor(app)
     local config = nil
-    if app then 
+    if app then
         config = app.config.redis
     end
     self.redis = cc.load("redis").service.new(config)
     self.redis:connect()
-end 
+end
 
 function LeaderboardService:endService()
     self.redis:close()
 end
 
 local function checkParams_(data, ...)
-    local arg = {...} 
+    local arg = {...}
 
-    if tabLength(arg) == 0 then 
+    if tabLength(arg) == 0 then
         return true
-    end 
-    
-    for _, name in pairs(arg) do 
-        if data[name] == nil or data[name] == "" then 
-           return false 
-        end 
-    end 
+    end
 
-    return true 
+    for _, name in pairs(arg) do
+        if data[name] == nil or data[name] == "" then
+           return false
+        end
+    end
+
+    return true
 end
 
 function LeaderboardService:count(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
     local rds = self.redis
     if rds == nil then
         return nil, "Service redis is not initialized."
-    end 
+    end
 
-    if not checkParams_(data, "ranklist") then 
+    if not checkParams_(data, "ranklist") then
         return nil, "'ranklist' is missed in param table."
-    end 
+    end
     local listName = data.ranklist
-    
-    return rds:command("zcard", listName) 
+
+    return rds:command("zcard", listName)
 end
 
-function LeaderboardService:generateUID_(nickname) 
+function LeaderboardService:generateUID_(nickname)
     local rds = self.redis
 
     if rds:command("hget", "__ranklist_uid", nickname.."+") ~= "1" then
@@ -70,9 +96,9 @@ function LeaderboardService:generateUID_(nickname)
 end
 
 -- zadd
--- param: ranklist, value 
-function LeaderboardService:add(data)  
-    if type(data) ~= "table" then 
+-- param: ranklist, value
+function LeaderboardService:add(data)
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -81,34 +107,34 @@ function LeaderboardService:add(data)
         return nil, "Service redis is not initialized."
     end
 
-    if checkParams_(data, "ranklist", "nickname", "value") then  
-        data.uid = self:generateUID_(data.nickname) 
-    elseif not checkParams_(data, "uid", "ranklist", "value") then 
+    if checkParams_(data, "ranklist", "nickname", "value") then
+        data.uid = self:generateUID_(data.nickname)
+    elseif not checkParams_(data, "uid", "ranklist", "value") then
         return nil, "'uid', 'ranklist' or 'value' is missed in param table."
-    end 
+    end
 
-    if rds:command("hget", "__ranklist_uid", data.uid) ~= "1" then 
+    if rds:command("hget", "__ranklist_uid", data.uid) ~= "1" then
         return nil, strFormat("'uid(%s)' doesn't exist.", data.uid)
     end
 
     local listName = data.ranklist
     local key = data.uid
     local value = tonumber(data.value)
-    if type(value) ~= "number" then 
+    if type(value) ~= "number" then
         return nil, strFormat("'value(%s)' is not a number.", tostring(data.value))
-    end 
+    end
     local ok, err = rds:command("zadd", listName, value, key)
-    if not ok then 
-       return nil, err 
-    end 
-    
-    return key, nil 
+    if not ok then
+       return nil, err
+    end
+
+    return key, nil
 end
 
 -- zrem
 -- param: ranklist
 function LeaderboardService:remove(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -116,27 +142,27 @@ function LeaderboardService:remove(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "uid", "ranklist") then 
+
+    if not checkParams_(data, "uid", "ranklist") then
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
     local listName = data.ranklist
     local key = data.uid
-    local err = nil 
-    ok, err = rds:command("zrem", listName, key) 
-    if not ok then 
-        return nil, err 
-    end 
+    local err = nil
+    ok, err = rds:command("zrem", listName, key)
+    if not ok then
+        return nil, err
+    end
     rds:command("hdel", "__ranklist_uid", key)
 
-    return true, nil 
+    return true, nil
 end
 
 -- zscore
 -- param: ranklist
-function LeaderboardService:score(data) 
-    if type(data) ~= "table" then 
+function LeaderboardService:score(data)
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -145,28 +171,28 @@ function LeaderboardService:score(data)
         return nil, "Service redis is not initialized."
     end
 
-    if not checkParams_(data, "uid", "ranklist") then 
+    if not checkParams_(data, "uid", "ranklist") then
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
-    
+
     local listName = data.ranklist
     local key = data.uid
     local score, err = rds:command("zscore", listName, key)
-    if not score then 
-        return nil, err  
-    end 
+    if not score then
+        return nil, err
+    end
 
-    if tostring(score) == "userdata: NULL" then 
+    if tostring(score) == "userdata: NULL" then
         return "null", nil
-    end 
+    end
 
     return score, nil
 end
 
 -- zrangebysocre
--- param: ranklist, min, max 
+-- param: ranklist, min, max
 function LeaderboardService:getScoreRange(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -174,8 +200,8 @@ function LeaderboardService:getScoreRange(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "ranklist", "min", "max") then 
+
+    if not checkParams_(data, "ranklist", "min", "max") then
         return nil, "'ranklist', 'min' or 'max' is missed in param table."
     end
 
@@ -187,29 +213,29 @@ function LeaderboardService:getScoreRange(data)
     end
 
     local r, err = rds:command("zrangebyscore", listName, lower, upper)
-    if not r then 
+    if not r then
         return nil, err
     end
-    local res = {} 
-    for _, v in pairs(r) do 
-        local s = nil 
-        s, err = rds:command("zscore", listName, v) 
-        if not s then 
+    local res = {}
+    for _, v in pairs(r) do
+        local s = nil
+        s, err = rds:command("zscore", listName, v)
+        if not s then
             return nil, err
         end
         table.insert(res, {uid = v, score = s})
-    end 
-    if next(res) == nil then 
+    end
+    if next(res) == nil then
         return "null", nil
     end
-   
-    return res, nil 
+
+    return res, nil
 end
 
--- zrank 
+-- zrank
 -- param: ranklist
-function LeaderboardService:getRank(data) 
-    if type(data) ~= "table" then 
+function LeaderboardService:getRank(data)
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -217,57 +243,57 @@ function LeaderboardService:getRank(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "uid", "ranklist") then 
+
+    if not checkParams_(data, "uid", "ranklist") then
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
     local listName = data.ranklist
     local key = data.uid
     local rank, err = rds:command("zrank", listName, key)
-    if not rank then 
-        return nil, err 
+    if not rank then
+        return nil, err
     end
-    if tostring(rank) == "userdata: NULL" then 
+    if tostring(rank) == "userdata: NULL" then
         return "null", nil
     end
-    
-    return rank+1, nil 
-end 
 
--- zrevrank 
+    return rank+1, nil
+end
+
+-- zrevrank
 -- param: ranklist
-function LeaderboardService:getRevRank(data) 
-    if type(data) ~= "table" then 
+function LeaderboardService:getRevRank(data)
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
-    
+
     local rds = self.redis
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "uid", "ranklist") then 
+
+    if not checkParams_(data, "uid", "ranklist") then
         return nil, "'uid' or 'ranklist' is missed in param table."
     end
 
     local listName = data.ranklist
     local key = data.uid
     local revRank, err = rds:command("zrevrank", listName, key)
-    if not revRank then 
+    if not revRank then
         return nil, err
     end
-    if tostring(revRank) == "userdata: NULL" then 
+    if tostring(revRank) == "userdata: NULL" then
         return "null", nil
     end
 
-    return revRank+1, nil 
-end 
+    return revRank+1, nil
+end
 
--- zrange 
--- param: ranklist, offset, count 
+-- zrange
+-- param: ranklist, offset, count
 function LeaderboardService:getRankRange(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -275,8 +301,8 @@ function LeaderboardService:getRankRange(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "ranklist", "offset", "count") then 
+
+    if not checkParams_(data, "ranklist", "offset", "count") then
         return nil, "'ranklist', 'offset' or 'count' is missed in param table."
     end
 
@@ -288,35 +314,35 @@ function LeaderboardService:getRankRange(data)
     end
     offset = offset - 1
 
-    if offset < 0 or count <= 0 then 
+    if offset < 0 or count <= 0 then
         return nil, "'offset' or 'count' can't be negtive or zero."
-    end 
-    
-    local r, err = rds:command("zrange", listName, offset, offset+count-1)
-    if not r then  
-        return nil, err 
-    end 
+    end
 
-    local res = {} 
-    for _, v in pairs(r) do 
+    local r, err = rds:command("zrange", listName, offset, offset+count-1)
+    if not r then
+        return nil, err
+    end
+
+    local res = {}
+    for _, v in pairs(r) do
         local s = nil
-        s, err = rds:command("zscore", listName, v) 
-        if not s then 
-            return nil, err 
+        s, err = rds:command("zscore", listName, v)
+        if not s then
+            return nil, err
         end
         table.insert(res, {uid = v, score = s})
-    end 
-    if next(res) == nil then 
-        return "null", nil 
-    end 
-    
-    return res, nil 
+    end
+    if next(res) == nil then
+        return "null", nil
+    end
+
+    return res, nil
 end
 
 -- zrevrange
--- param: ranklist, offset, count 
+-- param: ranklist, offset, count
 function LeaderboardService:getRevRankRange(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -324,48 +350,48 @@ function LeaderboardService:getRevRankRange(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "ranklist", "offset", "count") then 
+
+    if not checkParams_(data, "ranklist", "offset", "count") then
         return nil, "'ranklist', 'offset' or 'count' is missed in param table."
     end
 
     local listName = data.ranklist
     local offset = tonumber(data.offset)
-    local count = tonumber(data.count) 
+    local count = tonumber(data.count)
     if not offset or not count then
         return nil, strFormat("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
-    end 
+    end
     offset = offset - 1
 
-    if offset < 0 or count <= 0 then 
+    if offset < 0 or count <= 0 then
         return nil, "'offset' or 'count' can't be negtive or zero."
     end
-    
-    local r, err = rds:command("zrevrange", listName, offset, offset+count-1)
-    if not r then  
-        return nil, err
-    end 
 
-    local res = {} 
-    for _, v in pairs(r) do 
+    local r, err = rds:command("zrevrange", listName, offset, offset+count-1)
+    if not r then
+        return nil, err
+    end
+
+    local res = {}
+    for _, v in pairs(r) do
         local s = nil
-        s, err = rds:command("zscore", listName, v) 
-        if not s then 
-            return nil, err 
+        s, err = rds:command("zscore", listName, v)
+        if not s then
+            return nil, err
         end
         table.insert(res, {uid = v, score = s})
-    end 
-    if next(res) == nil then 
+    end
+    if next(res) == nil then
         return "null", nil
-    end 
+    end
 
-    return res, nil 
+    return res, nil
 end
 
 -- zremrangebyrank, used for reduce some element from tail
 -- param: ranklist, count
 function LeaderboardService:limit(data)
-    if type(data) ~= "table" then 
+    if type(data) ~= "table" then
         return nil, "Parameter is not a table."
     end
 
@@ -373,48 +399,14 @@ function LeaderboardService:limit(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
- 
-    if not checkParams_(data, "ranklist", "count") then 
+
+    if not checkParams_(data, "ranklist", "count") then
         return nil, "'ranklist' or 'count' is missed in param table."
     end
 
     local listName = data.ranklist
     local count = tonumber(data.count)
-    if not count then 
-        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
-    end 
-
-    if count < 0 then 
-        return nil, "'count' can't be negtive." 
-    end
-
-    local ok, err = rds:command("zremrangebyrank", listName, count, -1) 
-    if not ok then 
-        return nil, err
-    end 
-
-    return true, nil 
-end
-
--- zremrangebyrank, used for reduce some element from head, contrary to zset:Limit()
--- param: ranklist, count
-function LeaderboardService:revLimit(data) 
-    if type(data) ~= "table" then 
-        return nil, "Parameter is not a table."
-    end
-
-    local rds = self.redis
-    if rds == nil then
-        return nil, "Service redis is not initialized."
-    end
- 
-    if not checkParams_(data, "ranklist", "count") then 
-        return nil, "'ranklist' or 'count' is missed in param table."
-    end
-
-    local listName = data.ranklist
-    local count = tonumber(data.count)
-    if not count then 
+    if not count then
         return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
     end
 
@@ -422,17 +414,51 @@ function LeaderboardService:revLimit(data)
         return nil, "'count' can't be negtive."
     end
 
-    local len, err = rds:command("zcard", listName) 
-    if not len then 
+    local ok, err = rds:command("zremrangebyrank", listName, count, -1)
+    if not ok then
         return nil, err
-    end 
+    end
 
-    if len > count then 
+    return true, nil
+end
+
+-- zremrangebyrank, used for reduce some element from head, contrary to zset:Limit()
+-- param: ranklist, count
+function LeaderboardService:revLimit(data)
+    if type(data) ~= "table" then
+        return nil, "Parameter is not a table."
+    end
+
+    local rds = self.redis
+    if rds == nil then
+        return nil, "Service redis is not initialized."
+    end
+
+    if not checkParams_(data, "ranklist", "count") then
+        return nil, "'ranklist' or 'count' is missed in param table."
+    end
+
+    local listName = data.ranklist
+    local count = tonumber(data.count)
+    if not count then
+        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
+    end
+
+    if count < 0 then
+        return nil, "'count' can't be negtive."
+    end
+
+    local len, err = rds:command("zcard", listName)
+    if not len then
+        return nil, err
+    end
+
+    if len > count then
         local ok = nil
-        ok, err = rds:command("zremrangebyrank", listName, 0, len-count-1) 
-        if not ok then 
+        ok, err = rds:command("zremrangebyrank", listName, 0, len-count-1)
+        if not ok then
             return nil, err
-        end 
+        end
     end
 
     return true, nil

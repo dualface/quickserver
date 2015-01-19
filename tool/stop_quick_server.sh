@@ -8,7 +8,7 @@ cd $NGINX_DIR
 
 cd $CURRDIR
 
-echo $PID 
+echo $PID
 kill -9 $PID
 
 PID=$(ps -ef | grep "sleep 60" | awk '{print $2}')

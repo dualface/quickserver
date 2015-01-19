@@ -1,4 +1,4 @@
-#precondition: 
+#precondition:
 # "lua" is the soft symbol link to luajit
 # "jit.*" modules from luajit(usual in /opt/quick_server/openresty/luajit/share/...) is in LUA_PATH or current dir.
 
@@ -10,15 +10,15 @@ sudo cp $DEST_DIR/openresty/luajit/share/$luajit/jit . -rf
 
 names=$(find ../src/ -name "*.lua")
 
-for name in $names 
+for name in $names
 do
     #echo $name
-    lua -b $name $name  
+    lua -b $name $name
 done
 
 sudo rm ./jit -rf
 
-cp -rf ../src/* $DEST_DIR/openresty/. 
+cp -rf ../src/* $DEST_DIR/openresty/.
 
 git reset --hard HEAD
 

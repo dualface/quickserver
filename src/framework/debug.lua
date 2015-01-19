@@ -2,7 +2,7 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-http://dualface.github.com/quick-cocos2d-x/
+https://github.com/dualface/quickserver
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

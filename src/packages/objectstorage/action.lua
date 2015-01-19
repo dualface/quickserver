@@ -1,9 +1,35 @@
+--[[
+
+Copyright (c) 2011-2015 chukong-inc.com
+
+https://github.com/dualface/quickserver
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+]]
+
 local strFormat = string.format
 
 local ObjectstorageAction = class("ObjectstorageAction")
 
-local function err_(...) 
-   return {err_msg = strFormat(...)} 
+local function err_(...)
+   return {err_msg = strFormat(...)}
 end
 
 local service = import(".service")
@@ -12,7 +38,7 @@ function ObjectstorageAction:ctor(app)
     self.objStorageService = service.new(app)
 end
 
-function ObjectstorageAction:saveobjAction(data) 
+function ObjectstorageAction:saveobjAction(data)
     local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
@@ -23,8 +49,8 @@ function ObjectstorageAction:saveobjAction(data)
         return err_(err)
     end
 
-    return {id = ok} 
-end 
+    return {id = ok}
+end
 
 function ObjectstorageAction:updateobjAction(data)
     local s = self.objStorageService
@@ -54,7 +80,7 @@ function ObjectstorageAction:deleteobjAction(data)
     return {id = ok}
 end
 
-function ObjectstorageAction:findobjAction(data) 
+function ObjectstorageAction:findobjAction(data)
     local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")
@@ -79,10 +105,10 @@ function ObjectstorageAction:createindexAction(data)
         return err_(err)
     end
 
-    return {ok = 1} 
+    return {ok = 1}
 end
 
-function ObjectstorageAction:deleteindexAction(data) 
+function ObjectstorageAction:deleteindexAction(data)
     local s = self.objStorageService
     if not s then
         return err_("ObjectstorageAction is not initialized.")

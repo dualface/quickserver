@@ -9,7 +9,7 @@ function TestAction:ctor(app)
     for _, s in pairs(self.__supers) do
         s:ctor(app)
     end
-end 
+end
 
 function TestAction:sayhelloAction(data)
     return {hello = data.name}
