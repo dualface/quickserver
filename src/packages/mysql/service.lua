@@ -24,6 +24,11 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+local pairs = pairs
+local strFormat = string.format
+local tblConcat = table.concat
+
 local MysqlService = class("MysqlService")
 
 local adapter
@@ -60,10 +65,17 @@ function MysqlService:query(queryStr)
     return mysql:query(queryStr)
 end
 
-local _escapeValue = ngx.quote_sql_str
+function self:escapeValue_(value)
+    local mysql = self.mysql
+    if not mysql then
+        return nil, "Package mysql is no initialized."
+    end
 
-local function _escapeName(name)
-    return string.format([[`%s`]], name)
+    return mysql:escapeValue(value)
+end
+
+function self:escapeName_(name)
+    return strFormat([[`%s`]], name)
 end
 
 function MysqlService:insert(tableName, params)
@@ -76,14 +88,14 @@ function MysqlService:insert(tableName, params)
     local fieldValues = {}
 
     for name, value in pairs(params) do
-        fieldNames[#fieldNames + 1] = _escapeName(name)
-        fieldValues[#fieldValues + 1] = _escapeValue(value)
+        fieldNames[#fieldNames + 1] = self:escapeName_(name)
+        fieldValues[#fieldValues + 1] = self:escapeValue_(value)
     end
 
-    local sql = string.format("INSERT INTO %s (%s) VALUES (%s)",
-                       _escapeName(tableName),
-                       table.concat(fieldNames, ","),
-                       table.concat(fieldValues, ","))
+    local sql = strFormat("INSERT INTO %s (%s) VALUES (%s)",
+                       self:escapeName_(tableName),
+                       tblConcat(fieldNames, ","),
+                       tblConcat(fieldValues, ","))
 
     return mysql:query(sql)
 end
@@ -98,17 +110,17 @@ function MysqlService:update(tableName, params, where)
     local whereFields = {}
 
     for name, value in pairs(params) do
-        fields[#fields + 1] = _escapeName(name) .. "=".. _escapeValue(value)
+        fields[#fields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
     end
 
     for name, value in pairs(where) do
-        whereFields[#whereFields + 1] = _escapeName(name) .. "=".. _escapeValue(value)
+        whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
     end
 
-    local sql = string.format("UPDATE %s SET %s %s",
-                       _escapeName(tableName),
-                       table.concat(fields, ","),
-                       "WHERE " .. table.concat(whereFields, " AND "))
+    local sql = strFormat("UPDATE %s SET %s %s",
+                       self:escapeName_(tableName),
+                       tblConcat(fields, ","),
+                       "WHERE " .. tblConcat(whereFields, " AND "))
 
     return mysql:query(sql)
 end
@@ -122,12 +134,12 @@ function MysqlService:del(tableName, where)
     local whereFields = {}
 
     for name, value in pairs(where) do
-        whereFields[#whereFields + 1] = _escapeName(name) .. "=".. _escapeValue(value)
+        whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
     end
 
-    local sql = string.format("DElETE FROM %s %s",
-                       _escapeName(tableName),
-                       "WHERE " .. table.concat(whereFields, " AND "))
+    local sql = strFormat("DElETE FROM %s %s",
+                       self:escapeName_(tableName),
+                       "WHERE " .. tblConcat(whereFields, " AND "))
 
     return mysql:query(sql)
 end

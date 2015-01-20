@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+
 local BeanstalkdService = class("BeanstalkdService")
 
 local adapter

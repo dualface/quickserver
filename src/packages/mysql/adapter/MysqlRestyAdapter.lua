@@ -24,6 +24,10 @@ THE SOFTWARE.
 
 ]]
 
+local assert = assert
+local tostring = tostring
+local quoteSqlStr = ngx.quote_sql_str
+
 local mysql = require("resty.mysql")
 
 local MysqlRestyAdapter = class("MysqlRestyAdapter")
@@ -73,7 +77,7 @@ function MysqlRestyAdapter:query(queryStr)
 end
 
 function MysqlRestyAdapter:escapeValue(value)
-    return ngx.quote_sql_str(value)
+    return quoteSqlStr(value)
 end
 
 return MysqlRestyAdapter

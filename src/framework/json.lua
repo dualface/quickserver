@@ -24,23 +24,22 @@ THE SOFTWARE.
 
 ]]
 
+local tostring = tostring
+local pcall = pcall
+
 local json = {}
 local cjson = require("cjson")
 
 function json.encode(var)
     local status, result = pcall(cjson.encode, var)
     if status then return result end
-    if DEBUG > 1 then
-        printInfo("json.encode() - encoding failed: %s", tostring(result))
-    end
+    printInfo("json.encode() - encoding failed: %s", tostring(result))
 end
 
 function json.decode(text)
     local status, result = pcall(cjson.decode, text)
     if status then return result end
-    if DEBUG > 1 then
-        printInfo("json.decode() - decoding failed: %s", tostring(result))
-    end
+    printInfo("json.decode() - decoding failed: %s", tostring(result))
 end
 
 json.null = cjson.null

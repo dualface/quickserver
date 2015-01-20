@@ -24,7 +24,13 @@ THE SOFTWARE.
 
 ]]
 
-local tabLength = table.nums
+local type = type
+local next = next
+local pairs = pairs
+local tonumber = tonumber
+local tostring = tostring
+local tblLength = table.nums
+local tblInsert = table.insert
 local strFormat = string.format
 
 local LeaderboardService = class("LeaderboardService")
@@ -45,7 +51,7 @@ end
 local function checkParams_(data, ...)
     local arg = {...}
 
-    if tabLength(arg) == 0 then
+    if tblLength(arg) == 0 then
         return true
     end
 
@@ -223,7 +229,7 @@ function LeaderboardService:getScoreRange(data)
         if not s then
             return nil, err
         end
-        table.insert(res, {uid = v, score = s})
+        tblInsert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil
@@ -330,7 +336,7 @@ function LeaderboardService:getRankRange(data)
         if not s then
             return nil, err
         end
-        table.insert(res, {uid = v, score = s})
+        tblInsert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil
@@ -379,7 +385,7 @@ function LeaderboardService:getRevRankRange(data)
         if not s then
             return nil, err
         end
-        table.insert(res, {uid = v, score = s})
+        tblInsert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil

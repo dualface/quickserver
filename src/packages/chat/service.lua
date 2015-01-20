@@ -24,7 +24,9 @@ THE SOFTWARE.
 
 ]]
 
-local tabLength = table.nums
+local pairs = pairs
+local type = type
+local tblLength = table.nums
 local jsonEncode = json.encode
 
 local ChatService = class("ChatService")
@@ -43,7 +45,7 @@ end
 local function checkParams_(data, ...)
     local arg = {...}
 
-    if tabLength(arg) == 0 then
+    if tblLength(arg) == 0 then
         return true
     end
 

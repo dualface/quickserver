@@ -24,6 +24,11 @@ THE SOFTWARE.
 
 ]]
 
+local assert = assert
+local pairs = pairs
+local type = type
+local strFormat = string.format
+
 local mysql = require "luasql.mysql"
 
 local MysqlLuaAdapter = class("MysqlLuaAdapter")
@@ -108,7 +113,7 @@ end
 function MysqlLuaAdapter:escapeValue(value)
     assert(self.db_ ~= nil, "Not connect to mysql")
 
-    return string.format("'%s'", self.db_:escape(value))
+    return strFormat("'%s'", self.db_:escape(value))
 end
 
 return MysqlLuaAdapter

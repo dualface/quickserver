@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local strFormat = string.format
+
 local ChatAction = class("ChatAction")
 
 local function err_(...)

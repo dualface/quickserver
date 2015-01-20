@@ -24,11 +24,16 @@ THE SOFTWARE.
 
 ]]
 
+local tostring = tostring
+local pairs = pairs 
+local error = error
+local strFormat = string.format
+
 function throw(errorType, fmt, ...)
     local arg = {...}
     for k,v in pairs(arg) do
         arg[k] = tostring(v)
     end
-    local msg = string.format(tostring(fmt), unpack(arg))
-    error(string.format("<<%s>> - %s", tostring(errorType), msg), 0)
+    local msg = strFormat(tostring(fmt), unpack(arg))
+    error(strFormat("<<%s>> - %s", tostring(errorType), msg), 0)
 end

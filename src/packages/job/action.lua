@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local strFormat = string.format
+
 local JobAction = class("JobAction")
 
 local function err_(...)

@@ -24,6 +24,17 @@ THE SOFTWARE.
 
 ]]
 
+local assert = assert
+local type = type
+local pairs = pairs
+local ipairs = ipairs
+local next = next
+local tblInsert = table.insert
+local strFind = string.find
+local strRep = string.rep
+local strFormat = string.format
+local strSub = string.sub
+
 -- require class framework
 require("framework.functions")
 require("framework.debug")
@@ -55,7 +66,7 @@ end
 local function dumpRes_(res, layer)
     assert(type(res) == "table", "dumpRes_(): param should be table")
 
-    local repStr = string.rep("    ", layer)
+    local repStr = strRep("    ", layer)
 
     for k,v in pairs(res) do
         local t = type(v)
@@ -78,24 +89,24 @@ local function getTableName_(tbl)
     local tmp = "Tables_in_" .. dbname
 
     for k, _ in ipairs(tbl) do
-        table.insert(res, tbl[k][tmp])
+        tblInsert(res, tbl[k][tmp])
     end
 
     return res
 end
 
 local function cleanTable_(tbl)
-    local sql = string.format("select entity_id from %s;", tbl)
+    local sql = strFormat("select entity_id from %s;", tbl)
     local res, err = mysql:query(sql)
     if not res then
         return err
     end
 
     for _, k in pairs(res) do
-        sql = string.format("select id from entity where id = '%s';", k.entity_id)
+        sql = strFormat("select id from entity where id = '%s';", k.entity_id)
         res = mysql:query(sql)  -- don't care errors
         if next(res) == nil then
-            sql = string.format("delete from %s where entity_id = '%s';", tbl, k.entity_id)
+            sql = strFormat("delete from %s where entity_id = '%s';", tbl, k.entity_id)
             printInfo("sql = %s", sql)
             mysql:query(sql)
         end
@@ -106,7 +117,7 @@ end
 
 local function updateTable_(k, v, id)
     local tblName = k .. "_index"
-    local sql = string.format("select * from %s where entity_id = '%s';", tblName, id)
+    local sql = strFormat("select * from %s where entity_id = '%s';", tblName, id)
     local res, err = mysql:query(sql)
     if not res then
         return err
@@ -133,12 +144,12 @@ local function cleanIndexes()
     local properties = {}  -- record indexed properties
 
     for _, k in ipairs(tables) do
-        if string.find(k, "_index$", 0) ~= nil then
+        if strFind(k, "_index$", 0) ~= nil then
             err = cleanTable_(k)
             if err then
                 printError("Delete redundant item from index table %s failed: %s", k, err)
             end
-            properties[string.sub(k, 1, -7)] = 1
+            properties[strSub(k, 1, -7)] = 1
         end
     end
 

@@ -24,6 +24,12 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+local pairs = pairs
+local tostring = tostring
+local strFormat = string.format
+local tblConcat = table.concat
+
 local MysqlEasy = class("MysqlEasy")
 
 local MysqlAdapter
@@ -66,10 +72,10 @@ function MysqlEasy:insert(tableName, params)
         fieldValues[#fieldValues + 1] = self:escapeValue(value)
     end
 
-    local sql = string.format("INSERT INTO %s (%s) VALUES (%s)",
+    local sql = strFormat("INSERT INTO %s (%s) VALUES (%s)",
                        self:escapeName(tableName),
-                       table.concat(fieldNames, ","),
-                       table.concat(fieldValues, ","))
+                       tblConcat(fieldNames, ","),
+                       tblConcat(fieldValues, ","))
 
     -- printf("SQL: " .. sql)
     local ok, err = self.db_:query(sql)
@@ -92,10 +98,10 @@ function MysqlEasy:update(tableName, params, where)
         whereFields[#whereFields + 1] = self:escapeName(name) .. "=".. self:escapeValue(value)
     end
 
-    local sql = string.format("UPDATE %s SET %s %s",
+    local sql = strFormat("UPDATE %s SET %s %s",
                        self:escapeName(tableName),
-                       table.concat(fields, ","),
-                       "WHERE " .. table.concat(whereFields, " AND "))
+                       tblConcat(fields, ","),
+                       "WHERE " .. tblConcat(whereFields, " AND "))
 
     -- printf("SQL: " .. sql)
 
@@ -114,9 +120,9 @@ function MysqlEasy:del(tableName, where)
         whereFields[#whereFields + 1] = self:escapeName(name) .. "=".. self:escapeValue(value)
     end
 
-    local sql = string.format("DElETE FROM %s %s",
+    local sql = strFormat("DElETE FROM %s %s",
                        self:escapeName(tableName),
-                       "WHERE " .. table.concat(whereFields, " AND "))
+                       "WHERE " .. tblConcat(whereFields, " AND "))
 
     -- printf("SQL: " .. sql)
 
@@ -129,7 +135,7 @@ function MysqlEasy:del(tableName, where)
 end
 
 function MysqlEasy:escapeName(name)
-    return string.format("`%s`", name)
+    return strFormat("`%s`", name)
 end
 
 function MysqlEasy:escapeValue(value)

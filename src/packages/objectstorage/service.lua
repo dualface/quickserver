@@ -24,10 +24,13 @@ THE SOFTWARE.
 
 ]]
 
+local pairs = pairs
+local ipairs =ipairs
+local next = next
 local sha1 = ngx.sha1_bin
 local base64 = ngx.encode_base64
-local tabInsert = table.insert
-local tabConcat = table.concat
+local tblInsert = table.insert
+local tblConcat = table.concat
 local strGsub = string.gsub
 local strSub = string.sub
 local strLower = string.lower
@@ -156,7 +159,7 @@ function ObjectstorageService:handleInfos_(infos, rawData)
             local method = strLower(v)
             local tmp = {}
             tmp[v] = self[method .. "_"](self)
-            tabInsert(rawData, tmp)
+            tblInsert(rawData, tmp)
         end
     end
 end
@@ -187,7 +190,7 @@ function ObjectstorageService:saveObj(data)
     if infos ~= nil then
         for _, v in pairs(infos) do
             if keywords[v] then
-                tabInsert(indexes, strUpper(v))
+                tblInsert(indexes, strUpper(v))
             end
         end
     end
@@ -246,7 +249,7 @@ function ObjectstorageService:updateObj(data)
     if infos ~= nil then
         for _, v in pairs(infos) do
             if keywords[v] then
-                tabInsert(indexes, strUpper(v))
+                tblInsert(indexes, strUpper(v))
             end
         end
     end
@@ -339,7 +342,7 @@ function ObjectstorageService:findObj(data)
             whereFields[#whereFields+1] = "id='" .. id .. "'"
         end
 
-        local sql = strFormat("select * from entity where %s;", tabConcat(whereFields, " OR "))
+        local sql = strFormat("select * from entity where %s;", tblConcat(whereFields, " OR "))
 
         res, err = mysql:query(sql)
         if not res then
