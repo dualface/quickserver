@@ -66,11 +66,12 @@ function ChatService:broadcast(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
-    rds:connect()
 
     if not checkParams_(data, "payload", "nickname", "to") then
-        return nil, "'payload' or 'nickname' is missed in param table."
+        return nil, "'payload', 'nickname' or 'to' is missed in param table."
     end
+
+    rds:connect()
     data.time = localtime()
 
     local to = data.to 
