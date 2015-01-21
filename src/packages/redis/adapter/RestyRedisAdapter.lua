@@ -24,6 +24,18 @@ THE SOFTWARE.
 
 ]]
 
+local assert = assert
+local type = type
+local ipairs = ipairs
+local tostring = tostring
+local print = print
+local tblConcat = table.concat
+local tblRemove = table.remove
+local tblWalk = table.walk
+local strUpper = string.upper
+local strFormat = string.format
+local strMatch = string.match
+
 local redis = require("resty.redis")
 
 local RestyRedisAdapter = class("RestyRedisAdapter")
@@ -48,12 +60,12 @@ end
 
 function RestyRedisAdapter:command(command, ...)
     local method = self.instance[command]
-    assert(type(method) == "function", string.format("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
+    assert(type(method) == "function", strFormat("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
 
     if self.config.debug then
         local a = {}
-        table.walk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printf("[REDIS] %s: %s", string.upper(command), table.concat(a, ", "))
+        tblWalk({...}, function(v) a[#a + 1] = tostring(v) end)
+        printf("[REDIS] %s: %s", strUpper(command), tblConcat(a, ", "))
     end
 
     return method(self.instance, ...)
@@ -112,7 +124,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
             local result, err
             if #subscribeMessages > 0 then
                 result = subscribeMessages[1]
-                table.remove(subscribeMessages, 1)
+                tblRemove(subscribeMessages, 1)
             else
                 result, err = self.instance:read_reply()
             end
@@ -140,10 +152,10 @@ function RestyRedisAdapter:pubsub(subscriptions)
                     }
                 end
 
-                if string.match(message.kind, '^p?subscribe$') then
+                if strMatch(message.kind, '^p?subscribe$') then
                     subscriptionsCount = subscriptionsCount + 1
                 end
-                if string.match(message.kind, '^p?unsubscribe$') then
+                if strMatch(message.kind, '^p?unsubscribe$') then
                     subscriptionsCount = subscriptionsCount - 1
                 end
 

@@ -24,6 +24,10 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+local pairs = pairs
+local strLower = string.lower
+
 local RedisService = class("RedisService")
 
 local RESULT_CONVERTER = {
@@ -86,7 +90,7 @@ function RedisService:command(command, ...)
         return nil, "Package redis is not initialized."
     end
 
-    command = string.lower(command)
+    command = strLower(command)
     local res, err = redis:command(command, ...)
     if not err then
         -- converting result

@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local assert = assert
+
 local RedisTransaction = class("RedisTransaction")
 
 function RedisTransaction:ctor(easy, ...)
