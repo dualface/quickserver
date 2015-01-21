@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local sidKey = "sid_key_"
+
 local ServerAppBase = class("ServerAppBase")
 
 ServerAppBase.APP_RUN_EVENT          = "APP_RUN_EVENT"
@@ -32,6 +34,8 @@ ServerAppBase.CLIENT_ABORT_EVENT     = "CLIENT_ABORT_EVENT"
 
 function ServerAppBase:ctor(config)
     cc.bind(self, "event")
+
+    DEBUG = config.debugLevel
 
     self.isRunning = true
     self.config = clone(totable(config))
@@ -79,10 +83,6 @@ function ServerAppBase:doRequest(actionName, data)
     return method(action, data)
 end
 
-function ServerAppBase:newService(name)
-    return self:require(string.format("services.%sService", string.ucfirst(name))).new(self)
-end
-
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
         throw(ERR_SERVER_INVALID_ACTION, "invalid action module name")
@@ -110,6 +110,80 @@ function ServerAppBase:normalizeActionName(actionName)
     parts[#parts] = string.ucfirst(string.lower(parts[#parts]))
 
     return table.concat(parts, "."), method
+end
+
+function ServerAppBase:newSessionId(data)
+    if not data.tag then
+        return nil, "miss parameter tag."
+    end
+
+    local app = self.config.appName
+    local time = os.time()
+    local ip = ngx.var.remote_addr
+
+    local str = app .. "!" .. time .. "!" .. data.tag .. "!" .. ip
+    local sessionId = ngx.md5(str)
+
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    redis:command("set", sessionId, str)
+    redis:command("expire", sessionId, self.config.sessionExpiredTime) 
+    redis:close()
+
+    return sessionId, nil
+end
+
+function ServerAppBase:sendMessage(sid, msg)
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    if type(sid) == "string" then
+       sid = {sid} 
+    end
+
+    for _, v in ipairs(sid) do
+        local ch = string.format("channel.%s", v)
+        redis:command("publish", ch, msg)
+    end
+
+    redis:close()
+end
+
+function ServerAppBase:getSidByTag(key)
+end
+
+function ServerAppBase:setSidTag(key)
+end
+
+function ServerAppBase:checkSessionId(data)
+    local sessionId = data.session_id
+    if not sessionId then
+        return nil, "check session id failed: session id is null" 
+    end
+
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    local str, err = redis:command("get", sessionId)
+    if not str then
+        redis:close()
+        return nil, string.format("check session id failed: %s", err)
+    end
+
+    if str == ngx.null then
+        redis:close()
+        return nil, "check session id failed: session id is expired"
+    end
+
+    local oriStrTable = string.split(str, "!")
+    local ip = ngx.remote_addr
+    if data.app_name ~= oriStrTable[1] or data.tag ~= oriStrTable[3] or ip ~= oriStrTable[2] then 
+        redis:close()
+        return nil, "check session id failed: verify failed"
+    end
+
+    redis:command("expire", sessionId, self.config.sessionExpiredTime) 
+    redis:close()
+
+    return true, nil
 end
 
 return ServerAppBase

@@ -72,12 +72,15 @@ function WebSocketsServerBase:runEventLoop()
     local ret = ngx.OK
     local againCount = 0
     local maxAgainCount = self.config.maxWebsocketRetryCount
+    local serialData = {} 
+    local isSessionVerified = self.isSessionVerified 
+
     -- event loop
-    while true do
+    while true and isSessionVerified do
         local data, typ, err = wb:recv_frame()
-        if wb.fatal then
+        if not data then
             printInfo("failed to receive frame, %s", err)
-            if err == "again" and againCount < maxAgainCount then
+            if err and againCount < maxAgainCount then
                 againCount = againCount + 1
                 goto recv_next_message
             end
@@ -85,13 +88,17 @@ function WebSocketsServerBase:runEventLoop()
             break
         end
 
-        if not data then
-            -- timeout, send ping
-            local bytes, err = wb:send_ping()
-            if not bytes and self.config.debug then
-                printInfo("failed to send ping, %s", err)
-            end
-        elseif typ == "close" then
+        if err == "again" then 
+            table.insert(serialData, data)
+            goto recv_next_message
+        end
+
+        if next(serialData) ~= nil then
+            data = table.concat(serialData)
+            serialData = {} 
+        end
+
+        if typ == "close" then
             break -- exit event loop
         elseif typ == "ping" then
             -- send pong
@@ -184,6 +191,30 @@ function WebSocketsServerBase:parseWebSocketsMessage(rawMessage)
     else
         return false, string.format("not support message format %s", tostring(self.config.websocketsMessageFormat))
     end
+end
+
+function WebSocketsServerBase:processWebSocketSession()
+    local wb = self.websockets
+    if not wb then
+        return nil, "verify session id failed: websocket is unavailabel."
+    end 
+
+    wb:send_text("verifysession")
+    local data, typ, err = wb:recv_frame()
+    if not data then
+        return nil, string.format("verify session id failed: %s", err) 
+    end
+    
+    if typ ~= "text" then
+        return nil, "verify session id failed: receive a non-text frame." 
+    end
+
+    data, err = json.decode(data)
+    if not data then
+        return nil, string.format("verify session id failed: %s", err)
+    end
+    
+    return self:checkSessionId(data) 
 end
 
 return WebSocketsServerBase

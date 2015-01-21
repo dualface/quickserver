@@ -25,23 +25,22 @@ THE SOFTWARE.
 ]]
 
 local config = {
+    appName                   = "myapp"
+
     appModuleName             = "server",
     debug                     = true,
+
+    sessionExpiredTime        = 60*10
 
     websocketsTimeout         = 60 * 1000, -- 60s
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
     websocketsMessageFormat   = "json",
     maxWebsocketRetryCount    = 10,
 
-    chatChannelPattern = "channel.chat.%s",
-    jobChannelPattern = "channel.job.%s",
-    chatChannelCapacity = 10000,
-    jobChannelCapacity = 10000,
     maxSubscribeRetryCount = 10,
 
     jobMessageFormat = "json",
     broadcastJobTube = "jobTube",
-    broadcastJobRetryInterval = 30,
 
     redis = {
         host       = "127.0.0.1",
@@ -61,12 +60,6 @@ local config = {
         user       = "test",
         password   = "123456",
         timeout    = 10 * 1000,
-    },
-
-    chat = {
-        recordNum = 100,
-        channelNum = 100,
-        peoplePerCh = 200,
     },
 }
 

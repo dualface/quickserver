@@ -71,6 +71,12 @@ function HttpServerBase:runEventLoop()
     printInfo("requst via HTTP,  Action: %s", rawAction)
     self:dumpParams()
 
+    if rawAction == "session" then
+        local sid = self.newSessionId(self.requestParameters)
+        ngx.say(sid)
+        return
+    end
+
     local result = self:doRequest(rawAction, self.requestParameters)
 
     -- simple http rsp
