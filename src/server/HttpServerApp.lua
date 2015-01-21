@@ -34,7 +34,6 @@ function HttpServerApp:ctor(config)
     end
 
     self:addEventListener(HttpServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
-
 end
 
 function HttpServerApp:doRequest(actionName, data)

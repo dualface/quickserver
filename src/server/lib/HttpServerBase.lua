@@ -57,13 +57,9 @@ function HttpServerBase:ctor(config)
     if not ok then
         printInfo("failed to register the on_abort callback, ", err)
     end
-
-    if self.config.session then
-        self.session = cc.server.Session.new(self)
-    end
 end
 
--- actually it is not a loop, since it is based on http.
+-- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
     local uri = self.uri
     local rawAction = string.gsub(uri, "/", ".")
@@ -71,8 +67,8 @@ function HttpServerBase:runEventLoop()
     printInfo("requst via HTTP,  Action: %s", rawAction)
     self:dumpParams()
 
-    if rawAction == "session" then
-        local sid = self.newSessionId(self.requestParameters)
+    if string.lower(rawAction) == ".session" then
+        local sid = self:newSessionId(self.requestParameters)
         ngx.say(sid)
         return
     end
