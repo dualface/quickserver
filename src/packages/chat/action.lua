@@ -49,7 +49,7 @@ function ChatAction:broadcastAction(data)
         return err_(err)
     end
 
-    return {ok = 1, channel = channel}
+    return {ok = 1}
 end
 
 return ChatAction
