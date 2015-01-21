@@ -26,8 +26,6 @@ THE SOFTWARE.
 
 local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
 
-local websocketUidKey = "websocket_uid_key_"
-
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
 
@@ -39,19 +37,8 @@ function WebSocketServerApp:ctor(config)
     self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
-    local redis = cc.load("redis").service.new(config.redis)
-    redis:connect()
-    local ok, err = redis:command("INCR", websocketUidKey)
-    if not ok then
-        throw(ERR_SERVER_OPERATION_FAILED, "Generate websocketUid failed: %s", err)
-    end
-    redis:close()
-    self.websocketUid = ok
-
-    self.internalChannel = string.format("channel.%s", self.websocketUid)
     self.subscribeMessageChannelEnabled = false
     self.subscribeRetryCount = 1
-    -- self.chatId = 1
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
@@ -84,15 +71,17 @@ function WebSocketServerApp.onWebSocketsReady(event)
     local self = event.tag
 
     -- verify session id process
-    local ok, err= self:processWebSocketSession()
-    if not ok then
-        printError("verify session id failed: %s", err)
+    local tag, err= self:processWebSocketSession()
+    if not tag then
+        printError("process websocket session failed: %s", err)
         self.isSessionVerified = false
-    else 
-        self.isSessionVerified = true
+        return 
     end
+    self.tag = tag
+    self.isSessionVerified = true
 
     -- tie this tag to current socket id
+    self:setSidTag(tag)
 
     -- subscribe a channel for broadcast
     self:subscribePushMessageChannel_()
@@ -117,7 +106,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         return nil
     end
 
-    local internalChannel = self.internalChannel
+    local internalChannel = self.internalChannel 
 
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
@@ -126,18 +115,18 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         self.subscribeMessageChannelEnabled = true
         local isRunning = true
 
-        local loop, err = redis:pubsub(internalChannel)
+        local loop, err = redis:pubsub({subscribe=internalChannel})
         if err then
-            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel [%s, %s] failed: %s", jobChannel, chatChannel, err)
+            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel(%s) failed: %s", internalChannel, err)
         end
 
         for msg, abort in loop do
             if msg.kind == "subscribe" then
-                printInfo("subscribed channel [%s], websocketUid = %d", msg.channel, self.websocketUid)
+                printInfo("subscribed channel(%s), socket id: %d", msg.channel, self.socketId)
             elseif msg.kind == "message" then
                 local payload = msg.payload
-                printInfo("get msg from channel [%s], websocketUid = %d, msg = %s", msg.channel, self.websocketUid, payload)
-                if tonumber(string.sub(payload, 6)) == self.websocketUid then
+                printInfo("get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
+                if payload == "QUIT" then
                     abort() 
                     isRunning = false
                     break
@@ -150,7 +139,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         redis:close()
         redis = nil
 
-        printInfo("quit from subscribe loop, websocketUid = %d", self.websocketUid)
+        printInfo("quit from subscribe loop, socketId = %d", self.socketId)
         printInfo("---------- SUBSCRIBE THREAD QUIT ----------")
 
         self.subscribeMessageChannelEnabled = false
@@ -167,12 +156,13 @@ end
 function WebSocketServerApp:unsubscribePushMessageChannel_()
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
-    local ok, err = redis:command("publish", self.quitChannel, "QUIT-" .. self.websocketUid)
+    local ok, err = redis:command("publish", self.internalChannel, "QUIT")
     if not ok then
-        printInfo("publish QUIT failed: err = %s", tostring(err))
+        printInfo("publish QUIT failed: %s", err)
     end
+
+    redis:command("DEL", self.tag) 
 
     redis:close()
 end
