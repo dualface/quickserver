@@ -30,20 +30,24 @@ local type = type
 local tblLength = table.nums
 local jsonEncode = json.encode
 local localtime = ngx.localtime
+local strFormat = string.format
+
+local jobKey = "job_key_"
+local jobHashList = "job_hashlist_"
+local jobActionListPattern = "job.%s_"
 
 local JobService = class("JobService")
 
 function JobService:ctor(app)
     local config = nil
     if app then
-        config = app.config.beanstalkd
+        self.app = app
     end
-    self.bean = cc.load("beanstalkd").service.new(config)
-    self.bean:connect()
-    self.bean:command("use", app.config.broadcastJobTube)
 
-    self.channel = app.jobChannel
-    self.owner = app.websocketUid
+    self.bean = cc.load("beanstalkd").service.new(app.config.beanstalkd)
+    self.redis = cc.load("redis").service.new(app.config.redis)
+
+    self.jobTube = self.config.broadcastJobTube
 end
 
 local function checkParams_(data, ...)
@@ -72,16 +76,145 @@ function JobService:newJob(data)
         return nil, "Service beanstalkd is not initialized."
     end
 
-    if not checkParams_(data, "job", "delay") then
-        return nil, "'job' or 'delay' is missed in param table."
+    local redis = self.redis
+    if redis == nil then
+        return nil, "Service redis is not initialized."
     end
 
-    local job = data.job
-    job.start_time = localtime()
-    job.channel = self.channel  -- which the result is published to
-    job.owner = self.owner
+    if not checkParams_(data, "job", "delay", "to") then
+        return nil, "'job', 'delay' or 'to' is missed in param table."
+    end
 
-    bean:command("put", jsonEncode(job), tonumber(data.priority), tonumber(data.delay))
+    redis:connect()
+    local jobRid, err = redis:command("INCR", jobKey)
+    if not jobRid then
+        redis:close()
+        return nil, strFormat("generate job id failed: %s", err)
+    end
+
+    data.rid = jobRid
+    data.start_time = localtime()
+
+    bean:connect()
+    bean:command("use", self.jobTube)
+    local jobBid
+    jobBid, err = bean:command("put", jsonEncode(data), tonumber(data.priority), tonumber(data.delay))
+    if not jobBid then
+        redis:close()
+        bean:close()
+        return nil, strFormat("put job to beanstalkd failed: %s", err)
+    end
+    bean:close()
+
+    data.bid = jobBid
+    redis:command("HSET", jobHashList, jobRid, jsonEncode(data))
+    local jobActionList = strFormat(jobActionListPattern, data.job.action)
+    redis:command("RPUSH", jobActionList, rid)
+    redis:close()
+
+    return true, nil
+end
+
+function JobService:getJob(data)
+    if type(data) ~= "table" then
+        return nil, "Parameter is not a table."
+    end
+
+    local redis = self.redis
+    if redis == nil then
+        return nil, "Service redis is not initialized."
+    end
+
+    if not checkParams_(data, "job_id") then
+        return nil, "'job_id' is missed in param table."
+    end
+
+    local rid = data.job_id
+    redis:connect()
+    local job, err = redis:command("HGET", jobHashList, rid) 
+    redis:close()
+    if job == ngx.null then
+        return nil, "job does not exist."
+    end
+
+    return job, nil
+end
+
+function JobService:findJob(data)
+    if type(data) ~= "table" then
+        return nil, "Parameter is not a table."
+    end
+
+    local redis = self.redis
+    if redis == nil then
+        return nil, "Service redis is not initialized."
+    end
+
+    if not checkParams_(data, "job_action") then
+        return nil, "'job_action' is missed in param table."
+    end
+
+    redis:connect()
+    local jobActionList = strFormat(jobActionListPattern, data.job_action)
+    local ridList, err = redis:command("LRANGE", jobActionList, 1, -1)
+    redis:close()
+    if not ridList then
+        return nil, strFormat("find job failed: %s", err)
+    end
+    if ridList == ngx.null then
+        return "null", nil
+    end
+
+    return ridList, nil
+end
+
+function JobService:removeJob(data)
+    if type(data) ~= "table" then
+        return nil, "Parameter is not a table."
+    end
+
+    local redis = self.redis
+    if redis == nil then
+        return nil, "Service redis is not initialized."
+    end
+
+    local bean = self.bean
+    if bean == nil then
+        return nil, "Service beanstalkd is not initialized."
+    end
+
+    if not checkParams_(data, "job_id") then
+        return nil, "'job_id' is missed in param table."
+    end
+
+    redis:connect()
+    local rid = data.job_id
+    local job, err = redis:command("HGET", jobHashList, rid)  
+    if job == ngx.null then
+        return nil, "job does not exists."
+    end
+
+    redis:command("HDEL", jobHashList, rid)
+
+    job, err = jsonDecode(job)
+    if not job then 
+        return nil, "job is invalid."
+    end
+
+    local jobAction = job.action
+    local jobActionList = strFormat(jobActionListPattern, jobAction)
+    redis:command("LREM", jobActionList, 1, rid)
+    redis:close()
+
+    bean:connect()
+    local bid = job.bid
+    bean:command("use", self.jobTube)
+    local ok
+    ok, err = bean:command("delete", bid)
+    bean:close()
+    if not ok then
+        return nil, "remove job failed: delete it from beanstalkd failed." 
+    end
 
     return true, nil
 end
