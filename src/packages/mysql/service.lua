@@ -65,7 +65,7 @@ function MysqlService:query(queryStr)
     return mysql:query(queryStr)
 end
 
-function self:escapeValue_(value)
+function MysqlService:escapeValue_(value)
     local mysql = self.mysql
     if not mysql then
         return nil, "Package mysql is no initialized."
@@ -74,7 +74,7 @@ function self:escapeValue_(value)
     return mysql:escapeValue(value)
 end
 
-function self:escapeName_(name)
+function MysqlService:escapeName_(name)
     return strFormat([[`%s`]], name)
 end
 

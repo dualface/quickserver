@@ -28,6 +28,7 @@ local pairs = pairs
 local type = type
 local tblLength = table.nums
 local jsonEncode = json.encode
+local localtime = ngx.localtime
 
 local ChatService = class("ChatService")
 
@@ -35,11 +36,9 @@ function ChatService:ctor(app)
     local config = nil
     if app then
         config = app.config.redis
+        self.app = app
     end
     self.redis = cc.load("redis").service.new(config)
-    self.redis:connect()
-
-    self.channel = app.chatChannel
 end
 
 local function checkParams_(data, ...)
@@ -67,15 +66,24 @@ function ChatService:broadcast(data)
     if rds == nil then
         return nil, "Service redis is not initialized."
     end
+    rds:connect()
 
-    if not checkParams_(data, "payload", "nickname") then
+    if not checkParams_(data, "payload", "nickname", "to") then
         return nil, "'payload' or 'nickname' is missed in param table."
     end
+    data.time = localtime()
 
-    local channel = self.channel
-    rds:command("publish", channel, jsonEncode(data))
+    local to = data.to 
+    data.to = nil
+    data.msg_id = nil
 
-    return channel, nil
+    for _, v in ipairs(to) do
+        local sid = self.app:getSidByTag(v)
+        self.app:sendMessage(sid, jsonEncode(data))
+    end
+    
+    rds:close()
+    return true, nil
 end
 
 return ChatService

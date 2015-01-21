@@ -44,8 +44,8 @@ function ChatAction:broadcastAction(data)
         return err_("chatAction is not initialized.")
     end
 
-    local channel, err = s:broadcast(data)
-    if not channel then
+    local ok, err = s:broadcast(data)
+    if not ok then
         return err_(err)
     end
 
