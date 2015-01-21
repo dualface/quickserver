@@ -33,7 +33,10 @@ local pairs = pairs
 local ipairs = ipairs
 local pcall = pcall
 local ngx = ngx
-local ngxLog = ngx.log
+local ngxLog = nil
+if ngx then
+    ngxLog = ngx.log
+end
 local tblInsert = table.insert
 local tblRemove = table.remove
 local strFormat = string.format
