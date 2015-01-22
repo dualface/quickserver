@@ -84,6 +84,19 @@ function RedisService:close()
     return redis:close()
 end
 
+function RedisService:setKeepAlive(timeout, size)
+    if not ngx then
+        return self:close()
+    end
+
+    local redis = self.redis
+    if not redis then
+        return nil, "Package redis is not initialized."
+    end
+
+    return redis:setKeepAlive(timeout, size)
+end
+
 function RedisService:command(command, ...)
     local redis = self.redis
     if not redis then

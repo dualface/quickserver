@@ -56,6 +56,19 @@ function MysqlService:close()
     return mysql:close()
 end
 
+function MysqlService:setKeepAlive(timeout, size)
+    if not ngx then
+        return self:close()
+    end
+
+    local mysql = self.mysql
+    if not mysql then
+        return nil, "Package mysql is not initialized."
+    end
+
+    return mysql:setKeepAlive(timeout, size)
+end
+
 function MysqlService:query(queryStr)
     local mysql = self.mysql
     if not mysql then

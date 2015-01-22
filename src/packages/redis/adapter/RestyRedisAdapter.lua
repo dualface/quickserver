@@ -52,10 +52,11 @@ function RestyRedisAdapter:connect()
 end
 
 function RestyRedisAdapter:close()
-    if self.config.useConnPool then
-        return self.instance:set_keepalive(10000, 100)
-    end
     return self.instance:close()
+end
+
+function RestyRedisAdapter:setKeepAlive(timeout, size)
+    return self.instance:set_keepalive(timeout, size)
 end
 
 function RestyRedisAdapter:command(command, ...)

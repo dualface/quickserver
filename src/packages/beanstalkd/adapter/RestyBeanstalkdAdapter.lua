@@ -52,10 +52,13 @@ end
 function RestyBeanstalkdAdapter:close()
     if not self.instance then return false, self.ctorErr end
 
-    if self.config.useConnPool then
-        return self.instance:set_keepalive(10000, 100)
-    end
     return self.instance:close()
+end
+
+function RestyBeanstalkdAdapter:setKeepAlive(timeout, size)
+    if not self.instance then return false, self.ctorErr end
+
+    return self.instance:set_keepalive(timeout, size)
 end
 
 function RestyBeanstalkdAdapter:command(command, ...)

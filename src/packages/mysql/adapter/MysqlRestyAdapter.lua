@@ -57,11 +57,14 @@ end
 
 function MysqlRestyAdapter:close()
     assert(self.db_ ~= nil, "Not connect to mysql")
-    if self.config.useConnPool then
-        self.db_:set_keepalive(10000, 100)
-    end
 
     self.db_:close()
+end
+
+function MysqlRestyAdapter:setKeepAlive(timeout, size)
+    assert(self.db_ ~= nil, "Not connect to mysql")
+    
+    self.db_:setKeepAlive(timeout, size)
 end
 
 function MysqlRestyAdapter:query(queryStr)

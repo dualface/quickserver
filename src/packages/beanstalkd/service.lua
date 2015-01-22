@@ -63,6 +63,19 @@ function BeanstalkdService:close()
     return beans:close()
 end
 
+function BeanstalkdService:setKeepAlive(timeout, size)
+    if not ngx then
+        return self:close()
+    end
+
+    local beans = self.beans
+    if not beans then
+        return nil, "Package beanstalked is not initialized."
+    end
+
+    return beans:setKeepAlive(timeout, size)
+end
+
 function BeanstalkdService:command(command, ...)
     local beans = self.beans
     if not beans then
