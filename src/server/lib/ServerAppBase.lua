@@ -148,7 +148,7 @@ function ServerAppBase:getSidByTag(key)
         redis:close()
         return nil, err
     end
-    if sid == ngx.null then
+    if ngx and sid == ngx.null then
         redis:close()    
         return nil, "sid does NOT exist"
     end

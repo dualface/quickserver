@@ -1,9 +1,7 @@
 local leaderboardAction = cc.load("leaderboard").action
-local storageAction = cc.load("objectstorage").action
 local chatAction = cc.load("chat").action
-local jobAction = cc.load("job").action
 
-local TestAction = class("TestAction", storageAction, leaderboardAction, chatAction, jobAction)
+local TestAction = class("TestAction", leaderboardAction, chatAction)
 
 function TestAction:ctor(app)
     for _, s in pairs(self.__supers) do

@@ -28,7 +28,6 @@ local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineServ
 
 function CmdBroadcastWorker:ctor(config)
     CmdBroadcastWorker.super.ctor(self, config)
-    self.config.workerMaxRequestCount = config.workerMaxRequestCount or 100
     self.config.actionPackage = "workers"
     self.config.actionModuleSuffix = "Worker"
 
@@ -65,25 +64,37 @@ function CmdBroadcastWorker:runEventLoop()
 
         local data, err = self:parseJobMessage(job.data)
         if not data then
-            printError("job [%s] parse message failed: %s", job.id, message)
+            printError("job [%s] parse message failed: %s, message: %s", job.id, err, job.data)
             bean:command("delete", job.id)
         else
-            local actionName = data.action
-            local _, result = self:doRequest(actionName, data)
+            local execJob = data.job
+            local actionName = execJob.action
+            local _, result = self:doRequest(actionName, execJob)
             if self.config.debug then
-                printInfo("job [%s], run action %s finished.", job.id, actionName)
+                printInfo("job [%s] [%s], run action %s finished.", job.id, data.bid, actionName)
             end
-            bean:command("delete", job.id)
 
-            -- publish to redis channel
+            local rid = data.rid
+            local jobService = cc.load("job").service.new(self.config)
+            jobService:removeJob(rid)
+
             local reply = {}
-            reply.job_id = data.job_id
+            reply.job_id = rid
             reply.start_time = data.start_time
+            reply.stop_time = os.date("%Y-%m-%d %H:%M:%S")
             reply.payload = result
-            reply.owner = data.owner
+            local to = data.to
+            reply.to = to
 
-            printInfo("reply = %s, data.channel = %s", json.encode(reply), tostring(data.channel))
-            redis:command("publish", data.channel, json.encode(reply))
+            local repMsg = json.encode(reply)
+
+            for _, v in ipairs(to) do
+                local sid = self:getSidByTag(v)
+                if sid then
+                    self:sendMessage(sid, repMsg)
+                    printInfo("reply = %s, to: %s, sid = %s", repMsg, v, sid)
+                end
+            end
         end
 
 ::reserve_next_job::
@@ -95,7 +106,7 @@ function CmdBroadcastWorker:runEventLoop()
 end
 
 function CmdBroadcastWorker:parseJobMessage(rawMessage)
-    if self.config.workerMessageFormat == "json" then
+    if self.config.jobMessageFormat == "json" then
         local message = json.decode(rawMessage)
         if type(message) == "table" then
             return message, nil
@@ -103,7 +114,7 @@ function CmdBroadcastWorker:parseJobMessage(rawMessage)
             return false, string.format("invalid message, %s", tostring(rawMessage))
         end
     else
-        return false, string.format("not support message format %s", tostring(self.config.workerMessageFormat))
+        return false, string.format("not support message format %s", tostring(self.config.jobMessageFormat))
     end
 end
 

@@ -29,7 +29,7 @@ local tonumber = tonumber
 local type = type
 local tblLength = table.nums
 local jsonEncode = json.encode
-local localtime = ngx.localtime
+local localtime = os.date
 local strFormat = string.format
 
 local jobKey = "job_key_"
@@ -38,16 +38,11 @@ local jobActionListPattern = "job.%s_"
 
 local JobService = class("JobService")
 
-function JobService:ctor(app)
-    local config = nil
-    if app then
-        self.app = app
-    end
+function JobService:ctor(config)
+    self.bean = cc.load("beanstalkd").service.new(config.beanstalkd)
+    self.redis = cc.load("redis").service.new(config.redis)
 
-    self.bean = cc.load("beanstalkd").service.new(app.config.beanstalkd)
-    self.redis = cc.load("redis").service.new(app.config.redis)
-
-    self.jobTube = self.config.broadcastJobTube
+    self.jobTube = config.broadcastJobTube
 end
 
 local function checkParams_(data, ...)
@@ -93,7 +88,7 @@ function JobService:newJob(data)
     end
 
     data.rid = jobRid
-    data.start_time = localtime()
+    data.start_time = localtime("%Y-%m-%d %H:%M:%S")
 
     bean:connect()
     bean:command("use", self.jobTube)
@@ -109,27 +104,19 @@ function JobService:newJob(data)
     data.bid = jobBid
     redis:command("HSET", jobHashList, jobRid, jsonEncode(data))
     local jobActionList = strFormat(jobActionListPattern, data.job.action)
+    printInfo("newjob, job action list name: %s", jobActionList)
     redis:command("RPUSH", jobActionList, rid)
     redis:close()
 
-    return true, nil
+    return jobRid, nil
 end
 
-function JobService:getJob(data)
-    if type(data) ~= "table" then
-        return nil, "Parameter is not a table."
-    end
-
+function JobService:getJob(rid)
     local redis = self.redis
     if redis == nil then
         return nil, "Service redis is not initialized."
     end
 
-    if not checkParams_(data, "job_id") then
-        return nil, "'job_id' is missed in param table."
-    end
-
-    local rid = data.job_id
     redis:connect()
     local job, err = redis:command("HGET", jobHashList, rid) 
     redis:close()
@@ -140,22 +127,15 @@ function JobService:getJob(data)
     return job, nil
 end
 
-function JobService:findJob(data)
-    if type(data) ~= "table" then
-        return nil, "Parameter is not a table."
-    end
-
+function JobService:findJob(actionName)
     local redis = self.redis
     if redis == nil then
         return nil, "Service redis is not initialized."
     end
 
-    if not checkParams_(data, "job_action") then
-        return nil, "'job_action' is missed in param table."
-    end
-
     redis:connect()
-    local jobActionList = strFormat(jobActionListPattern, data.job_action)
+    local jobActionList = strFormat(jobActionListPattern, actionName)
+    printInfo("find job, job action list: %s", jobActionList)
     local ridList, err = redis:command("LRANGE", jobActionList, 1, -1)
     redis:close()
     if not ridList then
@@ -168,11 +148,7 @@ function JobService:findJob(data)
     return ridList, nil
 end
 
-function JobService:removeJob(data)
-    if type(data) ~= "table" then
-        return nil, "Parameter is not a table."
-    end
-
+function JobService:removeJob(rid)
     local redis = self.redis
     if redis == nil then
         return nil, "Service redis is not initialized."
@@ -183,14 +159,10 @@ function JobService:removeJob(data)
         return nil, "Service beanstalkd is not initialized."
     end
 
-    if not checkParams_(data, "job_id") then
-        return nil, "'job_id' is missed in param table."
-    end
-
     redis:connect()
-    local rid = data.job_id
     local job, err = redis:command("HGET", jobHashList, rid)  
     if job == ngx.null then
+        redis:close()
         return nil, "job does not exists."
     end
 
@@ -198,6 +170,7 @@ function JobService:removeJob(data)
 
     job, err = jsonDecode(job)
     if not job then 
+        redis:close()
         return nil, "job is invalid."
     end
 

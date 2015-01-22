@@ -28,7 +28,7 @@ local pairs = pairs
 local type = type
 local tblLength = table.nums
 local jsonEncode = json.encode
-local localtime = ngx.localtime
+local localtime = os.date
 
 local ChatService = class("ChatService")
 
@@ -72,7 +72,7 @@ function ChatService:broadcast(data)
     end
 
     rds:connect()
-    data.time = localtime()
+    data.time = localtime("%Y-%m-%d %H:%M:%S")
 
     local to = data.to 
     data.to = nil
@@ -80,7 +80,9 @@ function ChatService:broadcast(data)
 
     for _, v in ipairs(to) do
         local sid = self.app:getSidByTag(v)
-        self.app:sendMessage(sid, jsonEncode(data))
+        if sid then
+            self.app:sendMessage(sid, jsonEncode(data))
+        end
     end
     
     rds:close()
