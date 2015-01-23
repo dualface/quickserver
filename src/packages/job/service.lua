@@ -29,12 +29,14 @@ local tonumber = tonumber
 local type = type
 local tblLength = table.nums
 local jsonEncode = json.encode
+local jsonDecode = json.decode
 local localtime = os.date
 local strFormat = string.format
+local strGsub = string.gsub
 
 local jobKey = "job_key_"
 local jobHashList = "job_hashlist_"
-local jobActionListPattern = "job.%s_"
+local jobActionListPattern = "job_%s_sets_"
 
 local JobService = class("JobService")
 
@@ -89,7 +91,10 @@ function JobService:newJob(data)
 
     data.rid = jobRid
     data.start_time = localtime("%Y-%m-%d %H:%M:%S")
+    data.action = nil
+    data.msg_id = nil
 
+    -- put job to beanstalkd
     bean:connect()
     bean:command("use", self.jobTube)
     local jobBid
@@ -101,11 +106,19 @@ function JobService:newJob(data)
     end
     bean:close()
 
+    -- store job info to redis for persistence
     data.bid = jobBid
-    redis:command("HSET", jobHashList, jobRid, jsonEncode(data))
-    local jobActionList = strFormat(jobActionListPattern, data.job.action)
-    printInfo("newjob, job action list name: %s", jobActionList)
-    redis:command("RPUSH", jobActionList, rid)
+    local ok, err = redis:command("HSET", jobHashList, jobRid, jsonEncode(data))
+    if not ok then
+        printWarn("store job to redis failed: %s", err)
+    end
+
+    -- index actions for findJob service interface
+    local jobActionList = strFormat(jobActionListPattern, strGsub(data.job.action, "%.", "_"))
+    local ok, err = redis:command("SADD", jobActionList, data.rid)
+    if not ok then
+        printWarn("index actions to %s failed: %s", jobActionList, err) 
+    end
     redis:close()
 
     return jobRid, nil
@@ -120,8 +133,11 @@ function JobService:getJob(rid)
     redis:connect()
     local job, err = redis:command("HGET", jobHashList, rid) 
     redis:close()
-    if job == ngx.null then
-        return nil, "job does not exist."
+    if not job then
+        return nil, strFormat("get job failed: %s", err) 
+    end
+    if ngx and job == ngx.null then
+        return nil, strFormat("job[%d] does not exist.", rid)
     end
 
     return job, nil
@@ -134,15 +150,14 @@ function JobService:findJob(actionName)
     end
 
     redis:connect()
-    local jobActionList = strFormat(jobActionListPattern, actionName)
-    printInfo("find job, job action list: %s", jobActionList)
-    local ridList, err = redis:command("LRANGE", jobActionList, 1, -1)
+    local jobActionList = strFormat(jobActionListPattern, strGsub(actionName, "%.", "_"))
+    local ridList, err = redis:command("SMEMBERS", jobActionList)
     redis:close()
     if not ridList then
         return nil, strFormat("find job failed: %s", err)
     end
-    if ridList == ngx.null then
-        return "null", nil
+    if next(ridList) == nil then
+        return nil, strFormat("can't find jobs with action %s", actionName)
     end
 
     return ridList, nil
@@ -160,34 +175,38 @@ function JobService:removeJob(rid)
     end
 
     redis:connect()
-    local job, err = redis:command("HGET", jobHashList, rid)  
-    if job == ngx.null then
+    local jobStr, err = redis:command("HGET", jobHashList, rid)  
+    if not jobStr then
+        return nil, strFormat("get job failed: %s", err)
+    end
+    if ngx and jobStr == ngx.null then
         redis:close()
-        return nil, "job does not exists."
+        return nil, strFormat("job[%d] does not exist.", rid)
     end
 
+    -- delete it from redis
     redis:command("HDEL", jobHashList, rid)
 
-    job, err = jsonDecode(job)
+    job, err = jsonDecode(jobStr)
     if not job then 
         redis:close()
-        return nil, "job is invalid."
+        printWarn("remove job, josn decode job failed: %s, job contents: %s", err, jobStr)
+        return nil, strFormat("job[%d] is invalid.", rid)
     end
 
-    local jobAction = job.action
-    local jobActionList = strFormat(jobActionListPattern, jobAction)
-    redis:command("LREM", jobActionList, 1, rid)
+    local jobAction = job.job.action
+    local jobActionList = strFormat(jobActionListPattern, strGsub(jobAction, "%.", "_"))
+    local ok , err = redis:command("SREM", jobActionList, rid)
     redis:close()
+    if not ok then
+        printWarn("remove job action failed: %s", err)
+    end
 
+    -- delete it from beanstalkd
     bean:connect()
     local bid = job.bid
-    bean:command("use", self.jobTube)
-    local ok
-    ok, err = bean:command("delete", bid)
+    local ok, err = bean:command("delete", tonumber(bid))
     bean:close()
-    if not ok then
-        return nil, "remove job failed: delete it from beanstalkd failed." 
-    end
 
     return true, nil
 end

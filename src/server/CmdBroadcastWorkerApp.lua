@@ -67,27 +67,27 @@ function CmdBroadcastWorker:runEventLoop()
             printError("job [%s] parse message failed: %s, message: %s", job.id, err, job.data)
             bean:command("delete", job.id)
         else
+            printInfo("get job [%s], contents: %s", job.id, job.data)
+
+            local jobService = cc.load("job").service.new(self.config)
+            jobService:removeJob(data.rid)
+            -- as current CONNECTION is not end and reservd a job, 
+            -- job service can't delete this job via another CONNECTION.
+            bean:command("delete", job.id)
+
             local execJob = data.job
             local actionName = execJob.action
             local _, result = self:doRequest(actionName, execJob)
-            if self.config.debug then
-                printInfo("job [%s] [%s], run action %s finished.", job.id, data.bid, actionName)
-            end
+            printInfo("job [%s], run action %s finished.", job.id, data.bid, actionName)
 
-            local rid = data.rid
-            local jobService = cc.load("job").service.new(self.config)
-            jobService:removeJob(rid)
-
+            -- send message
             local reply = {}
-            reply.job_id = rid
+            reply.job_id = data.rid
             reply.start_time = data.start_time
             reply.stop_time = os.date("%Y-%m-%d %H:%M:%S")
             reply.payload = result
             local to = data.to
-            reply.to = to
-
             local repMsg = json.encode(reply)
-
             for _, v in ipairs(to) do
                 local sid = self:getSidByTag(v)
                 if sid then

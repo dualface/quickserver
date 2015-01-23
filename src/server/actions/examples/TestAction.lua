@@ -38,7 +38,26 @@ function TestAction:findtaskAction(data)
     return {rid_list = res}
 end
 
+function TestAction:gettaskAction(data)
+    local job = cc.load("job").service.new(self.app.config)
+
+    local res, err = job:getJob(data.job_id)
+    if not res then
+        return {error = err}
+    end
+
+    return {job_contents = res}
+end
+
 function TestAction:removetaskAction(data)
+    local job = cc.load("job").service.new(self.app.config)
+
+    local res, err = job:removeJob(data.job_id)
+    if not res then
+        return {error = err}
+    end
+
+    return {ok = res}
 end
 
 return TestAction
