@@ -171,6 +171,13 @@ function ServerAppBase:setSidTag(key)
     redis:close()
 end
 
+function ServerAppBase:unsetSidTag(key)
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    redis:command("DEL", key)
+    redis:close()
+end
+
 function ServerAppBase:checkSessionId(data)
     local sessionId = data.session_id
     if not sessionId then

@@ -89,6 +89,9 @@ end
 
 function WebSocketServerApp.onWebSocketsClose(event)
     local self = event.tag
+
+    self:unsetSidTag(self.tag)
+
     self:unsubscribePushMessageChannel_()
 
     printInfo("---------------- QUIT -----------------")
@@ -161,8 +164,6 @@ function WebSocketServerApp:unsubscribePushMessageChannel_()
     if not ok then
         printInfo("publish QUIT failed: %s", err)
     end
-
-    redis:command("DEL", self.tag) 
 
     redis:close()
 end
