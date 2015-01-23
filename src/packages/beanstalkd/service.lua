@@ -40,7 +40,7 @@ function BeanstalkdService:ctor(config)
         return nil, "config is invalid."
     end
 
-    self.config = config or {host = "127.0.0.1", port = "11300", timeout = 10 * 1000}
+    self.config = config
 
     self.beans = adapter.new(config)
 end

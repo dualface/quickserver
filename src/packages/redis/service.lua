@@ -62,7 +62,7 @@ function RedisService:ctor(config)
         return nil, "config is invalid."
     end
 
-    self.config = config or {host = "127.0.0.1", port = 6379, timeout = 10*1000}
+    self.config = config
     self.redis = adapter.new(self.config)
 end
 
