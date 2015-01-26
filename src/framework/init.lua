@@ -36,10 +36,10 @@ require("framework.package_support")
 json = require("framework.json")
 
 cc.server = {}
-cc.server.ServerAppBase         = require("server.lib.ServerAppBase")
-cc.server.WebSocketsServerBase  = require("server.lib.WebSocketsServerBase")
-cc.server.HttpServerBase        = require("server.lib.HttpServerBase")
-cc.server.CommandLineServerBase = require("server.lib.CommandLineServerBase")
+cc.server.ServerAppBase         = require("server.base.ServerAppBase")
+cc.server.WebSocketsServerBase  = require("server.base.WebSocketsServerBase")
+cc.server.HttpServerBase        = require("server.base.HttpServerBase")
+cc.server.CommandLineServerBase = require("server.base.CommandLineServerBase")
 
 -- register the build-in packages
 cc.register("event", require("framework.components.event"))
