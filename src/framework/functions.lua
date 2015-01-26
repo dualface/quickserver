@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -33,50 +31,49 @@ local pairs = pairs
 local ipairs = ipairs
 local pcall = pcall
 local ngx = ngx
-local ngxLog = nil
-if ngx then
-    ngxLog = ngx.log
-end
-local tblInsert = table.insert
-local tblRemove = table.remove
-local strFormat = string.format
-local strUpper = string.upper
-local strLen = string.len
-local strRep = string.rep
-local strFind = string.find
-local strGsub = string.gsub
-local strSub = string.sub
-local strByte = string.byte
-local strChar = string.char
-local mathFloor = math.floor
-local mathCeil = math.ceil
-local mathRandom = math.random
-local mathRandomseed = math.randomseed
+local ngx_log = nil
+if ngx then ngx_log = ngx.log end
+
+local table_insert = table.insert
+local table_remove = table.remove
+local table_format = string.format
+local string_upper = string.upper
+local string_len = string.len
+local string_rep = string.rep
+local string_find = string.find
+local string_gsub = string.gsub
+local string_sub = string.sub
+local string_byte = string.byte
+local string_char = string.char
+local math_floor = math.floor
+local math_ceil = math.ceil
+local math_random = math.random
+local math_randomseed = math.randomseed
 local PI = math.pi
-local fOpen = io.open
-local fClose = io.close
-local osTime = os.time
-local debugTrace = debug.traceback
-local debugGetLocal = debug.getlocal
+local io_open = io.open
+local io_close = io.close
+local os_time = os.time
+local debug_traceback = debug.traceback
+local debug_getlocal = debug.getlocal
 
 -- internal function, advise you not to call it directly.
 function printLog(tag, fmt, ...)
-    if ngx and ngxLog then
-        ngxLog(ngx[tag], strFormat(tostring(fmt), ...))
+    if ngx and ngx_log then
+        ngx_log(ngx[tag], table_format(tostring(fmt), ...))
         if tag == "ERR" then
-            ngxLog(ngx.ERR, debugTrace("", 2))
+            ngx_log(ngx.ERR, debug_traceback("", 2))
         end
         return nil
     end
 
     local t = {
         "[",
-        strUpper(tostring(tag)),
+        string_upper(tostring(tag)),
         "] ",
-        strFormat(tostring(fmt), ...)
+        table_format(tostring(fmt), ...)
     }
     if tag == "ERR" then
-        tblInsert(t, debugTrace("", 2))
+        table_insert(t, debug_traceback("", 2))
     end
     print(table.concat(t))
 end
@@ -86,21 +83,21 @@ function printError(fmt, ...)
 end
 
 function printDebug(fmt, ...)
-    if type(DEBUG) ~= "number" or DEBUG < 3 then return end
+    if DEBUG < 3 then return end
     printLog("DEBUG", fmt, ...)
 end
 
 function printInfo(fmt, ...)
-    if type(DEBUG) ~= "number" or DEBUG < 2 then return end
+    if DEBUG < 2 then return end
     printLog("INFO", fmt, ...)
 end
 
 function printWarn(fmt, ...)
-    if type(DEBUG) ~= "number" or DEBUG < 1 then return end
+    if DEBUG < 1 then return end
     printLog("WARN", fmt, ...)
 end
 
-local function dump_value_(v)
+local function _dump_value(v)
     if type(v) == "string" then
         v = "\"" .. v .. "\""
     end
@@ -110,36 +107,35 @@ end
 function dump(value, desciption, nesting)
     if type(nesting) ~= "number" then nesting = 3 end
 
-    local lookupTable = {}
+    local lookup = {}
     local result = {}
-
-    local traceback = string.split(debugTrace("", 2), "\n")
+    local traceback = string.split(debug_traceback("", 2), "\n")
     print("dump from: " .. string.trim(traceback[3]))
 
-    local function dump_(value, desciption, indent, nest, keylen)
+    local function _dump(value, desciption, indent, nest, keylen)
         desciption = desciption or "<var>"
         local spc = ""
         if type(keylen) == "number" then
-            spc = strRep(" ", keylen - strLen(dump_value_(desciption)))
+            spc = string_rep(" ", keylen - string_len(_dump_value(desciption)))
         end
         if type(value) ~= "table" then
-            result[#result +1 ] = strFormat("%s%s%s = %s", indent, dump_value_(desciption), spc, dump_value_(value))
-        elseif lookupTable[tostring(value)] then
-            result[#result +1 ] = strFormat("%s%s%s = *REF*", indent, dump_value_(desciption), spc)
+            result[#result +1 ] = table_format("%s%s%s = %s", indent, _dump_value(desciption), spc, _dump_value(value))
+        elseif lookup[tostring(value)] then
+            result[#result +1 ] = table_format("%s%s%s = *REF*", indent, _dump_value(desciption), spc)
         else
-            lookupTable[tostring(value)] = true
+            lookup[tostring(value)] = true
             if nest > nesting then
-                result[#result +1 ] = strFormat("%s%s = *MAX NESTING*", indent, dump_value_(desciption))
+                result[#result +1 ] = table_format("%s%s = *MAX NESTING*", indent, _dump_value(desciption))
             else
-                result[#result +1 ] = strFormat("%s%s = {", indent, dump_value_(desciption))
+                result[#result +1 ] = table_format("%s%s = {", indent, _dump_value(desciption))
                 local indent2 = indent.."    "
                 local keys = {}
                 local keylen = 0
                 local values = {}
                 for k, v in pairs(value) do
                     keys[#keys + 1] = k
-                    local vk = dump_value_(k)
-                    local vkl = strLen(vk)
+                    local vk = _dump_value(k)
+                    local vkl = string_len(vk)
                     if vkl > keylen then keylen = vkl end
                     values[k] = v
                 end
@@ -151,13 +147,13 @@ function dump(value, desciption, nesting)
                     end
                 end)
                 for i, k in ipairs(keys) do
-                    dump_(values[k], k, indent2, nest + 1, keylen)
+                    _dump(values[k], k, indent2, nest + 1, keylen)
                 end
-                result[#result +1] = strFormat("%s}", indent)
+                result[#result +1] = table_format("%s}", indent)
             end
         end
     end
-    dump_(value, desciption, "- ", 1)
+    _dump(value, desciption, "- ", 1)
 
     for i, line in ipairs(result) do
         print(line)
@@ -165,7 +161,7 @@ function dump(value, desciption, nesting)
 end
 
 function printf(fmt, ...)
-    print(strFormat(tostring(fmt), ...))
+    print(table_format(tostring(fmt), ...))
 end
 
 function checknumber(value, base)
@@ -190,33 +186,15 @@ function isset(hashtable, key)
     return (t == "table" or t == "userdata") and hashtable[key] ~= nil
 end
 
--- duplicate from above "check" functions for compatible.
-function tonum(v, base)
-    return tonumber(v, base) or 0
-end
-
-function toint(v)
-    return math.round(tonum(v))
-end
-
-function tobool(v)
-    return (v ~= nil and v ~= false)
-end
-
-function totable(v)
-    if type(v) ~= "table" then v = {} end
-    return v
-end
-
-local setmetatableindex_
-setmetatableindex_ = function(t, index)
+local _setmetatableindex
+_setmetatableindex = function(t, index)
     if type(t) == "userdata" then
         local peer = tolua.getpeer(t)
         if not peer then
             peer = {}
             tolua.setpeer(t, peer)
         end
-        setmetatableindex_(peer, index)
+        _setmetatableindex(peer, index)
     else
         local mt = getmetatable(t)
         if not mt then mt = {} end
@@ -224,22 +202,22 @@ setmetatableindex_ = function(t, index)
             mt.__index = index
             setmetatable(t, mt)
         elseif mt.__index ~= index then
-            setmetatableindex_(mt, index)
+            _setmetatableindex(mt, index)
         end
     end
 end
-setmetatableindex = setmetatableindex_
+setmetatableindex = _setmetatableindex
 
 function clone(object)
-    local lookup_table = {}
+    local lookup = {}
     local function _copy(object)
         if type(object) ~= "table" then
             return object
-        elseif lookup_table[object] then
-            return lookup_table[object]
+        elseif lookup[object] then
+            return lookup[object]
         end
         local newObject = {}
-        lookup_table[object] = newObject
+        lookup[object] = newObject
         for key, value in pairs(object) do
             newObject[_copy(key)] = _copy(value)
         end
@@ -255,12 +233,12 @@ function class(classname, ...)
     for _, super in ipairs(supers) do
         local superType = type(super)
         assert(superType == "nil" or superType == "table" or superType == "function",
-            strFormat("class() - create class \"%s\" with invalid super class type \"%s\"",
+            table_format("class() - create class \"%s\" with invalid super class type \"%s\"",
                 classname, superType))
 
         if superType == "function" then
             assert(cls.__create == nil,
-                strFormat("class() - create class \"%s\" with more than one creating function",
+                table_format("class() - create class \"%s\" with more than one creating function",
                     classname));
             -- if super is function, set it to __create
             cls.__create = super
@@ -268,7 +246,7 @@ function class(classname, ...)
             if super[".isclass"] then
                 -- super is native class
                 assert(cls.__create == nil,
-                    strFormat("class() - create class \"%s\" with more than one creating function or native class",
+                    table_format("class() - create class \"%s\" with more than one creating function or native class",
                         classname));
                 cls.__create = function() return super:create() end
             else
@@ -281,7 +259,7 @@ function class(classname, ...)
                 end
             end
         else
-            error(strFormat("class() - create class \"%s\" with invalid super type",
+            error(table_format("class() - create class \"%s\" with invalid super type",
                         classname), 0)
         end
     end
@@ -310,7 +288,7 @@ function class(classname, ...)
         else
             instance = {}
         end
-        setmetatableindex(instance, cls)
+        _setmetatableindex(instance, cls)
         instance.class = cls
         instance:ctor(...)
         return instance
@@ -322,8 +300,8 @@ function class(classname, ...)
     return cls
 end
 
-local iskindof_
-iskindof_ = function(cls, name)
+local _iskindof
+_iskindof = function(cls, name)
     local __index = rawget(cls, "__index")
     if type(__index) == "table" and rawget(__index, "__cname") == name then return true end
 
@@ -331,7 +309,7 @@ iskindof_ = function(cls, name)
     local __supers = rawget(cls, "__supers")
     if not __supers then return false end
     for _, super in ipairs(__supers) do
-        if iskindof_(super, name) then return true end
+        if _iskindof(super, name) then return true end
     end
     return false
 end
@@ -348,7 +326,7 @@ function iskindof(obj, classname)
         mt = getmetatable(obj)
     end
     if mt then
-        return iskindof_(mt, classname)
+        return _iskindof(mt, classname)
     end
     return false
 end
@@ -359,8 +337,8 @@ function import(moduleName, currentModuleName)
     local offset = 1
 
     while true do
-        if strByte(moduleName, offset) ~= 46 then -- .
-            moduleFullName = strSub(moduleName, offset)
+        if string_byte(moduleName, offset) ~= 46 then -- .
+            moduleFullName = string_sub(moduleName, offset)
             if currentModuleNameParts and #currentModuleNameParts > 0 then
                 moduleFullName = table.concat(currentModuleNameParts, ".") .. "." .. moduleFullName
             end
@@ -370,13 +348,13 @@ function import(moduleName, currentModuleName)
 
         if not currentModuleNameParts then
             if not currentModuleName then
-                local n,v = debugGetLocal(3, 1)
+                local n,v = debug_getlocal(3, 1)
                 currentModuleName = v
             end
 
             currentModuleNameParts = string.split(currentModuleName, ".")
         end
-        tblRemove(currentModuleNameParts, #currentModuleNameParts)
+        table_remove(currentModuleNameParts, #currentModuleNameParts)
     end
 
     return require(moduleFullName)
@@ -389,63 +367,54 @@ function handler(obj, method)
 end
 
 function math.newrandomseed()
-    local ok, socket = pcall(function()
-        return require("socket")
-    end)
-
-    if ok then
-        mathRandomseed(socket.gettime() * 1000)
-    else
-        mathRandomseed(osTime())
-    end
-    mathRandom()
-    mathRandom()
-    mathRandom()
-    mathRandom()
+    math_randomseed(os_time())
+    math_random()
+    math_random()
+    math_random()
+    math_random()
 end
 
 function math.round(value)
     value = checknumber(value)
-    return mathFloor(value + 0.5)
+    return math_floor(value + 0.5)
 end
 
 function math.trunc(x)
     if x <= 0 then
-        return mathCeil(x);
+        return math_ceil(x);
     end
-
-    if mathCeil(x) == x then
-        x = mathCeil(x);
+    if math_ceil(x) == x then
+        x = math_ceil(x);
     else
-        x = mathCeil(x) - 1;
+        x = math_ceil(x) - 1;
     end
     return x;
 end
 
-local pi_div_180 = PI / 180
+local _PI_DIV_180 = PI / 180
 function math.angle2radian(angle)
-    return angle * pi_div_180
+    return angle * _PI_DIV_180
 end
 
-local pi_mul_180 = PI * 180
+local _PI_MUL_180 = PI * 180
 function math.radian2angle(radian)
-    return radian / pi_mul_180
+    return radian / _PI_MUL_180
 end
 
 function io.exists(path)
-    local file = fOpen(path, "r")
+    local file = io_open(path, "r")
     if file then
-        fClose(file)
+        io_close(file)
         return true
     end
     return false
 end
 
 function io.readfile(path)
-    local file = fOpen(path, "r")
+    local file = io_open(path, "r")
     if file then
         local content = file:read("*a")
-        fClose(file)
+        io_close(file)
         return content
     end
     return nil
@@ -453,10 +422,10 @@ end
 
 function io.writefile(path, content, mode)
     mode = mode or "w+b"
-    local file = fOpen(path, mode)
+    local file = io_open(path, mode)
     if file then
         if file:write(content) == nil then return false end
-        fClose(file)
+        io_close(file)
         return true
     else
         return false
@@ -464,10 +433,10 @@ function io.writefile(path, content, mode)
 end
 
 function io.pathinfo(path)
-    local pos = strLen(path)
+    local pos = string_len(path)
     local extpos = pos + 1
     while pos > 0 do
-        local b = strByte(path, pos)
+        local b = string_byte(path, pos)
         if b == 46 then -- 46 = char "."
             extpos = pos
         elseif b == 47 then -- 47 = char "/"
@@ -476,11 +445,11 @@ function io.pathinfo(path)
         pos = pos - 1
     end
 
-    local dirname = strSub(path, 1, pos)
-    local filename = strSub(path, pos + 1)
+    local dirname = string_sub(path, 1, pos)
+    local filename = string_sub(path, pos + 1)
     extpos = extpos - pos
-    local basename = strSub(filename, 1, extpos - 1)
-    local extname = strSub(filename, extpos)
+    local basename = string_sub(filename, 1, extpos - 1)
+    local extname = string_sub(filename, extpos)
     return {
         dirname = dirname,
         filename = filename,
@@ -491,12 +460,12 @@ end
 
 function io.filesize(path)
     local size = false
-    local file = fOpen(path, "r")
+    local file = io_open(path, "r")
     if file then
         local current = file:seek()
         size = file:seek("end")
         file:seek("set", current)
-        fClose(file)
+        io_close(file)
     end
     return size
 end
@@ -561,7 +530,7 @@ function table.removebyvalue(array, value, removeall)
     local c, i, max = 0, 1, #array
     while i <= max do
         if array[i] == value then
-            tblRemove(array, i)
+            table_remove(array, i)
             c = c + 1
             i = i - 1
             max = max - 1
@@ -617,26 +586,26 @@ string._htmlspecialchars_set[">"] = "&gt;"
 
 function string.htmlspecialchars(input)
     for k, v in pairs(string._htmlspecialchars_set) do
-        input = strGsub(input, k, v)
+        input = string_gsub(input, k, v)
     end
     return input
 end
 
 function string.restorehtmlspecialchars(input)
     for k, v in pairs(string._htmlspecialchars_set) do
-        input = strGsub(input, v, k)
+        input = string_gsub(input, v, k)
     end
     return input
 end
 
 function string.nl2br(input)
-    return strGsub(input, "\n", "<br />")
+    return string_gsub(input, "\n", "<br />")
 end
 
 function string.text2html(input)
-    input = strGsub(input, "\t", "    ")
+    input = string_gsub(input, "\t", "    ")
     input = string.htmlspecialchars(input)
-    input = strGsub(input, " ", "&nbsp;")
+    input = string_gsub(input, " ", "&nbsp;")
     input = string.nl2br(input)
     return input
 end
@@ -647,57 +616,57 @@ function string.split(input, delimiter)
     if (delimiter=='') then return false end
     local pos,arr = 0, {}
     -- for each divider found
-    for st,sp in function() return strFind(input, delimiter, pos, true) end do
-        tblInsert(arr, strSub(input, pos, st - 1))
+    for st,sp in function() return string_find(input, delimiter, pos, true) end do
+        table_insert(arr, string_sub(input, pos, st - 1))
         pos = sp + 1
     end
-    tblInsert(arr, strSub(input, pos))
+    table_insert(arr, string_sub(input, pos))
     return arr
 end
 
 function string.ltrim(input)
-    return strGsub(input, "^[ \t\n\r]+", "")
+    return string_gsub(input, "^[ \t\n\r]+", "")
 end
 
 function string.rtrim(input)
-    return strGsub(input, "[ \t\n\r]+$", "")
+    return string_gsub(input, "[ \t\n\r]+$", "")
 end
 
 function string.trim(input)
-    input = strGsub(input, "^[ \t\n\r]+", "")
-    return strGsub(input, "[ \t\n\r]+$", "")
+    input = string_gsub(input, "^[ \t\n\r]+", "")
+    return string_gsub(input, "[ \t\n\r]+$", "")
 end
 
 function string.ucfirst(input)
-    return strUpper(strSub(input, 1, 1)) .. strSub(input, 2)
+    return string_upper(string_sub(input, 1, 1)) .. string_sub(input, 2)
 end
 
 local function urlencodechar(char)
-    return "%" .. strFormat("%02X", strByte(char))
+    return "%" .. table_format("%02X", string_byte(char))
 end
 function string.urlencode(input)
     -- convert line endings
-    input = strGsub(tostring(input), "\n", "\r\n")
+    input = string_gsub(tostring(input), "\n", "\r\n")
     -- escape all characters but alphanumeric, '.' and '-'
-    input = strGsub(input, "([^%w%.%- ])", urlencodechar)
+    input = string_gsub(input, "([^%w%.%- ])", urlencodechar)
     -- convert spaces to "+" symbols
-    return strGsub(input, " ", "+")
+    return string_gsub(input, " ", "+")
 end
 
 function string.urldecode(input)
-    input = strGsub (input, "+", " ")
-    input = strGsub (input, "%%(%x%x)", function(h) return strChar(checknumber(h,16)) end)
-    input = strGsub (input, "\r\n", "\n")
+    input = string_gsub (input, "+", " ")
+    input = string_gsub (input, "%%(%x%x)", function(h) return string_char(checknumber(h,16)) end)
+    input = string_gsub (input, "\r\n", "\n")
     return input
 end
 
 function string.utf8len(input)
-    local len  = strLen(input)
+    local len  = string_len(input)
     local left = len
     local cnt  = 0
     local arr  = {0, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc}
     while left ~= 0 do
-        local tmp = strByte(input, -left)
+        local tmp = string_byte(input, -left)
         local i   = #arr
         while arr[i] do
             if tmp >= arr[i] then
@@ -715,7 +684,7 @@ function string.formatnumberthousands(num)
     local formatted = tostring(checknumber(num))
     local k
     while true do
-        formatted, k = strGsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        formatted, k = string_gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
         if k == 0 then break end
     end
     return formatted

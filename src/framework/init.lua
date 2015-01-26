@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -29,7 +27,6 @@ if type(DEBUG) ~= "number" then DEBUG = 0 end
 -- load framework
 cc = cc or {}
 
-require("framework.debug")
 require("framework.functions")
 require("framework.errors")
 require("framework.package_support")
@@ -42,4 +39,4 @@ cc.server.HttpServerBase        = require("server.lib.HttpServerBase")
 cc.server.CommandLineServerBase = require("server.lib.CommandLineServerBase")
 
 -- register the build-in packages
-cc.register("event", require("framework.components.event"))
+cc.register("event", require("framework.packages.event.init"))
