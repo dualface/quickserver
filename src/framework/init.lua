@@ -31,7 +31,7 @@ require("framework.functions")
 require("framework.package_support")
 json = require("framework.json")
 
-cc.server = {}
+cc.server = {VERSION = "quickserver 0.5.0"}
 cc.server.ServerAppBase         = require("server.base.ServerAppBase")
 cc.server.WebSocketsServerBase  = require("server.base.WebSocketsServerBase")
 cc.server.HttpServerBase        = require("server.base.HttpServerBase")

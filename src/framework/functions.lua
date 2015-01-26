@@ -33,7 +33,6 @@ local pcall = pcall
 local ngx = ngx
 local ngx_log = nil
 if ngx then ngx_log = ngx.log end
-
 local table_insert = table.insert
 local table_remove = table.remove
 local table_format = string.format
@@ -49,7 +48,6 @@ local math_floor = math.floor
 local math_ceil = math.ceil
 local math_random = math.random
 local math_randomseed = math.randomseed
-local PI = math.pi
 local io_open = io.open
 local io_close = io.close
 local os_time = os.time
@@ -58,12 +56,12 @@ local debug_getlocal = debug.getlocal
 
 -- internal function, advise you not to call it directly.
 function printLog(tag, fmt, ...)
-    if ngx and ngx_log then
+    if ngx_log then
         ngx_log(ngx[tag], table_format(tostring(fmt), ...))
         if tag == "ERR" then
             ngx_log(ngx.ERR, debug_traceback("", 2))
         end
-        return nil
+        return
     end
 
     local t = {
@@ -391,14 +389,15 @@ function math.trunc(x)
     return x;
 end
 
-local _PI_DIV_180 = PI / 180
+local _pi = math.pi
+local _piDiv180 = _pi / 180
 function math.angle2radian(angle)
-    return angle * _PI_DIV_180
+    return angle * _piDiv180
 end
 
-local _PI_MUL_180 = PI * 180
+local _piMul180 = _pi * 180
 function math.radian2angle(radian)
-    return radian / _PI_MUL_180
+    return radian / _piMul180
 end
 
 function io.exists(path)
@@ -577,22 +576,21 @@ function table.unique(t, bArray)
     return n
 end
 
-string._htmlspecialchars_set = {}
-string._htmlspecialchars_set["&"] = "&amp;"
-string._htmlspecialchars_set["\""] = "&quot;"
-string._htmlspecialchars_set["'"] = "&#039;"
-string._htmlspecialchars_set["<"] = "&lt;"
-string._htmlspecialchars_set[">"] = "&gt;"
-
+local _htmlSpecialCharsTable = {}
+_htmlSpecialCharsTable["&"] = "&amp;"
+_htmlSpecialCharsTable["\""] = "&quot;"
+_htmlSpecialCharsTable["'"] = "&#039;"
+_htmlSpecialCharsTable["<"] = "&lt;"
+_htmlSpecialCharsTable[">"] = "&gt;"
 function string.htmlspecialchars(input)
-    for k, v in pairs(string._htmlspecialchars_set) do
+    for k, v in pairs(_htmlSpecialCharsTable) do
         input = string_gsub(input, k, v)
     end
     return input
 end
 
 function string.restorehtmlspecialchars(input)
-    for k, v in pairs(string._htmlspecialchars_set) do
+    for k, v in pairs(_htmlSpecialCharsTable) do
         input = string_gsub(input, v, k)
     end
     return input
@@ -615,7 +613,6 @@ function string.split(input, delimiter)
     delimiter = tostring(delimiter)
     if (delimiter=='') then return false end
     local pos,arr = 0, {}
-    -- for each divider found
     for st,sp in function() return string_find(input, delimiter, pos, true) end do
         table_insert(arr, string_sub(input, pos, st - 1))
         pos = sp + 1
@@ -645,17 +642,15 @@ local function urlencodechar(char)
     return "%" .. table_format("%02X", string_byte(char))
 end
 function string.urlencode(input)
-    -- convert line endings
     input = string_gsub(tostring(input), "\n", "\r\n")
-    -- escape all characters but alphanumeric, '.' and '-'
     input = string_gsub(input, "([^%w%.%- ])", urlencodechar)
-    -- convert spaces to "+" symbols
     return string_gsub(input, " ", "+")
 end
 
+local _checknumber = checknumber
 function string.urldecode(input)
     input = string_gsub (input, "+", " ")
-    input = string_gsub (input, "%%(%x%x)", function(h) return string_char(checknumber(h,16)) end)
+    input = string_gsub (input, "%%(%x%x)", function(h) return string_char(_checknumber(h, 16)) end)
     input = string_gsub (input, "\r\n", "\n")
     return input
 end

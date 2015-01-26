@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 local tostring = tostring
 local pcall = pcall
+local debug_traceback = debug.traceback
 
 local json = {}
 local cjson = require("cjson")
@@ -31,13 +32,15 @@ local cjson = require("cjson")
 function json.encode(var)
     local status, result = pcall(cjson.encode, var)
     if status then return result end
-    printInfo("json.encode() - encoding failed: %s", tostring(result))
+    printWarn("json.encode() - encoding failed. call from %s", debug_traceback("", 2))
+    return false, result
 end
 
 function json.decode(text)
     local status, result = pcall(cjson.decode, text)
     if status then return result end
-    printInfo("json.decode() - decoding failed: %s", tostring(result))
+    printWarn("json.encode() - decoding failed. call from %s", debug_traceback("", 2))
+    return false, result
 end
 
 json.null = cjson.null
