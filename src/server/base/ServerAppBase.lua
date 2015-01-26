@@ -26,16 +26,9 @@ THE SOFTWARE.
 
 local ServerAppBase = class("ServerAppBase")
 
-ServerAppBase.INVALID_CONFIG_ERROR     = "INVALID_CONFIG_ERROR"
-ServerAppBase.INVALID_RESULT_ERROR     = "INVALID_RESULT_ERROR"
-ServerAppBase.INVALID_PARAMETERS_ERROR = "INVALID_PARAMETERS_ERROR"
-ServerAppBase.INVALID_ACTION_ERROR     = "INVALID_ACTION_ERROR"
-ServerAppBase.OPERATION_FAILED_ERROR   = "OPERATION_FAILED_ERROR"
-ServerAppBase.UNKNOWN_ERROR_ERROR      = "UNKNOWN_ERROR_ERROR"
-
-ServerAppBase.APP_RUN_EVENT            = "APP_RUN_EVENT"
-ServerAppBase.APP_QUIT_EVENT           = "APP_QUIT_EVENT"
-ServerAppBase.CLIENT_ABORT_EVENT       = "CLIENT_ABORT_EVENT"
+ServerAppBase.APP_RUN_EVENT      = "APP_RUN_EVENT"
+ServerAppBase.APP_QUIT_EVENT     = "APP_QUIT_EVENT"
+ServerAppBase.CLIENT_ABORT_EVENT = "CLIENT_ABORT_EVENT"
 
 local SID_KEY = "_SID_KEY"
 
@@ -53,12 +46,12 @@ end
 
 function ServerAppBase:run()
     self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
-    local ret = self:runEventLoop()
-    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT, ret = ret})
+    self:runEventLoop()
+    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 end
 
 function ServerAppBase:runEventLoop()
-    error(ServerAppBase.OPERATION_FAILED_ERROR, "ServerAppBase:runEventLoop() - must override in inherited class")
+    error(string.format("ServerAppBase:runEventLoop() - must override in inherited class"))
 end
 
 function ServerAppBase:doRequest(actionName, data)
@@ -78,29 +71,35 @@ function ServerAppBase:doRequest(actionName, data)
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath))
+        error(string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath))
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName))
+        error(string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName))
     end
 
     if not data then
-        -- self._requestParameters can be set by ngx.req.get_uri_args()
+        -- self._requestParameters can be set by HttpServerBase
         data = self._requestParameters or {}
     end
 
-    return method(action, data)
+    local result = method(action, data)
+    local rtype = type(result)
+    if rtype == "table" then
+        return result
+    end
+
+    error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModulePath, actionMethodName, rtype))
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
+        error(string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
     end
     if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
+        error(string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
     end
     actionModuleName = string.ucfirst(string.lower(actionModuleName))
     self._actionModules[actionModuleName] = actionModule
@@ -173,12 +172,11 @@ function ServerAppBase:setSidTag(key)
     redis:connect()
     local ok, err = redis:command("INCR", SID_KEY)
     if not ok then
-        error(ServerAppBase.OPERATION_FAILED_ERROR, string.format("Generate websocketUid failed: %s", err))
+        error(string.format("Generate websocketUid failed: %s", err))
     end
     self.socketId = ok
     self.internalChannel = string.format("channel.%s", self.socketId)
     redis:command("SET", key, ok)
-
     redis:close()
 end
 

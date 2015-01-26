@@ -24,6 +24,8 @@ THE SOFTWARE.
 
 ]]
 
+local ngx_say = ngx.say
+
 local HttpServerBase = class("HttpServerBase", import(".ServerAppBase"))
 
 function HttpServerBase:ctor(config)
@@ -74,7 +76,22 @@ function HttpServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        printWarn("failed to register the on_abort callback, ", err)
+        printWarn("HttpServerBase:ctor() - failed to register the on_abort callback, %s", err)
+    end
+end
+
+function HttpServerBase:run()
+    self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
+    local ok, result = self:runEventLoop()
+    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+    if ok then
+        ngx.status = ngx.HTTP_OK
+        ngx.say(result)
+        ngx.exit(ngx.HTTP_OK)
+    else
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.say(result)
+        ngx.exit(ngx.HTTP_OK)
     end
 end
 
@@ -83,25 +100,19 @@ function HttpServerBase:runEventLoop()
     local uri = self._uri
     local action = string.gsub(uri, "/", ".")
     if DEBUG > 1 then
-        printInfo("HttpServerBase:runEventLoop() - action: %s", action)
-        self:dumpRequestParameters()
+        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", action, json.encode(self._requestParameters))
     end
 
     local result = self:doRequest(action, self._requestParameters)
-    if result then
-        local rtype = type(result)
-        if rtype == "string" then
-            ngx.say(result)
-        elseif rtype == "table" then
-            ngx.say(json.encode(result))
-        else
-            ngx.say("unexpected result: ", tostring(result))
-        end
+    if not result then return true end
+    if type(result) == "table" then
+        result = json.encode(result)
     end
-end
-
-function HttpServerBase:dumpRequestParameters()
-    printInfo("HttpServerBase:runEventLoop() - params: %s", json.encode(self._requestParameters))
+    if type(result) == "string" then
+        return true, result
+    else
+        return false, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
+    end
 end
 
 return HttpServerBase
