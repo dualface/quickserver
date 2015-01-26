@@ -28,7 +28,6 @@ if type(DEBUG) ~= "number" then DEBUG = 0 end
 cc = cc or {}
 
 require("framework.functions")
-require("framework.errors")
 require("framework.package_support")
 json = require("framework.json")
 
