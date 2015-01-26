@@ -24,58 +24,72 @@ THE SOFTWARE.
 
 ]]
 
-local sidKey = "sid_key_"
-
 local ServerAppBase = class("ServerAppBase")
 
-ServerAppBase.APP_RUN_EVENT          = "APP_RUN_EVENT"
-ServerAppBase.APP_QUIT_EVENT         = "APP_QUIT_EVENT"
-ServerAppBase.CLIENT_ABORT_EVENT     = "CLIENT_ABORT_EVENT"
+ServerAppBase.INVALID_CONFIG_ERROR     = "INVALID_CONFIG_ERROR"
+ServerAppBase.INVALID_RESULT_ERROR     = "INVALID_RESULT_ERROR"
+ServerAppBase.INVALID_PARAMETERS_ERROR = "INVALID_PARAMETERS_ERROR"
+ServerAppBase.INVALID_ACTION_ERROR     = "INVALID_ACTION_ERROR"
+ServerAppBase.OPERATION_FAILED_ERROR   = "OPERATION_FAILED_ERROR"
+ServerAppBase.UNKNOWN_ERROR_ERROR      = "UNKNOWN_ERROR_ERROR"
+
+ServerAppBase.APP_RUN_EVENT            = "APP_RUN_EVENT"
+ServerAppBase.APP_QUIT_EVENT           = "APP_QUIT_EVENT"
+ServerAppBase.CLIENT_ABORT_EVENT       = "CLIENT_ABORT_EVENT"
+
+local SID_KEY = "_SID_KEY"
 
 function ServerAppBase:ctor(config)
     cc.bind(self, "event")
 
-    self.isRunning = true
-    self.config = clone(totable(config))
+    self.config = clone(checktable(config))
     self.config.appModuleName = config.appModuleName or "app"
     self.config.actionPackage = config.actionPackage or "actions"
     self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
 
-    self.actionModules_ = {}
+    self._actionModules = {}
+    self._requestParameters = nil
 end
 
 function ServerAppBase:run()
     self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
     local ret = self:runEventLoop()
-    self.isRunning = false
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT, ret = ret})
 end
 
 function ServerAppBase:runEventLoop()
-    throw(ERR_SERVER_OPERATION_FAILED, "ServerAppBase:runEventLoop() - must override in inherited class")
+    error(ServerAppBase.OPERATION_FAILED_ERROR, "ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
 function ServerAppBase:doRequest(actionName, data)
     local actionPackage = self.config.actionPackage
 
+    -- parse actionName
     local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
-    actionMethodName = actionMethodName .. "Action"
-    local actionModulePath = string.format("%s.%s%s", actionPackage, actionModuleName, self.config.actionModuleSuffix)
+    actionMethodName = actionMethodName .. self.config.actionModuleSuffix
 
-    local actionModule = self.actionModules_[actionModuleName] or self:require(actionModulePath)
+    -- check registered action module before load module
+    local actionModule = self._actionModules[actionModuleName]
+    if not actionModule then
+        local actionModulePath = string.format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
+        local ok, _actionModule = pcall(require,  actionModulePath)
+        if ok then actionModule = _actionModule end
+    end
+
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        throw(ERR_SERVER_INVALID_ACTION, "failed to load action module %s", actionModuleName)
+        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath))
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        throw(ERR_SERVER_INVALID_ACTION, "invalid action %s:%s", actionModuleName, actionMethodName)
+        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName))
     end
 
     if not data then
-        data = self.requestParameters or {}
+        -- self._requestParameters can be set by ngx.req.get_uri_args()
+        data = self._requestParameters or {}
     end
 
     return method(action, data)
@@ -83,20 +97,17 @@ end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        throw(ERR_SERVER_INVALID_ACTION, "invalid action module name")
+        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
+    end
+    if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
+        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
     end
     actionModuleName = string.ucfirst(string.lower(actionModuleName))
-    self.actionModules_[actionModuleName] = actionModule
-end
-
-function ServerAppBase:require(moduleName)
-    moduleName = self.config.appModuleName .. "." .. moduleName
-
-    return require(moduleName)
+    self._actionModules[actionModuleName] = actionModule
 end
 
 function ServerAppBase:normalizeActionName(actionName)
-    local actionName = actionName or (self.GET.action or "index.index")
+    local actionName = actionName or "index.index"
     actionName = string.gsub(actionName, "[^%a.]", "")
     actionName = string.gsub(actionName, "^[.]+", "")
     actionName = string.gsub(actionName, "[.]+$", "")
@@ -125,7 +136,7 @@ function ServerAppBase:newSessionId(data)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
     redis:command("SET", sessionId, str)
-    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime) 
+    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime)
     redis:close()
 
     return sessionId, nil
@@ -134,7 +145,7 @@ end
 function ServerAppBase:sendMessage(sid, msg)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local ch = string.format("channel.%s", sid) 
+    local ch = string.format("channel.%s", sid)
     redis:command("PUBLISH", ch, msg)
 
     redis:close()
@@ -143,13 +154,13 @@ end
 function ServerAppBase:getSidByTag(key)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local sid = redis:command("GET", key)    
+    local sid = redis:command("GET", key)
     if sid == nil then
         redis:close()
         return nil, err
     end
     if ngx and sid == ngx.null then
-        redis:close()    
+        redis:close()
         return nil, "sid does NOT exist"
     end
     redis:close()
@@ -160,9 +171,9 @@ end
 function ServerAppBase:setSidTag(key)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local ok, err = redis:command("INCR", sidKey)
+    local ok, err = redis:command("INCR", SID_KEY)
     if not ok then
-        throw(ERR_SERVER_OPERATION_FAILED, "Generate websocketUid failed: %s", err)
+        error(ServerAppBase.OPERATION_FAILED_ERROR, string.format("Generate websocketUid failed: %s", err))
     end
     self.socketId = ok
     self.internalChannel = string.format("channel.%s", self.socketId)
@@ -181,7 +192,7 @@ end
 function ServerAppBase:checkSessionId(data)
     local sessionId = data.session_id
     if not sessionId then
-        return nil, "check session id failed: session id is null" 
+        return nil, "check session id failed: session id is null"
     end
 
     local redis = cc.load("redis").service.new(self.config.redis)
@@ -199,12 +210,12 @@ function ServerAppBase:checkSessionId(data)
 
     local oriStrTable = string.split(str, "!")
     local ip = ngx.var.remote_addr
-    if data.app_name ~= oriStrTable[1] or data.tag ~= oriStrTable[3] or ip ~= oriStrTable[4] then 
+    if data.app_name ~= oriStrTable[1] or data.tag ~= oriStrTable[3] or ip ~= oriStrTable[4] then
         redis:close()
         return nil, "check session id failed: verify failed"
     end
 
-    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime) 
+    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime)
     redis:close()
 
     return data.tag, nil

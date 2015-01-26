@@ -24,30 +24,49 @@ THE SOFTWARE.
 
 ]]
 
-local ServerAppBase = import(".ServerAppBase")
-
-local HttpServerBase = class("HttpServerBase", ServerAppBase)
+local HttpServerBase = class("HttpServerBase", import(".ServerAppBase"))
 
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
 
-    self.requestType = "http"
-    self.uri = ngx.var.uri
-    self.requestMethod = ngx.req.get_method()
-    self.requestParameters = ngx.req.get_uri_args()
+    self._requestType = "http"
+    self._uri = ngx.var.uri
+    self._requestMethod = ngx.req.get_method()
+    self._requestParameters = ngx.req.get_uri_args()
 
-    if self.requestMethod == "POST" then
+    if self._requestMethod == "POST" then
         ngx.req.read_body()
         -- handle json body
-        local conType = ngx.req.get_headers(0)["Content-Type"]
-        if conType == "application/json" then
-            local body = json.decode(ngx.req.get_body_data())
-            --since 'table.merge' is implemented stupid, can't use here to merge a complex json table.
-            --TODO: need re-implement 'table.merge'
-            --table.merge(self.requestParameters, body)
-            self.requestParameters = body
+        local headers = ngx.req.get_headers()
+        if headers["Content-Type"] == "application/json" then
+            local body = ngx.req.get_body_data()
+            --[[
+            This function returns nil if
+
+            - the request body has not been read,
+            - the request body has been read into disk temporary files,
+            - or the request body has zero size.
+
+            If the request body has not been read yet, call ngx.req.read_body first
+            (or turned on lua_need_request_body to force this module to read the
+            request body. This is not recommended however).
+
+            If the request body has been read into disk files, try calling
+            the ngx.req.get_body_file function instead.
+
+            To force in-memory request bodies, try setting client_body_buffer_size
+            to the same size value in client_max_body_size.
+            ]]
+            if body then
+                body = json.decode(body)
+                if body then
+                    table.merge(self._requestParameters, body)
+                else
+                    printWarn("HttpServerBase:ctor() - invalid JSON content")
+                end
+            end
         else
-            table.merge(self.requestParameters, ngx.req.get_post_args())
+            table.merge(self._requestParameters, ngx.req.get_post_args())
         end
     end
 
@@ -55,31 +74,25 @@ function HttpServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        printInfo("failed to register the on_abort callback, ", err)
+        printWarn("failed to register the on_abort callback, ", err)
     end
 end
 
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
-    local uri = self.uri
-    local rawAction = string.gsub(uri, "/", ".")
-
-    printInfo("requst via HTTP,  Action: %s", rawAction)
-    self:dumpParams()
-
-    if string.lower(rawAction) == ".session" then
-        local sid = self:newSessionId(self.requestParameters)
-        ngx.say(sid)
-        return
+    local uri = self._uri
+    local action = string.gsub(uri, "/", ".")
+    if DEBUG > 1 then
+        printInfo("HttpServerBase:runEventLoop() - action: %s", action)
+        self:dumpRequestParameters()
     end
 
-    local result = self:doRequest(rawAction, self.requestParameters)
-
-    -- simple http rsp
-    if result  then
-        if type(result) == "string" then
+    local result = self:doRequest(action, self._requestParameters)
+    if result then
+        local rtype = type(result)
+        if rtype == "string" then
             ngx.say(result)
-        elseif type(result) == "table" then
+        elseif rtype == "table" then
             ngx.say(json.encode(result))
         else
             ngx.say("unexpected result: ", tostring(result))
@@ -87,9 +100,8 @@ function HttpServerBase:runEventLoop()
     end
 end
 
--- for debug
-function HttpServerBase:dumpParams()
-    printInfo("DUMP HTTP params: %s", json.encode(self.requestParameters))
+function HttpServerBase:dumpRequestParameters()
+    printInfo("HttpServerBase:runEventLoop() - params: %s", json.encode(self._requestParameters))
 end
 
 return HttpServerBase
