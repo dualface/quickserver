@@ -29,9 +29,9 @@ local next = next
 local pairs = pairs
 local tonumber = tonumber
 local tostring = tostring
-local tblLength = table.nums
-local tblInsert = table.insert
-local strFormat = string.format
+local table_length = table.nums
+local table_insert = table.insert
+local string_format = string.format
 
 local LeaderboardService = class("LeaderboardService")
 
@@ -51,7 +51,7 @@ end
 local function checkParams_(data, ...)
     local arg = {...}
 
-    if tblLength(arg) == 0 then
+    if table_length(arg) == 0 then
         return true
     end
 
@@ -120,14 +120,14 @@ function LeaderboardService:add(data)
     end
 
     if rds:command("hget", "__ranklist_uid", data.uid) ~= "1" then
-        return nil, strFormat("'uid(%s)' doesn't exist.", data.uid)
+        return nil, string_format("'uid(%s)' doesn't exist.", data.uid)
     end
 
     local listName = data.ranklist
     local key = data.uid
     local value = tonumber(data.value)
     if type(value) ~= "number" then
-        return nil, strFormat("'value(%s)' is not a number.", tostring(data.value))
+        return nil, string_format("'value(%s)' is not a number.", tostring(data.value))
     end
     local ok, err = rds:command("zadd", listName, value, key)
     if not ok then
@@ -215,7 +215,7 @@ function LeaderboardService:getScoreRange(data)
     local upper = tonumber(data.max)
     local lower = tonumber(data.min)
     if not upper or not lower then
-        return nil, strFormat("'max(%s)' or 'min(%s)' is not a number.", tostring(data.max), tostring(data.min))
+        return nil, string_format("'max(%s)' or 'min(%s)' is not a number.", tostring(data.max), tostring(data.min))
     end
 
     local r, err = rds:command("zrangebyscore", listName, lower, upper)
@@ -229,7 +229,7 @@ function LeaderboardService:getScoreRange(data)
         if not s then
             return nil, err
         end
-        tblInsert(res, {uid = v, score = s})
+        table_insert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil
@@ -316,7 +316,7 @@ function LeaderboardService:getRankRange(data)
     local offset = tonumber(data.offset)
     local count = tonumber(data.count)
     if not offset or not count then
-        return nil, strFormat("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
+        return nil, string_format("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
     end
     offset = offset - 1
 
@@ -336,7 +336,7 @@ function LeaderboardService:getRankRange(data)
         if not s then
             return nil, err
         end
-        tblInsert(res, {uid = v, score = s})
+        table_insert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil
@@ -365,7 +365,7 @@ function LeaderboardService:getRevRankRange(data)
     local offset = tonumber(data.offset)
     local count = tonumber(data.count)
     if not offset or not count then
-        return nil, strFormat("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
+        return nil, string_format("'offset(%s)' or 'count(%s)' is not a number.", tostring(data.offset), tostring(data.count))
     end
     offset = offset - 1
 
@@ -385,7 +385,7 @@ function LeaderboardService:getRevRankRange(data)
         if not s then
             return nil, err
         end
-        tblInsert(res, {uid = v, score = s})
+        table_insert(res, {uid = v, score = s})
     end
     if next(res) == nil then
         return "null", nil
@@ -413,7 +413,7 @@ function LeaderboardService:limit(data)
     local listName = data.ranklist
     local count = tonumber(data.count)
     if not count then
-        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
+        return nil, string_format("'count(%s) is not a number.", tostring(data.count))
     end
 
     if count < 0 then
@@ -447,7 +447,7 @@ function LeaderboardService:revLimit(data)
     local listName = data.ranklist
     local count = tonumber(data.count)
     if not count then
-        return nil, strFormat("'count(%s) is not a number.", tostring(data.count))
+        return nil, string_format("'count(%s) is not a number.", tostring(data.count))
     end
 
     if count < 0 then

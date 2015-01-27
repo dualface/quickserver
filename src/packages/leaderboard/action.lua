@@ -24,13 +24,13 @@ THE SOFTWARE.
 
 ]]
 
-local strFormat = string.format
-local mathTrunc = math.trunc
+local string_format = string.format
+local math_trunc = math.trunc
 
 local LeaderboardAction = class("LeaderboardAction")
 
 local function err_(...)
-    return {err_msg = strFormat(...)}
+    return {err_msg = string_format(...)}
 end
 
 local service = import(".service")
@@ -78,7 +78,7 @@ function LeaderboardAction:addAction(data)
         return err_(err)
     end
 
-    return {ok = 1, uid = uid, percent = mathTrunc(rank/c*100)}
+    return {ok = 1, uid = uid, percent = math_trunc(rank/c*100)}
 end
 
 function LeaderboardAction:removeAction(data)

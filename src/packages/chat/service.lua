@@ -26,9 +26,9 @@ THE SOFTWARE.
 
 local pairs = pairs
 local type = type
-local tblLength = table.nums
-local jsonEncode = json.encode
-local localtime = os.date
+local table_nums = table.nums
+local json_encode = json.encode
+local os_date = os.date
 
 local ChatService = class("ChatService")
 
@@ -44,7 +44,7 @@ end
 local function checkParams_(data, ...)
     local arg = {...}
 
-    if tblLength(arg) == 0 then
+    if table_nums(arg) == 0 then
         return true
     end
 
@@ -72,7 +72,7 @@ function ChatService:broadcast(data)
     end
 
     rds:connect()
-    data.time = localtime("%Y-%m-%d %H:%M:%S")
+    data.time = os_date("%Y-%m-%d %H:%M:%S")
 
     local to = data.to 
     data.to = nil
@@ -81,7 +81,7 @@ function ChatService:broadcast(data)
     for _, v in ipairs(to) do
         local sid = self.app:getSidByTag(v)
         if sid then
-            self.app:sendMessage(sid, jsonEncode(data))
+            self.app:sendMessage(sid, json_encode(data))
         end
     end
     

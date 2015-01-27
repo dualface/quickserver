@@ -26,8 +26,8 @@ THE SOFTWARE.
 
 local type = type
 local pairs = pairs
-local strFormat = string.format
-local tblConcat = table.concat
+local string_format = string.format
+local table_concat = table.concat
 
 local MysqlService = class("MysqlService")
 
@@ -88,7 +88,7 @@ function MysqlService:escapeValue_(value)
 end
 
 function MysqlService:escapeName_(name)
-    return strFormat([[`%s`]], name)
+    return string_format([[`%s`]], name)
 end
 
 function MysqlService:insert(tableName, params)
@@ -105,10 +105,10 @@ function MysqlService:insert(tableName, params)
         fieldValues[#fieldValues + 1] = self:escapeValue_(value)
     end
 
-    local sql = strFormat("INSERT INTO %s (%s) VALUES (%s)",
+    local sql = string_format("INSERT INTO %s (%s) VALUES (%s)",
                        self:escapeName_(tableName),
-                       tblConcat(fieldNames, ","),
-                       tblConcat(fieldValues, ","))
+                       table_concat(fieldNames, ","),
+                       table_concat(fieldValues, ","))
 
     return mysql:query(sql)
 end
@@ -130,10 +130,10 @@ function MysqlService:update(tableName, params, where)
         whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
     end
 
-    local sql = strFormat("UPDATE %s SET %s %s",
+    local sql = string_format("UPDATE %s SET %s %s",
                        self:escapeName_(tableName),
-                       tblConcat(fields, ","),
-                       "WHERE " .. tblConcat(whereFields, " AND "))
+                       table_concat(fields, ","),
+                       "WHERE " .. table_concat(whereFields, " AND "))
 
     return mysql:query(sql)
 end
@@ -150,9 +150,9 @@ function MysqlService:del(tableName, where)
         whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
     end
 
-    local sql = strFormat("DElETE FROM %s %s",
+    local sql = string_format("DElETE FROM %s %s",
                        self:escapeName_(tableName),
-                       "WHERE " .. tblConcat(whereFields, " AND "))
+                       "WHERE " .. table_concat(whereFields, " AND "))
 
     return mysql:query(sql)
 end

@@ -29,12 +29,12 @@ local type = type
 local ipairs = ipairs
 local tostring = tostring
 local print = print
-local tblConcat = table.concat
-local tblRemove = table.remove
-local tblWalk = table.walk
-local strUpper = string.upper
-local strFormat = string.format
-local strMatch = string.match
+local table_concat = table.concat
+local table_remove = table.remove
+local table_walk = table.walk
+local string_upper = string.upper
+local string_format = string.format
+local string_match = string.match
 
 local redis = require("resty.redis")
 
@@ -61,12 +61,12 @@ end
 
 function RestyRedisAdapter:command(command, ...)
     local method = self.instance[command]
-    assert(type(method) == "function", strFormat("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
+    assert(type(method) == "function", string_format("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
 
     if self.config.debug then
         local a = {}
-        tblWalk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printf("[REDIS] %s: %s", strUpper(command), tblConcat(a, ", "))
+        table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
+        printf("[REDIS] %s: %s", string_upper(command), table_concat(a, ", "))
     end
 
     return method(self.instance, ...)
@@ -125,7 +125,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
             local result, err
             if #subscribeMessages > 0 then
                 result = subscribeMessages[1]
-                tblRemove(subscribeMessages, 1)
+                table_remove(subscribeMessages, 1)
             else
                 result, err = self.instance:read_reply()
             end
@@ -153,10 +153,10 @@ function RestyRedisAdapter:pubsub(subscriptions)
                     }
                 end
 
-                if strMatch(message.kind, '^p?subscribe$') then
+                if string_match(message.kind, '^p?subscribe$') then
                     subscriptionsCount = subscriptionsCount + 1
                 end
-                if strMatch(message.kind, '^p?unsubscribe$') then
+                if string_match(message.kind, '^p?unsubscribe$') then
                     subscriptionsCount = subscriptionsCount - 1
                 end
 

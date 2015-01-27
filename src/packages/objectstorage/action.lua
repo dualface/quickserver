@@ -24,12 +24,12 @@ THE SOFTWARE.
 
 ]]
 
-local strFormat = string.format
+local string_format = string.format
 
 local ObjectstorageAction = class("ObjectstorageAction")
 
 local function err_(...)
-   return {err_msg = strFormat(...)}
+   return {err_msg = string_format(...)}
 end
 
 local service = import(".service")
