@@ -87,7 +87,19 @@ function HttpServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        printWarn("HttpServerBase:ctor() - failed to register the on_abort callback: %s ", err)
+        printWarn("HttpServerBase:ctor() - failed to register the on_abort callback, %s", err)
+    end
+end
+
+function HttpServerBase:run()
+    local ok, result = self:runEventLoop()
+    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+    if ok then
+        ngx.status = ngx.HTTP_OK
+        ngx.say(result)
+    else
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.say(result)
     end
 end
 
@@ -95,26 +107,21 @@ end
 function HttpServerBase:runEventLoop()
     local uri = self._uri
     local action = string_gsub(uri, "/", ".")
-    if DEBUG > 1 then
-        printInfo("HttpServerBase:runEventLoop() - action: %s", action)
-        self:dumpRequestParameters()
-    end
+    printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", action, json.encode(self._requestParameters))
 
     local result = self:doRequest(action, self._requestParameters)
-    if result then
-        local rtype = type(result)
-        if rtype == "string" then
-            ngx_say(result)
-        elseif rtype == "table" then
-            ngx_say(json.encode(result))
-        else
-            ngx_say("unexpected result: ", tostring(result))
-        end
-    end
-end
 
-function HttpServerBase:dumpRequestParameters()
-    printInfo("HttpServerBase:runEventLoop() - params: %s", json.encode(self._requestParameters))
+    if not result then return true end
+    if type(result) == "table" then
+        result = json.encode(result)
+    end
+    if type(result) == "string" then
+        return true, result
+    else
+        return false, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
+    end
+
+    printInfo("HttpServerBase:runEventLoop() - QUIT")
 end
 
 return HttpServerBase

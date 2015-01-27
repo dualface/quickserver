@@ -57,8 +57,8 @@ end
 
 function ServerAppBase:run()
     self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
-    local ret = self:runEventLoop()
-    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT, ret = ret})
+    self:runEventLoop()
+    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 end
 
 function ServerAppBase:runEventLoop()
@@ -94,11 +94,17 @@ function ServerAppBase:doRequest(actionName, data)
     end
 
     if not data then
-        -- self._requestParameters can be set by ngx.req.get_uri_args()
+        -- self._requestParameters can be set by HttpServerBase
         data = self._requestParameters or {}
     end
 
-    return method(action, data)
+    local result = method(action, data)
+    local rtype = type(result)
+    if rtype == "table" then
+        return result
+    end
+
+    error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModulePath, actionMethodName, rtype))
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
@@ -187,7 +193,6 @@ function ServerAppBase:setSidTag(key)
     self.socketId = ok
     self.internalChannel = string_format("channel.%s", self.socketId)
     redis:command("SET", key, ok)
-
     redis:close()
 end
 
