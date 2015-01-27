@@ -24,14 +24,18 @@ THE SOFTWARE.
 
 ]]
 
-local ServerAppBase = class("ServerAppBase")
+local pcall = pcall
+local type = type
+local ngx = ngx
+local ngx_exit = ngx.exit
+local table_remove = table.remove
+local table_concat = table.concat
+local string_format = string.format
+local string_gsub = string.gsub
+local string_lower = string.lower
+local os_time = os.time
 
-ServerAppBase.INVALID_CONFIG_ERROR     = "INVALID_CONFIG_ERROR"
-ServerAppBase.INVALID_RESULT_ERROR     = "INVALID_RESULT_ERROR"
-ServerAppBase.INVALID_PARAMETERS_ERROR = "INVALID_PARAMETERS_ERROR"
-ServerAppBase.INVALID_ACTION_ERROR     = "INVALID_ACTION_ERROR"
-ServerAppBase.OPERATION_FAILED_ERROR   = "OPERATION_FAILED_ERROR"
-ServerAppBase.UNKNOWN_ERROR_ERROR      = "UNKNOWN_ERROR_ERROR"
+local ServerAppBase = class("ServerAppBase")
 
 ServerAppBase.APP_RUN_EVENT            = "APP_RUN_EVENT"
 ServerAppBase.APP_QUIT_EVENT           = "APP_QUIT_EVENT"
@@ -58,7 +62,7 @@ function ServerAppBase:run()
 end
 
 function ServerAppBase:runEventLoop()
-    error(ServerAppBase.OPERATION_FAILED_ERROR, "ServerAppBase:runEventLoop() - must override in inherited class")
+    printError("ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
 function ServerAppBase:doRequest(actionName, data)
@@ -71,20 +75,22 @@ function ServerAppBase:doRequest(actionName, data)
     -- check registered action module before load module
     local actionModule = self._actionModules[actionModuleName]
     if not actionModule then
-        local actionModulePath = string.format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
+        local actionModulePath = string_format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
         local ok, _actionModule = pcall(require,  actionModulePath)
         if ok then actionModule = _actionModule end
     end
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath))
+        printError("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath)
+        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName))
+        printError("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName)
+        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
 
     if not data then
@@ -97,55 +103,57 @@ end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
+        printError("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName)
+        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        error(ServerAppBase.INVALID_ACTION_ERROR, string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
+        printError("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName)
+        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
-    actionModuleName = string.ucfirst(string.lower(actionModuleName))
+    actionModuleName = string.ucfirst(string_lower(actionModuleName))
     self._actionModules[actionModuleName] = actionModule
 end
 
 function ServerAppBase:normalizeActionName(actionName)
     local actionName = actionName or "index.index"
-    actionName = string.gsub(actionName, "[^%a.]", "")
-    actionName = string.gsub(actionName, "^[.]+", "")
-    actionName = string.gsub(actionName, "[.]+$", "")
+    actionName = string_gsub(actionName, "[^%a.]", "")
+    actionName = string_gsub(actionName, "^[.]+", "")
+    actionName = string_gsub(actionName, "[.]+$", "")
 
     local parts = string.split(actionName, ".")
     if #parts == 1 then parts[2] = 'index' end
-    method = string.lower(parts[#parts])
-    table.remove(parts, #parts)
-    parts[#parts] = string.ucfirst(string.lower(parts[#parts]))
+    method = string_lower(parts[#parts])
+    table_remove(parts, #parts)
+    parts[#parts] = string.ucfirst(string_lower(parts[#parts]))
 
-    return table.concat(parts, "."), method
+    return table_concat(parts, "."), method
 end
 
-function ServerAppBase:newSessionId(data)
+function ServerAppBase:newSession(data)
     if not data.tag then
         return nil, "miss parameter tag."
     end
 
     local app = self.config.appName
-    local time = os.time()
+    local time = os_time()
     local ip = ngx.var.remote_addr
 
     local str = app .. "!" .. time .. "!" .. data.tag .. "!" .. ip
-    local sessionId = ngx.md5(str)
+    local token = ngx.md5(str)
 
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    redis:command("SET", sessionId, str)
-    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime)
+    redis:command("SET", token, str)
+    redis:command("EXPIRE", token, self.config.sessionExpiredTime)
     redis:close()
 
-    return sessionId, nil
+    return token, nil
 end
 
 function ServerAppBase:sendMessage(sid, msg)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local ch = string.format("channel.%s", sid)
+    local ch = string_format("channel.%s", sid)
     redis:command("PUBLISH", ch, msg)
 
     redis:close()
@@ -173,10 +181,11 @@ function ServerAppBase:setSidTag(key)
     redis:connect()
     local ok, err = redis:command("INCR", SID_KEY)
     if not ok then
-        error(ServerAppBase.OPERATION_FAILED_ERROR, string.format("Generate websocketUid failed: %s", err))
+        printError("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
+        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
     self.socketId = ok
-    self.internalChannel = string.format("channel.%s", self.socketId)
+    self.internalChannel = string_format("channel.%s", self.socketId)
     redis:command("SET", key, ok)
 
     redis:close()
@@ -189,33 +198,33 @@ function ServerAppBase:unsetSidTag(key)
     redis:close()
 end
 
-function ServerAppBase:checkSessionId(data)
-    local sessionId = data.session_id
-    if not sessionId then
-        return nil, "check session id failed: session id is null"
+function ServerAppBase:checkSession(data)
+    local token = data.token
+    if not token then
+        return nil, "check session failed: token is null"
     end
 
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local str, err = redis:command("GET", sessionId)
+    local str, err = redis:command("GET", token)
     if not str then
         redis:close()
-        return nil, string.format("check session id failed: %s", err)
+        return nil, string_format("check session failed: %s", err)
     end
 
     if str == ngx.null then
         redis:close()
-        return nil, "check session id failed: session id is expired"
+        return nil, "check session id failed: session is expired"
     end
 
     local oriStrTable = string.split(str, "!")
     local ip = ngx.var.remote_addr
     if data.app_name ~= oriStrTable[1] or data.tag ~= oriStrTable[3] or ip ~= oriStrTable[4] then
         redis:close()
-        return nil, "check session id failed: verify failed"
+        return nil, "check session failed: verify token failed"
     end
 
-    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime)
+    redis:command("EXPIRE", token, self.config.sessionExpiredTime)
     redis:close()
 
     return data.tag, nil
