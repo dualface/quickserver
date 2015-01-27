@@ -24,6 +24,19 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+local tostring = tostring
+local ngx = ngx
+local ngx_say = ngx.say
+local req_get_headers = ngx.req.get_headers
+local req_get_body_data = ngx.req.get_body_data
+local req_get_method = ngx.req.get_method
+local req_get_uri_args = ngx.req.get_uri_args
+local req_read_body = ngx.req.read_body
+local req_get_post_args = ngx.req.get_post_args
+local table_merge = table.merge
+local string_gsub = string.gsub
+
 local HttpServerBase = class("HttpServerBase", import(".ServerAppBase"))
 
 function HttpServerBase:ctor(config)
@@ -31,15 +44,15 @@ function HttpServerBase:ctor(config)
 
     self._requestType = "http"
     self._uri = ngx.var.uri
-    self._requestMethod = ngx.req.get_method()
-    self._requestParameters = ngx.req.get_uri_args()
+    self._requestMethod = req_get_method()
+    self._requestParameters = req_get_uri_args()
 
     if self._requestMethod == "POST" then
-        ngx.req.read_body()
+        req_read_body()
         -- handle json body
-        local headers = ngx.req.get_headers()
+        local headers = req_get_headers()
         if headers["Content-Type"] == "application/json" then
-            local body = ngx.req.get_body_data()
+            local body = req_get_body_data()
             --[[
             This function returns nil if
 
@@ -60,13 +73,13 @@ function HttpServerBase:ctor(config)
             if body then
                 body = json.decode(body)
                 if body then
-                    table.merge(self._requestParameters, body)
+                    table_merge(self._requestParameters, body)
                 else
                     printWarn("HttpServerBase:ctor() - invalid JSON content")
                 end
             end
         else
-            table.merge(self._requestParameters, ngx.req.get_post_args())
+            table_merge(self._requestParameters, req_get_post_args())
         end
     end
 
@@ -74,14 +87,14 @@ function HttpServerBase:ctor(config)
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
     if not ok then
-        printWarn("failed to register the on_abort callback, ", err)
+        printWarn("HttpServerBase:ctor() - failed to register the on_abort callback: %s ", err)
     end
 end
 
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
     local uri = self._uri
-    local action = string.gsub(uri, "/", ".")
+    local action = string_gsub(uri, "/", ".")
     if DEBUG > 1 then
         printInfo("HttpServerBase:runEventLoop() - action: %s", action)
         self:dumpRequestParameters()
@@ -91,15 +104,13 @@ function HttpServerBase:runEventLoop()
     if result then
         local rtype = type(result)
         if rtype == "string" then
-            ngx.say(result)
+            ngx_say(result)
         elseif rtype == "table" then
-            ngx.say(json.encode(result))
+            ngx_say(json.encode(result))
         else
-            ngx.say("unexpected result: ", tostring(result))
+            ngx_say("unexpected result: ", tostring(result))
         end
     end
-
-    printInfo("----------- QUIT ------------")
 end
 
 function HttpServerBase:dumpRequestParameters()

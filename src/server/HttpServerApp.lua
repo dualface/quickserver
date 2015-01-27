@@ -24,6 +24,14 @@ THE SOFTWARE.
 
 ]]
 
+local xpcall = xpcall
+local string_find = string.find
+local string_gsub = string.gsub
+local string_len = string.len
+local string_format = string.format
+local string_sub = string.sub
+local json_encode = json.encode
+
 local HttpServerApp = class("HttpServerApp", cc.server.HttpServerBase)
 
 function HttpServerApp:ctor(config)
@@ -32,32 +40,36 @@ function HttpServerApp:ctor(config)
     printInfo("---------------- START -----------------")
 
     self:addEventListener(HttpServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
+    self:addEventListener(ServerAppBase.APP_QUIT_EVENT, self.onAppQuit, self)
 end
 
 function HttpServerApp:doRequest(actionName, data)
-    printInfo("HttpServerApp:doRequest, ACTION >> call [%s]", actionName)
+    printInfo("HttpServerApp:doRequest() - ACTION >> call [%s]", actionName)
 
     local _, result = xpcall(function()
         return HttpServerApp.super.doRequest(self, actionName, data)
     end,
     function(err)
-        local beg, rear = string.find(err, "module.*not found")
+        local beg, rear = string_find(err, "module.*not found")
         if beg then
-            err = string.sub(err, beg, rear)
+            err = string_sub(err, beg, rear)
         end
-        return {error = string.format([[HttpServerApp:doRequest, Handle http request failed: %s]], string.gsub(err, [[\]], ""))}
+        return {error = string_format([[HttpServerApp:doRequest, Handle http request failed: %s]], string_gsub(err, [[\]], ""))}
     end)
 
-    local j = json.encode(result)
-    printInfo("HttpServerApp:doRequest, ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
+    printInfo("HttpServerApp:doRequest() - ACTION << ret  [%s] = (%d bytes) %s", actionName, string_len(json_encode(resutl)), json_encode(resutl))
 
     return result
 end
 
 -- events callback
--- dummy here
-function HttpServerApp:onClientAbort(event)
 
+function HttpServerApp.onAppQuit(event)
+    printInfo("---------------- QUIT -----------------")
+end
+
+-- dummb here
+function HttpServerApp.onClientAbort(event)
 end
 
 return HttpServerApp
