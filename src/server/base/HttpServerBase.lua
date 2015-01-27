@@ -98,6 +98,8 @@ function HttpServerBase:runEventLoop()
             ngx.say("unexpected result: ", tostring(result))
         end
     end
+
+    printInfo("----------- QUIT ------------")
 end
 
 function HttpServerBase:dumpRequestParameters()
