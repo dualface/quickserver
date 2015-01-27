@@ -29,15 +29,15 @@ local ipairs =ipairs
 local next = next
 local sha1 = ngx.sha1_bin
 local base64 = ngx.encode_base64
-local tblInsert = table.insert
-local tblConcat = table.concat
-local strGsub = string.gsub
-local strSub = string.sub
-local strLower = string.lower
-local strUpper = string.upper
-local strFormat = string.format
-local jsonEncode = json.encode
-local jsonDecode = json.decode
+local table_insert = table.insert
+local table_concat = table.concat
+local string_gsub = string.gsub
+local string_sub = string.sub
+local string_lower = string.lower
+local string_upper = string.upper
+local string_format = string.format
+local json_encode = json.encode
+local json_decode = json.decode
 
 local ObjectstorageService = class("ObjectstorageService")
 
@@ -50,9 +50,9 @@ local function constructParams_(rawData)
                 end
         end
     end
-    local id = base64(sha1(jsonEncode(body)))
-    id = strGsub(id, [[/]], [[-]])  -- delete "/" symbol
-    local res = {id = strSub(id, 1, -2), body = jsonEncode(body)}
+    local id = base64(sha1(json_encode(body)))
+    id = string_gsub(id, [[/]], [[-]])  -- delete "/" symbol
+    local res = {id = string_sub(id, 1, -2), body = json_encode(body)}
 
     return res, body
 end
@@ -154,12 +154,12 @@ end
 
 function ObjectstorageService:handleInfos_(infos, rawData)
     for _, v in pairs(infos) do
-        v = strUpper(v)
+        v = string_upper(v)
         if keywords[v] then
-            local method = strLower(v)
+            local method = string_lower(v)
             local tmp = {}
             tmp[v] = self[method .. "_"](self)
-            tblInsert(rawData, tmp)
+            table_insert(rawData, tmp)
         end
     end
 end
@@ -190,7 +190,7 @@ function ObjectstorageService:saveObj(data)
     if infos ~= nil then
         for _, v in pairs(infos) do
             if keywords[v] then
-                tblInsert(indexes, strUpper(v))
+                table_insert(indexes, string_upper(v))
             end
         end
     end
@@ -232,12 +232,12 @@ function ObjectstorageService:updateObj(data)
         return "null", nil
     end
 
-    local oriProperty = jsonDecode(res[1].body)
+    local oriProperty = json_decode(res[1].body)
     local params, newProperty = constructParams_(rawData)
     for k,v in pairs(newProperty) do
         oriProperty[k] = v
     end
-    params.body = jsonEncode(oriProperty)
+    params.body = json_encode(oriProperty)
 
     res, err = mysql:update("entity", params, {id=id})
     if not res then
@@ -249,7 +249,7 @@ function ObjectstorageService:updateObj(data)
     if infos ~= nil then
         for _, v in pairs(infos) do
             if keywords[v] then
-                tblInsert(indexes, strUpper(v))
+                table_insert(indexes, string_upper(v))
             end
         end
     end
@@ -342,7 +342,7 @@ function ObjectstorageService:findObj(data)
             whereFields[#whereFields+1] = "id='" .. id .. "'"
         end
 
-        local sql = strFormat("select * from entity where %s;", tblConcat(whereFields, " OR "))
+        local sql = string_format("select * from entity where %s;", table_concat(whereFields, " OR "))
 
         res, err = mysql:query(sql)
         if not res then

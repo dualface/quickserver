@@ -27,12 +27,12 @@ THE SOFTWARE.
 local pairs = pairs
 local tonumber = tonumber
 local type = type
-local tblLength = table.nums
-local jsonEncode = json.encode
-local jsonDecode = json.decode
-local localtime = os.date
-local strFormat = string.format
-local strGsub = string.gsub
+local table_nums = table.nums
+local json_encode = json.encode
+local json_decode = json.decode
+local os_date = os.date
+local string_format = string.format
+local string_gsub = string.gsub
 
 local jobKey = "job_key_"
 local jobHashList = "job_hashlist_"
@@ -50,7 +50,7 @@ end
 local function checkParams_(data, ...)
     local arg = {...}
 
-    if tblLength(arg) == 0 then
+    if table_nums(arg) == 0 then
         return true
     end
 
@@ -86,11 +86,11 @@ function JobService:newJob(data)
     local jobRid, err = redis:command("INCR", jobKey)
     if not jobRid then
         redis:close()
-        return nil, strFormat("generate job id failed: %s", err)
+        return nil, string_format("generate job id failed: %s", err)
     end
 
     data.rid = jobRid
-    data.start_time = localtime("%Y-%m-%d %H:%M:%S")
+    data.start_time = os_date("%Y-%m-%d %H:%M:%S")
     data.action = nil
     data.msg_id = nil
 
@@ -98,23 +98,23 @@ function JobService:newJob(data)
     bean:connect()
     bean:command("use", self.jobTube)
     local jobBid
-    jobBid, err = bean:command("put", jsonEncode(data), tonumber(data.priority), tonumber(data.delay))
+    jobBid, err = bean:command("put", json_encode(data), tonumber(data.priority), tonumber(data.delay))
     if not jobBid then
         redis:close()
         bean:close()
-        return nil, strFormat("put job to beanstalkd failed: %s", err)
+        return nil, string_format("put job to beanstalkd failed: %s", err)
     end
     bean:close()
 
     -- store job info to redis for persistence
     data.bid = jobBid
-    local ok, err = redis:command("HSET", jobHashList, jobRid, jsonEncode(data))
+    local ok, err = redis:command("HSET", jobHashList, jobRid, json_encode(data))
     if not ok then
         printWarn("store job to redis failed: %s", err)
     end
 
     -- index actions for findJob service interface
-    local jobActionList = strFormat(jobActionListPattern, strGsub(data.job.action, "%.", "_"))
+    local jobActionList = string_format(jobActionListPattern, string_gsub(data.job.action, "%.", "_"))
     local ok, err = redis:command("SADD", jobActionList, data.rid)
     if not ok then
         printWarn("index actions to %s failed: %s", jobActionList, err) 
@@ -134,10 +134,10 @@ function JobService:getJob(rid)
     local job, err = redis:command("HGET", jobHashList, rid) 
     redis:close()
     if not job then
-        return nil, strFormat("get job failed: %s", err) 
+        return nil, string_format("get job failed: %s", err) 
     end
     if ngx and job == ngx.null then
-        return nil, strFormat("job[%d] does not exist.", rid)
+        return nil, string_format("job[%d] does not exist.", rid)
     end
 
     return job, nil
@@ -150,14 +150,14 @@ function JobService:findJob(actionName)
     end
 
     redis:connect()
-    local jobActionList = strFormat(jobActionListPattern, strGsub(actionName, "%.", "_"))
+    local jobActionList = string_format(jobActionListPattern, string_gsub(actionName, "%.", "_"))
     local ridList, err = redis:command("SMEMBERS", jobActionList)
     redis:close()
     if not ridList then
-        return nil, strFormat("find job failed: %s", err)
+        return nil, string_format("find job failed: %s", err)
     end
     if next(ridList) == nil then
-        return nil, strFormat("can't find jobs with action %s", actionName)
+        return nil, string_format("can't find jobs with action %s", actionName)
     end
 
     return ridList, nil
@@ -177,25 +177,25 @@ function JobService:removeJob(rid)
     redis:connect()
     local jobStr, err = redis:command("HGET", jobHashList, rid)  
     if not jobStr then
-        return nil, strFormat("get job failed: %s", err)
+        return nil, string_format("get job failed: %s", err)
     end
     if ngx and jobStr == ngx.null then
         redis:close()
-        return nil, strFormat("job[%d] does not exist.", rid)
+        return nil, string_format("job[%d] does not exist.", rid)
     end
 
     -- delete it from redis
     redis:command("HDEL", jobHashList, rid)
 
-    job, err = jsonDecode(jobStr)
+    job, err = json_decode(jobStr)
     if not job then 
         redis:close()
         printWarn("remove job, josn decode job failed: %s, job contents: %s", err, jobStr)
-        return nil, strFormat("job[%d] is invalid.", rid)
+        return nil, string_format("job[%d] is invalid.", rid)
     end
 
     local jobAction = job.job.action
-    local jobActionList = strFormat(jobActionListPattern, strGsub(jobAction, "%.", "_"))
+    local jobActionList = string_format(jobActionListPattern, string_gsub(jobAction, "%.", "_"))
     local ok , err = redis:command("SREM", jobActionList, rid)
     redis:close()
     if not ok then

@@ -27,7 +27,7 @@ THE SOFTWARE.
 local assert = assert 
 local type = type
 local tostring = tostring
-local strFormat = string.format
+local string_format = string.format
 
 local haricot = require("3rd.beanstalkd.haricot")
 
@@ -50,7 +50,7 @@ end
 function BeanstalkdHaricotAdapter:command(command, ...)
     if not self.instance then return false, self.ctorErr end
     local method = self.instance[command]
-    assert(type(method) == "function", strFormat("BeanstalkdHaricotAdapter:command() - invalid command %s", tostring(command)))
+    assert(type(method) == "function", string_format("BeanstalkdHaricotAdapter:command() - invalid command %s", tostring(command)))
     local ok, result = method(self.instance, ...)
     if ok then return result end
     return false, result

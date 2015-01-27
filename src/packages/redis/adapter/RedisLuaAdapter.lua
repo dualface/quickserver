@@ -29,10 +29,10 @@ local pcall = pcall
 local type = type
 local tostring = tostring
 local print = print
-local tblConcat = table.concat
-local tblWalk = table.walk
-local strFormat = string.format 
-local strUpper = string.upper
+local table_concat = table.concat
+local table_walk = table.walk
+local string_format = string.format 
+local string_upper = string.upper
 
 local redis = require("3rd.redis.redis_lua")
 
@@ -64,12 +64,12 @@ end
 
 function RedisLuaAdapter:command(command, ...)
     local method = self.instance[command]
-    assert(type(method) == "function", strFormat("RedisLuaAdapter:command() - invalid command %s", tostring(command)))
+    assert(type(method) == "function", string_format("RedisLuaAdapter:command() - invalid command %s", tostring(command)))
 
     if self.config.debug then
         local a = {}
-        tblWalk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printf("[REDIS] %s: %s", strUpper(command), tblConcat(a, ", "))
+        table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
+        printf("[REDIS] %s: %s", string_upper(command), table_concat(a, ", "))
     end
 
     local arg = {...}
@@ -96,7 +96,7 @@ function RedisLuaAdapter:commitPipeline(commands)
             for _, arg in ipairs(commands) do
                 local command = arg[1]
                 local method = self.instance[command]
-                assert(type(method) == "function", strFormat("RedisLuaAdapter:commitPipeline() - invalid command %s", tostring(command)))
+                assert(type(method) == "function", string_format("RedisLuaAdapter:commitPipeline() - invalid command %s", tostring(command)))
                 method(self.instance, unpack(arg[2]))
             end
             if self.config.debug then print("[REDIS] COMMIT PIPELINE") end

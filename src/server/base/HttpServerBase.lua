@@ -113,6 +113,10 @@ function HttpServerBase:runEventLoop()
     else
         return false, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
     end
+
+    if DEBUG > 1 then
+        printInfo("HttpServerBase:runEventLoop() - QUIT")
+    end
 end
 
 return HttpServerBase

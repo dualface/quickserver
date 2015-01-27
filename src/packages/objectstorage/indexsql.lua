@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 ]]
 
-local strFormat = string.format
+local string_format = string.format
 local type = type
 local assert = assert
 local pairs = pairs
@@ -55,14 +55,14 @@ INSERT INTO %s (%s,%s) VALUES (%s,%s);
 
 function createIndex(property)
     local tableName = property.."_index"
-    local sql = strFormat(createIndexSql, tableName, property, property)
+    local sql = string_format(createIndexSql, tableName, property, property)
 
     return sql
 end
 
 function dropIndex(property)
     local tableName = property .. "_index"
-    local sql = strFormat(dropIndexSql, tableName)
+    local sql = string_format(dropIndexSql, tableName)
 
     return sql
 end
@@ -73,14 +73,14 @@ function findIndex(propertyTbl)
     local n = pairs(propertyTbl)
     local k, v = n(propertyTbl)
     local tableName = k .. "_index"
-    local sql = strFormat(findIndexSql, tableName, k, v)
+    local sql = string_format(findIndexSql, tableName, k, v)
 
     return sql
 end
 
 function insertIndex(property, id, value)
     local tableName = property .. "_index"
-    local sql = strFormat(insertIndexSql, tableName, "entity_id", property, id, value)
+    local sql = string_format(insertIndexSql, tableName, "entity_id", property, id, value)
 
     return sql
 end

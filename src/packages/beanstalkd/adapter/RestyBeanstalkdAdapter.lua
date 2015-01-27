@@ -27,7 +27,7 @@ THE SOFTWARE.
 local assert = assert 
 local type = type
 local tostring = tostring
-local strFormat = string.format
+local string_format = string.format
 
 local beanstalkd = require("resty.beanstalkd")
 
@@ -64,7 +64,7 @@ end
 function RestyBeanstalkdAdapter:command(command, ...)
     if not self.instance then return false, self.ctorErr end
     local method = self.instance[command]
-    assert(type(method) == "function", strFormat("RestyBeanstalkdAdapter:command() - invalid command %s", tostring(command)))
+    assert(type(method) == "function", string_format("RestyBeanstalkdAdapter:command() - invalid command %s", tostring(command)))
     return method(self.instance, ...)
 end
 
