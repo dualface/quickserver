@@ -71,15 +71,18 @@ function ServerAppBase:doRequest(actionName, data)
 
     -- check registered action module before load module
     local actionModule = self._actionModules[actionModuleName]
+    local actionModulePath
     if not actionModule then
-        local actionModulePath = string_format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
+        actionModulePath = string_format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
         local ok, _actionModule = pcall(require,  actionModulePath)
-        if ok then actionModule = _actionModule end
+        if ok then
+            actionModule = _actionModule
+        end
     end
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        throw("failed to load action module \"%s\"", actionModuleName)
+        throw("failed to load action module \"%s\"", actionModulePath or actionModuleName)
     end
 
     local action = actionModule.new(self)
@@ -93,13 +96,7 @@ function ServerAppBase:doRequest(actionName, data)
         data = self._requestParameters or {}
     end
 
-    local result = method(action, data)
-    local rtype = type(result)
-    if rtype == "nil" or rtype == "string" or rtype == "table" or rtype == "boolean" then
-        return result
-    end
-
-    throw("action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype)
+    return method(action, data)
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
@@ -138,7 +135,7 @@ function ServerAppBase:normalizeActionName(actionName)
 end
 
 function ServerAppBase:newSession(secret)
-    local session = self:_genSession(secret)
+    local session = self:genSession(secret)
     -- TODO: add Redis, beanstalkd API into ServerAppBase
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
@@ -224,16 +221,18 @@ function ServerAppBase:sendMessage(sid, msg)
     redis:close()
 end
 
-function ServerAppBase:_genSession(secret)
+function ServerAppBase:genSession(secret)
     if not secret then
-        error("ServerAppBase:_genSession() - miss \"secret\"")
+        error("ServerAppBase:genSession() - miss \"secret\"")
     end
 
     local app = self.config.appName or "quickserver-app"
     local time = os.time()
+    math.newrandomseed()
+    local random = math.random()
     local ip = ngx.var.remote_addr
-    local str = app .. "!" .. time .. "!" .. tostring(secret) .. "!" .. ip
-    local sig = ngx.md5(str)
+    local str = app .. "!" .. time .. "!" .. ngx.md5(random .. tostring(secret)) .. "!" .. ip
+    local sid = ngx.md5(str)
     return {sid = sid, origin = str}
 end
 

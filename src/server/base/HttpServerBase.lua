@@ -123,22 +123,22 @@ function HttpServerBase:runEventLoop()
         err = _err
     end)
     if err then
-        return nil, string.format("action \"%s\" occurs error, %s", actionName, err)
+        return nil, string.format("run action \"%s\" error, %s", actionName, err)
     end
 
-    local output, err = self:_packMessage(result)
+    local output, err = self:_genOutput(result)
     if err then
         return nil, err
     end
     return output
 end
 
-function HttpServerBase:_packMessage(message, messageType)
+function HttpServerBase:_genOutput(result)
     local rtype = type(result)
     if rtype == "nil" then
         return ""
     elseif rtype == "table" then
-        result = self:json_encode(result)
+        return json_encode(result)
     else
         return tostring(result)
     end
