@@ -24,15 +24,13 @@ THE SOFTWARE.
 
 ]]
 
-local ServerAppBase = import(".ServerAppBase")
-
-local CommandLineServerBase = class("CommandLineServerBase", ServerAppBase)
+local CommandLineServerBase = class("CommandLineServerBase", import(".ServerAppBase"))
 
 function CommandLineServerBase:ctor(config, arg)
     CommandLineServerBase.super.ctor(self, config)
 
-    self.config.requestType = "commandline"
-    self.requestParameters = totable(arg)
+    self._requestType = "commandline"
+    self._requestParameters = arg
 end
 
 return CommandLineServerBase

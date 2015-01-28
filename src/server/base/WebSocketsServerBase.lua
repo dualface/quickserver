@@ -34,9 +34,7 @@ local table_insert = table.insert
 local table_concat = table.concat
 local string_format = string.format
 
-local ServerAppBase = import(".ServerAppBase")
-
-local WebSocketsServerBase = class("WebSocketsServerBase", ServerAppBase)
+local WebSocketsServerBase = class("WebSocketsServerBase", import(".ServerAppBase"))
 
 WebSocketsServerBase.WEBSOCKETS_READY_EVENT = "WEBSOCKETS_READY_EVENT"
 WebSocketsServerBase.WEBSOCKETS_CLOSE_EVENT = "WEBSOCKETS_CLOSE_EVENT"

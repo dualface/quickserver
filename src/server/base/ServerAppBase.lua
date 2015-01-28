@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 local pcall = pcall
 local type = type
+local clone = clone
 local ngx = ngx
 local ngx_exit = ngx.exit
 local table_remove = table.remove
