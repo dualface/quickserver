@@ -34,7 +34,7 @@ local config = {
 
     appModuleName             = "sample",
 
-    sessionExpiredTime        = 60*10,
+    sessionExpiredTime        = 60 * 10, -- 10m
 
     websocketsTimeout         = 60 * 1000, -- 60s
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB
