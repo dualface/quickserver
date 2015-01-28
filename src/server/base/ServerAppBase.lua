@@ -24,14 +24,23 @@ THE SOFTWARE.
 
 ]]
 
+local clone = clone
+local checktable = checktable
+local pcall = pcall
 local ngx = ngx
 local ngx_exit = ngx.exit
+local ngx_now = ngx.now
+local ngx_md5 = ngx.md5
 local table_remove = table.remove
 local table_concat = table.concat
+local string_sub = string.sub
+local string_len = string.len
 local string_format = string.format
 local string_gsub = string.gsub
 local string_lower = string.lower
 local string_ucfirst = string.ucfirst
+local json_encode = json.encode
+local json_decode = json.decode
 local os_time = os.time
 
 local ServerAppBase = class("ServerAppBase")
@@ -40,7 +49,13 @@ ServerAppBase.APP_RUN_EVENT      = "APP_RUN_EVENT"
 ServerAppBase.APP_QUIT_EVENT     = "APP_QUIT_EVENT"
 ServerAppBase.CLIENT_ABORT_EVENT = "CLIENT_ABORT_EVENT"
 
-local SID_KEY = "_SID_KEY"
+local _CLIENT_ID_PREFIX      = "C_"
+local _CLIENT_TAG_PREFIX     = "T_"
+local _CLIENT_TAG_PREFIX_LEN = string_len(_CLIENT_TAG_PREFIX)
+local _TAG_CLIENT_ID_DICT    = "_CLIENT_TAGS"
+
+local RedisService = cc.load("redis").service
+local SessionService = cc.load("session").service
 
 function ServerAppBase:ctor(config)
     cc.bind(self, "event")
@@ -134,106 +149,110 @@ function ServerAppBase:normalizeActionName(actionName)
     return table_concat(parts, "."), method
 end
 
-function ServerAppBase:newSession(secret)
-    local session = self:genSession(secret)
-    -- TODO: add Redis, beanstalkd API into ServerAppBase
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    redis:command("SET", session.sid, session.origin)
-    redis:command("EXPIRE", session.sid, self.config.sessionExpiredTime)
-    redis:close()
+function ServerAppBase:startSession(sid)
+    local session
+    if sid then
+        session = self:_loadSession(sid)
+    end
+    if not session then
+        session = self:_genSession()
+    end
+    self._session = session
     return session
 end
 
-function ServerAppBase:getSidByTag(tag)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local sid = redis:command("GET", tag)
-    if sid == nil then
-        redis:close()
-        return nil, err
+function ServerAppBase:destroySession(sid)
+    local session = self._session
+    if not session then
+        session = self:_loadSession(sid)
     end
-    if ngx and sid == ngx.null then
-        redis:close()
-        return nil, "sid does NOT exist"
-    end
-    redis:close()
-
-    return sid
+    if session then session:destroy() end
+    self._session = nil
 end
 
-function ServerAppBase:setSidTag(key)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local ok, err = redis:command("INCR", SID_KEY)
-    if err then
-        throw("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
+function ServerAppBase:getClientId()
+    if not self._clientId then
+        self._clientId = _CLIENT_ID_PREFIX .. ngx_md5(tostring(ngx.ctx))
     end
-    self.socketId = ok
-    self.internalChannel = string_format("channel.%s", self.socketId)
-    redis:command("SET", key, ok)
-    redis:close()
+    return self._clientId
 end
 
-function ServerAppBase:unsetSidTag(key)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    redis:command("DEL", key)
-    redis:close()
+function ServerAppBase:setClientTag(tag)
+    local clientId = self:getClientId()
+    tag = tostring(tag)
+    tagkey = _CLIENT_TAG_PREFIX .. tag
+    local redis = self:_getInternalRedis()
+    redis:command("HMSET", _TAG_CLIENT_ID_DICT, clientId, tagkey, tagkey, clientId)
+    self._clientTag = tag
 end
 
-function ServerAppBase:checkSession(data)
-    local token = data.token
-    if not token then
-        return nil, "check session failed: token is null"
+function ServerAppBase:getClientTag()
+    if not self._clientTag then
+        local clientId = self:getClientId()
+        local redis = self:_getInternalRedis()
+        local tagkey = redis:command("HGET", _TAG_CLIENT_ID_DICT, clientId)
+        if type(tagkey) == "string" then
+            self._clientTag = string_sub(tagkey, _CLIENT_TAG_PREFIX_LEN + 1)
+        end
     end
-
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local str, err = redis:command("GET", token)
-    if err then
-        redis:close()
-        return nil, string_format("check session failed: %s", err)
-    end
-
-    if str == ngx.null then
-        redis:close()
-        return nil, "check session id failed: session is expired"
-    end
-
-    local oriStrTable = string.split(str, "!")
-    local ip = ngx.var.remote_addr
-    if data.app_name ~= oriStrTable[1] or data.tag ~= oriStrTable[3] or ip ~= oriStrTable[4] then
-        redis:close()
-        return nil, "check session failed: verify token failed"
-    end
-
-    redis:command("EXPIRE", token, self.config.sessionExpiredTime)
-    redis:close()
-    return data.tag, nil
+    return self._clientTag
 end
 
-function ServerAppBase:sendMessage(sid, msg)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local ch = string.format("channel.%s", sid)
-    redis:command("PUBLISH", ch, msg)
-    redis:close()
+function ServerAppBase:getClientIdByTag(tag)
+    tagkey = _CLIENT_TAG_PREFIX .. tostring(tag)
+    local redis = self:_getInternalRedis()
+    redis:command("HGET", _TAG_CLIENT_ID_DICT, tagkey)
 end
 
-function ServerAppBase:genSession(secret)
-    if not secret then
-        error("ServerAppBase:genSession() - miss \"secret\"")
+function ServerAppBase:getClientTagById(clientId)
+    local redis = self:_getInternalRedis()
+    local tagkey = redis:command("HGET", _TAG_CLIENT_ID_DICT, clientId)
+    if type(tagkey) == "string" then
+        return string_sub(tagkey, _CLIENT_TAG_PREFIX_LEN + 1)
     end
+end
 
-    local app = self.config.appName or "quickserver-app"
-    local time = os.time()
+function ServerAppBase:unsetClientTag()
+    print("ServerAppBase:unsetClientTag()")
+    local clientId = self:getClientId()
+    local tagkey = _CLIENT_TAG_PREFIX .. tostring(self:getClientTag())
+    local redis = self:_getInternalRedis()
+    redis:command("HDEL", _TAG_CLIENT_ID_DICT, clientId, tagkey)
+end
+
+function ServerAppBase:sendMessageToClient(clientId, message)
+    local redis = self:_getInternalRedis()
+    local channel = string.format("channel.%s", clientId)
+    redis:command("PUBLISH", channel, message)
+end
+
+function ServerAppBase:_loadSession(sid)
+    local redis = self:_getInternalRedis()
+    return SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
+end
+
+function ServerAppBase:_genSession()
+    local addr = ngx.var.remote_addr
+    local now = ngx_now()
     math.newrandomseed()
-    local random = math.random()
-    local ip = ngx.var.remote_addr
-    local str = app .. "!" .. time .. "!" .. ngx.md5(random .. tostring(secret)) .. "!" .. ip
-    local sid = ngx.md5(str)
-    return {sid = sid, origin = str}
+    local random = math.random() * 100000000000000
+    local mask = string.format("%0.5f|%0.10f|%s", now, random, self._secret)
+    local origin = string.format("%s|%s", addr, ngx_md5(mask))
+    local sid = ngx_md5(origin)
+    return SessionService:create(self:_getInternalRedis(), sid, self.config.sessionExpiredTime, addr)
+end
+
+function ServerAppBase:_getInternalRedis()
+    if not self._internalRedis then
+        self._internalRedis = RedisService:create(self.config.redis)
+    end
+
+    local ok, err = self._internalRedis:connect()
+    if err then
+        throw("connect internal redis failed, %s", err)
+    end
+
+    return self._internalRedis
 end
 
 return ServerAppBase
