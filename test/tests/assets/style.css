@@ -27,6 +27,10 @@ div.widget h3 {
     line-height: 22px;
 }
 
+#session_id {
+    color: #f66;
+}
+
 #logs ul {
     display: block;
     min-height: 80px;

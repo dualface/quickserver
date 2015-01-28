@@ -1,4 +1,9 @@
 
+$(document).ready(function()
+{
+    $("#http_server_addr").val(document.location + "api/");
+});
+
 var log = {
     add: function(message)
     {
@@ -28,12 +33,67 @@ function isFunction(functionToCheck)
 
 var test = {
     ws: null,
-    server_addr: null,
+    http_server_addr: null,
+    websocket_server_addr: null,
     msg_id: 0,
     session_id: null,
     callbacks: {},
     username: null
 };
+
+test.login = function(http_server_addr, username)
+{
+    if (test.session_id)
+    {
+        log.add("ALREADY LOGIN");
+        return false;
+    }
+
+    test.http_server_addr = http_server_addr;
+    username = username.toString();
+    if (username === "")
+    {
+        log.add("PLEASE ENTER username");
+        return false;
+    }
+
+    var data = {"username": username}
+    test.http_request("hello.login", data, function(recv_data) {
+        test.session_id = recv_data["sid"].toString();
+        test.username = username;
+        log.add("GET SESSION ID: " + test.session_id);
+        log.add("count = " + recv_data["count"].toString());
+        $("#session_id").text("SESSION ID: " + test.session_id);
+    });
+}
+
+test.logout = function()
+{
+    if (test.session_id === null)
+    {
+        log.add("ALREADY LOGOUT");
+        return false;
+    }
+
+    test.http_request("hello.logout", {"sid": test.session_id}, function(recv_data) {
+        test.session_id = null;
+        log.add("LOGOUTED");
+        $("#session_id").text("");
+    });
+}
+
+test.count = function()
+{
+    if (test.session_id === null)
+    {
+        log.add("PLEASE LOGIN");
+        return false;
+    }
+
+    test.http_request("hello.count", {"sid": test.session_id}, function(recv_data) {
+        log.add("count = " + recv_data["count"].toString());
+    });
+}
 
 test.connect = function(server_addr)
 {
@@ -99,6 +159,11 @@ test.disconnect = function()
     return false;
 }
 
+test.http_request = function(action, data, callback)
+{
+    $.getJSON(test.http_server_addr + "?action=" + action, data, callback);
+}
+
 test.send_data = function(data, callback)
 {
     if (test.ws === null)
@@ -118,32 +183,6 @@ test.send_data = function(data, callback)
 
     test.ws.send(json_str);
     log.add("SEND: " + json_str);
-}
-
-test.login = function(username)
-{
-    if (test.session_id)
-    {
-        log.add("ALREADY LOGIN");
-        return false;
-    }
-
-    username = username.toString();
-    if (username === "")
-    {
-        log.add("PLEASE ENTER username");
-        return false;
-    }
-
-    var data = {
-        "action": "user.session",
-        "id": username
-    }
-    test.send_data(data, function(recv_data) {
-        test.session_id = recv_data["session_id"].toString();
-        test.username = username;
-        log.add("GET SESSION ID: " + test.session_id);
-    });
 }
 
 test.send_message = function(message)

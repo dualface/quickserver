@@ -11,17 +11,29 @@
 <h1>Quick Server Tests</h1>
 
 <div class="widget">
-    <h3>Connect to Quick Server and Login</h3>
-    <label>Server&nbsp;&nbsp;&nbsp;:</label>
-    <input type="text" id="input_server_addr" value="ws://192.168.56.101:8088/test" />
-    &nbsp;
-    <input type="button" value="Connect" onclick="return test.connect($('#input_server_addr').val(), $('#input_username').val());" />
-    <input type="button" value="Disconnect" onclick="return test.disconnect();" />
+    <h3>Login</h3>
+    <label>Server :</label>
+    <input type="text" id="http_server_addr" value="" />
     <br />
     <label>Username&nbsp;:</label>
     <input type="text" id="input_username" value="" />
     &nbsp;
-    <input type="button" value="Login" onclick="return test.login($('#input_username').val());" />
+    <input type="button" value="Login" onclick="return test.login($('#http_server_addr').val(), $('#input_username').val());" />
+    <input type="button" value="Logout" onclick="return test.logout();" />
+    <br />
+    <input type="button" value="Count" onclick="return test.count();" />
+    &nbsp;
+    <span id="session_id"></span>
+</div>
+
+<div class="widget">
+    <h3>Connect to WebSocket Server</h3>
+    <label>WebSocket Server&nbsp;&nbsp;&nbsp;:</label>
+    <input type="text" id="websocket_server_addr" value="" />
+    &nbsp;
+    <input type="button" value="Connect" onclick="return test.connect($('#websocket_server_addr').val());" />
+    <input type="button" value="Disconnect" onclick="return test.disconnect();" />
+    <br />
 </div>
 
 <div class="widget">

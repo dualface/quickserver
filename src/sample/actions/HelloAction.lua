@@ -22,7 +22,7 @@ function HelloAction:logoutAction(arg)
         error("not set argument: \"sid\"")
     end
     self._app:destroySession(arg.sid)
-    return "OK"
+    return {ok = "ok"}
 end
 
 function HelloAction:countAction(arg)
