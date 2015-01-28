@@ -25,6 +25,7 @@ THE SOFTWARE.
 local tostring = tostring
 local type = type
 local clone = clone
+local checkint = checkint
 local checktable = checktable
 local json_encode = json.encode
 local json_decode = json.decode
@@ -32,6 +33,7 @@ local ngx_null = ngx.null
 
 local SessionService = class("SessionService")
 
+local _DEFAULT_EXPIRED = 60 * 5 -- 5m
 local _SID_KEY_PREFIX = "_SID_"
 
 function SessionService.load(redis, sid, expired, remoteAddr)
@@ -55,9 +57,12 @@ end
 
 function SessionService:ctor(redis, sid, expired, remoteAddr, data)
     self._redis = redis
-    self._sid = sid
-    self._expired = expired
-    self._remoteAddr = remoteAddr
+    self._sid = tostring(sid)
+    self._expired = checkint(expired)
+    if self._expired < 0 then
+        self._expired = _DEFAULT_EXPIRED
+    end
+    self._remoteAddr = tostring(remoteAddr)
     self._data = clone(checktable(data))
 end
 
@@ -89,8 +94,7 @@ end
 
 function SessionService:save()
     local key = _SID_KEY_PREFIX .. self._sid
-    self._redis:command("SET", key, json_encode(self:vardump()))
-    self._redis:command("EXPIRE", key, self._expired)
+    self._redis:command("SET", key, json_encode(self:vardump()), "EX", self._expired)
 end
 
 function SessionService:destroy()
