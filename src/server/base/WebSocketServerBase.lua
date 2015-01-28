@@ -220,7 +220,7 @@ function WebSocketServerBase:_processMessage(rawMessage, messageType)
     end
 
     result.__id = msgid
-    local rawMessage, err = self:_packMessage(result)
+    local rawMessage, err = self:_packMessage(result, messageType)
     if err then
         return nil, err
     end

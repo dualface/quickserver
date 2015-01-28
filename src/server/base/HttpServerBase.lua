@@ -24,8 +24,6 @@ THE SOFTWARE.
 
 ]]
 
-local type = type
-local tostring = tostring
 local ngx = ngx
 local ngx_say = ngx.say
 local req_get_headers = ngx.req.get_headers
@@ -72,11 +70,11 @@ function HttpServerBase:ctor(config)
             to the same size value in client_max_body_size.
             ]]
             if body then
-                body = json.decode(body)
-                if body then
-                    table_merge(self._requestParameters, body)
+                local data, err = json.decode(body)
+                if err then
+                    printWarn("HttpServerBase:ctor() - invalid JSON content, %s", err)
                 else
-                    printWarn("HttpServerBase:ctor() - invalid JSON content")
+                    table_merge(self._requestParameters, data)
                 end
             end
         else
@@ -87,50 +85,59 @@ function HttpServerBase:ctor(config)
     local ok, err = ngx.on_abort(function()
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
-    if not ok then
+    if err then
         printWarn("HttpServerBase:ctor() - failed to register the on_abort callback, %s", err)
     end
 end
 
 function HttpServerBase:run()
-    local ok, result = self:runEventLoop()
+    local result, err = self:runEventLoop()
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
-    printInfo("HttpServerBase:run() - QUIT")
 
-    if ok then
-        ngx.status = ngx.HTTP_OK
-        -- maybe action return ok without output
-        if result then ngx_say(result) end
-    else
+    if err then
         -- return an error page with custom contents
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
-        ngx_say(result)
+        ngx_say(err)
         ngx.exit(ngx.HTTP_OK)
+    else
+        ngx.status = ngx.HTTP_OK
+        if result then ngx_say(result) end
     end
 end
 
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
     local uri = self._uri
-    local action = string_gsub(uri, "/", ".")
+    local actionName = string_gsub(uri, "/", ".")
     if DEBUG > 1 then
-        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", action, json_encode(self._requestParameters))
+        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", actionName, json_encode(self._requestParameters))
     end
 
-    local result = self:doRequest(action, self._requestParameters)
-    if not result then
-        -- action return ok without output
-        return true
+    local err = nil
+    local ok, result = xpcall(function()
+        return self:doRequest(actionName, self._requestParameters)
+    end, function(_err)
+        err = tostring(_err) .. "\n" .. debug.traceback("", 2)
+    end)
+    if err then
+        return nil, string.format("action \"%s\" occurs error, %s", actionName, err)
     end
 
-    -- TODO: support custom format
-    if type(result) == "table" then
-        result = json_encode(result)
+    local output, err = self:_packMessage(result)
+    if err then
+        return nil, err
     end
-    if type(result) == "string" then
-        return true, result
+    return output
+end
+
+function HttpServerBase:_packMessage(message, messageType)
+    local rtype = type(result)
+    if rtype == "nil" then
+        return ""
+    elseif rtype == "table" then
+        result = self:json_encode(result)
     else
-        return nil, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
+        return tostring(result)
     end
 end
 

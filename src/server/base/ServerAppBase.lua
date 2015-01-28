@@ -95,15 +95,11 @@ function ServerAppBase:doRequest(actionName, data)
 
     local result = method(action, data)
     local rtype = type(result)
-    if rtype == "nil" then
-        return {}
-    elseif rtype == "table" then
+    if rtype == "nil" or rtype == "string" or rtype == "table" or rtype == "boolean" then
         return result
-    elseif rtype == "string" then
-        return {text = result}
-    else
-        error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype))
     end
+
+    error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype))
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
