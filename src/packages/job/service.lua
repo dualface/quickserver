@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -110,14 +108,14 @@ function JobService:newJob(data)
     data.bid = jobBid
     local ok, err = redis:command("HSET", jobHashList, jobRid, json_encode(data))
     if not ok then
-        printWarn("store job to redis failed: %s", err)
+        printWarn("JobService:newJob() - store job to redis failed: %s", err)
     end
 
     -- index actions for findJob service interface
     local jobActionList = string_format(jobActionListPattern, string_gsub(data.job.action, "%.", "_"))
     local ok, err = redis:command("SADD", jobActionList, data.rid)
     if not ok then
-        printWarn("index actions to %s failed: %s", jobActionList, err)
+        printWarn("JobService:newJob() - index actions to %s failed: %s", jobActionList, err)
     end
     redis:close()
 
@@ -190,7 +188,7 @@ function JobService:removeJob(rid)
     job, err = json_decode(jobStr)
     if not job then
         redis:close()
-        printWarn("remove job, josn decode job failed: %s, job contents: %s", err, jobStr)
+        printWarn("JobService:removeJob() - josn decode job failed: %s, job contents: %s", err, jobStr)
         return nil, string_format("job[%d] is invalid.", rid)
     end
 
@@ -199,7 +197,7 @@ function JobService:removeJob(rid)
     local ok , err = redis:command("SREM", jobActionList, rid)
     redis:close()
     if not ok then
-        printWarn("remove job action failed: %s", err)
+        printWarn("JobService:removeJob() - redis set delete failed: %s", err)
     end
 
     -- delete it from beanstalkd

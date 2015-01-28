@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -36,7 +34,7 @@ function MysqlRestyAdapter:ctor(config)
     self.db_ = nil
     local db, err = mysql:new()
     if not db then
-        printf("[MYSQL] failed to instantiate mysql: %s", err)
+        printWarn("MysqlRestyAdapter:ctor() - failed to instantiate mysql: %s", err)
         return db, err
     end
 
@@ -46,7 +44,7 @@ function MysqlRestyAdapter:ctor(config)
 
     local ok, err, errno, sqlstate = db:connect(config)
     if not ok then
-        printf("[MYSQL] mysql connect error: %s, %s, %s", err, tostring(errno), sqlstate)
+        printWarn("MysqlRestyAdapter:ctor() - mysql connect error: %s, %s, %s", err, tostring(errno), sqlstate)
         return ok, err
     end
 
@@ -73,7 +71,7 @@ function MysqlRestyAdapter:query(queryStr)
     local res, err, errno, sqlstate = self.db_:query(queryStr)
 
     if err then
-        printf("[MYSQL] mysql query error: %s, %s, %s", err, tostring(errno), sqlstate)
+        printWarn("MysqlRestyAdapter:query() - mysql query error: %s, %s, %s", err, tostring(errno), sqlstate)
     end
 
     return res, err
