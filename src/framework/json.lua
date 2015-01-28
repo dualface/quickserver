@@ -30,16 +30,14 @@ local json = {}
 local cjson = require("cjson")
 
 function json.encode(var)
-    local status, result = pcall(cjson.encode, var)
-    if status then return result end
-    printWarn("json.encode() - encoding failed. call from %s", debug_traceback("", 2))
+    local ok, result = pcall(cjson.encode, var)
+    if ok then return result end
     return nil, result
 end
 
 function json.decode(text)
-    local status, result = pcall(cjson.decode, text)
-    if status then return result end
-    printWarn("json.encode() - decoding failed. call from %s", debug_traceback("", 2))
+    local ok, result = pcall(cjson.decode, text)
+    if ok then return result end
     return nil, result
 end
 
