@@ -128,7 +128,10 @@ function ServerAppBase:registerActionModule(actionModuleName, actionModule)
 end
 
 function ServerAppBase:normalizeActionName(actionName)
-    local actionName = actionName or "index.index"
+    local actionName = actionName
+    if not actionName or actionName == "" then
+        actionName = "index.index"
+    end
     actionName = string_lower(actionName)
     actionName = string_gsub(actionName, "[^%a.]", "")
     actionName = string_gsub(actionName, "^[.]+", "")
@@ -213,7 +216,7 @@ function ServerAppBase:getClientTagById(clientId)
 end
 
 function ServerAppBase:unsetClientTag()
-    print("ServerAppBase:unsetClientTag()")
+    if not self._clientId then return end
     local clientId = self:getClientId()
     local tagkey = _CLIENT_TAG_PREFIX .. tostring(self:getClientTag())
     local redis = self:_getInternalRedis()

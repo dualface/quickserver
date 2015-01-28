@@ -45,7 +45,6 @@ function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
 
     self._requestType = "http"
-    self._uri = ngx.var.uri
     self._requestMethod = req_get_method()
     self._requestParameters = req_get_uri_args()
 
@@ -104,10 +103,9 @@ end
 
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
-    local uri = self._uri
-    local actionName = string_ltrim(string_gsub(uri, "/", "."), ".")
+    local actionName = self._requestParameters.action or ""
     if DEBUG > 1 then
-        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", actionName, json_encode(self._requestParameters))
+        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", tostring(actionName), json_encode(self._requestParameters))
     end
 
     local err = nil
