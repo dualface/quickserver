@@ -45,9 +45,7 @@ function ServerAppBase:ctor(config)
 end
 
 function ServerAppBase:run()
-    self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
-    self:runEventLoop()
-    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+    error(string.format("ServerAppBase:run() - must override in inherited class"))
 end
 
 function ServerAppBase:runEventLoop()
@@ -120,40 +118,26 @@ function ServerAppBase:normalizeActionName(actionName)
     return table.concat(parts, "."), method
 end
 
-function ServerAppBase:newSessionId(data)
-    if not data.tag then
-        return nil, "miss parameter tag."
+function ServerAppBase:newSid(secret)
+    local ok, sid = self:_genSid(secret)
+    if not ok then
+        return nil, sid
     end
 
-    local app = self.config.appName
-    local time = os.time()
-    local ip = ngx.var.remote_addr
-
-    local str = app .. "!" .. time .. "!" .. data.tag .. "!" .. ip
-    local sessionId = ngx.md5(str)
-
+    -- TODO: add Redis, beanstalkd API into ServerAppBase
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    redis:command("SET", sessionId, str)
-    redis:command("EXPIRE", sessionId, self.config.sessionExpiredTime)
+    redis:command("SET", sid, str)
+    redis:command("EXPIRE", sid, self.config.sessionExpiredTime)
     redis:close()
 
-    return sessionId, nil
+    return sid
 end
 
-function ServerAppBase:sendMessage(sid, msg)
+function ServerAppBase:getSidByTag(tag)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local ch = string.format("channel.%s", sid)
-    redis:command("PUBLISH", ch, msg)
-
-    redis:close()
-end
-
-function ServerAppBase:getSidByTag(key)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local sid = redis:command("GET", key)
+    local sid = redis:command("GET", tag)
     if sid == nil then
         redis:close()
         return nil, err
@@ -164,7 +148,7 @@ function ServerAppBase:getSidByTag(key)
     end
     redis:close()
 
-    return sid, nil
+    return sid
 end
 
 function ServerAppBase:setSidTag(key)
@@ -217,6 +201,26 @@ function ServerAppBase:checkSessionId(data)
     redis:close()
 
     return data.tag, nil
+end
+
+function ServerAppBase:sendMessage(sid, msg)
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    local ch = string.format("channel.%s", sid)
+    redis:command("PUBLISH", ch, msg)
+
+    redis:close()
+end
+
+function ServerAppBase:_genSid(secret)
+    if not secret then
+        return nil, "miss \"secret\""
+    end
+    local app = self.config.appName or "quickserver-app"
+    local time = os.time()
+    local ip = ngx.var.remote_addr
+    local str = app .. "!" .. time .. "!" .. tostring(secret) .. "!" .. ip
+    local sessionId = ngx.md5(str)
 end
 
 return ServerAppBase

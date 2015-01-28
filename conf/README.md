@@ -1,14 +1,15 @@
-#Configure Files for Quick-Server and Its Components
+# Configure Files for Quick Server and its Components
 
-- redis.conf
-   - used for redis server.
+-   redis.conf
+    used for redis server.
 
-- nginx.conf
-   - default configure file for nginx in Quick-Server.
+-   nginx.conf
+    default configure file for nginx in Quick Server.
 
-- sql/
-   - base.sql
-      - create basic tables for Quick-Server.
-   - pre_condition.sql
-      - create a database for Quick-Server.
-      - set some privileges to mysql user.
+-   sql/
+    -   base.sql
+        create basic tables for Quick Server.
+
+    -   pre_condition.sql
+        create a database for Quick Server.
+        set some privileges to mysql user.

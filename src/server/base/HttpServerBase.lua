@@ -111,7 +111,7 @@ function HttpServerBase:runEventLoop()
     if type(result) == "string" then
         return true, result
     else
-        return false, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
+        return nil, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
     end
 
     if DEBUG > 1 then

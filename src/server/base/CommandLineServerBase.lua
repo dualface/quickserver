@@ -32,7 +32,7 @@ function CommandLineServerBase:ctor(config, arg)
     CommandLineServerBase.super.ctor(self, config)
 
     self.config.requestType = "commandline"
-    self.requestParameters = totable(arg)
+    self.requestParameters = checktable(arg)
 end
 
 return CommandLineServerBase

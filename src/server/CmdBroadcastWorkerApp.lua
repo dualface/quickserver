@@ -71,7 +71,7 @@ function CmdBroadcastWorker:runEventLoop()
 
             local jobService = cc.load("job").service.new(self.config)
             jobService:removeJob(data.rid)
-            -- as current CONNECTION is not end and reservd a job, 
+            -- as current CONNECTION is not end and reservd a job,
             -- job service can't delete this job via another CONNECTION.
             bean:command("delete", job.id)
 
@@ -111,10 +111,10 @@ function CmdBroadcastWorker:parseJobMessage(rawMessage)
         if type(message) == "table" then
             return message, nil
         else
-            return false, string.format("invalid message, %s", tostring(rawMessage))
+            return nil, string.format("invalid message, %s", tostring(rawMessage))
         end
     else
-        return false, string.format("not support message format %s", tostring(self.config.jobMessageFormat))
+        return nil, string.format("not support message format %s", tostring(self.config.jobMessageFormat))
     end
 end
 

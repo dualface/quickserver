@@ -31,7 +31,7 @@ local tostring = tostring
 local print = print
 local table_concat = table.concat
 local table_walk = table.walk
-local string_format = string.format 
+local string_format = string.format
 local string_upper = string.upper
 
 local redis = require("3rd.redis.redis_lua")
@@ -54,7 +54,7 @@ function RedisLuaAdapter:connect()
     if ok then
         return true
     else
-        return false, result
+        return nil, result
     end
 end
 
@@ -79,7 +79,7 @@ function RedisLuaAdapter:command(command, ...)
     if ok then
         return result
     else
-        return false, result
+        return nil, result
     end
 end
 

@@ -74,7 +74,7 @@ end
 
 function RestyRedisAdapter:pubsub(subscriptions)
     if type(subscriptions) ~= "table" then
-        return false, "invalid subscriptions argument"
+        return nil, "invalid subscriptions argument"
     end
 
     if type(subscriptions.subscribe) == "string" then

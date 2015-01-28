@@ -30,4 +30,3 @@ require("framework.init")
 local config = require("server.config")
 local app = require("server.HttpServerApp").new(config)
 app:run()
-

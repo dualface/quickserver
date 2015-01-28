@@ -33,8 +33,8 @@ function WebSocketServerApp:ctor(config)
         printInfo("---------------- START -----------------")
     end
 
-    self:addEventListener(WebSocketServerApp.WEBSOCKETS_READY_EVENT, self.onWebSocketsReady, self)
-    self:addEventListener(WebSocketServerApp.WEBSOCKETS_CLOSE_EVENT, self.onWebSocketsClose, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKET_READY_EVENT, self.onWebSocketsReady, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKET_CLOSE_EVENT, self.onWebSocketsClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
     self.subscribeMessageChannelEnabled = false
@@ -75,7 +75,7 @@ function WebSocketServerApp.onWebSocketsReady(event)
     if not tag then
         printError("process websocket session failed: %s", err)
         self.isSessionVerified = false
-        return 
+        return
     end
     self.tag = tag
     self.isSessionVerified = true
@@ -109,7 +109,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
         return nil
     end
 
-    local internalChannel = self.internalChannel 
+    local internalChannel = self.internalChannel
 
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
@@ -120,7 +120,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
 
         local loop, err = redis:pubsub({subscribe=internalChannel})
         if err then
-            throw(ERR_SERVER_OPERATION_FAILED, "subscribe channel(%s) failed: %s", internalChannel, err)
+            throw(ServerAppBase.OPERATION_FAILED_ERROR, "subscribe channel(%s) failed: %s", internalChannel, err)
         end
 
         for msg, abort in loop do
@@ -130,7 +130,7 @@ function WebSocketServerApp:subscribePushMessageChannel_()
                 local payload = msg.payload
                 printInfo("get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
                 if payload == "QUIT" then
-                    abort() 
+                    abort()
                     isRunning = false
                     break
                 end
