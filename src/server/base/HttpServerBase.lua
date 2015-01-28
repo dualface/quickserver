@@ -84,17 +84,11 @@ function HttpServerBase:ctor(config)
             table_merge(self._requestParameters, req_get_post_args())
         end
     end
-
-    local ok, err = ngx.on_abort(function()
-        self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
-    end)
-    if err then
-        printWarn("HttpServerBase:ctor() - failed to register the on_abort callback, %s", err)
-    end
 end
 
 function HttpServerBase:run()
     local result, err = self:runEventLoop()
+    self:unsetClientTag()
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 
     if err then
