@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,11 +22,16 @@ THE SOFTWARE.
 
 ]]
 
+local _DBG_WARN = 1
+local _DBG_INFO = 2
+local _DBG_DEBUG = 3
+
 local config = {
     appName                   = "myapp",
 
-    appModuleName             = "server",
-    debug                     = true,
+    appModuleName             = "sample",
+
+    debug                     = _DBUG_INFO,
 
     sessionExpiredTime        = 60*10,
 
@@ -53,14 +56,19 @@ local config = {
         port       = 11300,
     },
 
-    mysql = {
-        host       = "127.0.0.1",
-        port       = 3306,
-        database   = "testdb",
-        user       = "test",
-        password   = "123456",
-        timeout    = 10 * 1000,
+    -- external servers used by user
+    --[[
+    externalServers = {
+        mysql = {
+            host       = "127.0.0.1",
+            port       = 3306,
+            database   = "testdb",
+            user       = "test",
+            password   = "123456",
+            timeout    = 10 * 1000,
+        },
     },
+    --]]
 }
 
 return config

@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 ]]
 
+DEBUG = require("conf.config").debug
 if type(DEBUG) ~= "number" then DEBUG = 0 end
 
 -- load framework
