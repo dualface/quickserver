@@ -29,6 +29,7 @@ local ngx = ngx
 local ngx_on_abort = ngx.on_abort
 local ngx_exit = ngx.exit
 local ngx_thread_spawn = ngx.thread.spawn
+local req_read_body = ngx.req.read_body
 local req_get_headers = ngx.req.get_headers
 local table_insert = table.insert
 local table_concat = table.concat
@@ -62,13 +63,6 @@ function WebSocketServerBase:ctor(config)
     self._requestType = "websockets"
     self._subscribeBroadcastChannelEnabled = false
     self._subscribeRetryCount = 1
-
-    local ok, err = ngx_on_abort(function()
-        self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
-    end)
-    if err then
-        printWarn("WebSocketServerBase:ctor() - failed to register the on_abort callback, %s", err)
-    end
 end
 
 function WebSocketServerBase:run()
@@ -333,7 +327,7 @@ function WebSocketServerBase:_authConnect()
         error("WebSocketServerBase:authConnect() - response header already sent")
     end
 
-    read_body()
+    req_read_body()
     local headers = ngx.req.get_headers()
     local protocols = headers["sec-websocket-protocol"]
     if type(protocols) == "table" then

@@ -22,60 +22,8 @@ THE SOFTWARE.
 
 ]]
 
-local xpcall = xpcall
-local ngx = ngx
-local ngx_say = ngx.say
-local string_find = string.find
-local string_gsub = string.gsub
-local string_len = string.len
-local string_format = string.format
-local string_sub = string.sub
-local json_encode = json.encode
+local WebSocketServerBase = require("server.base.WebSocketServerBase")
 
-local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
-
-function WebSocketServerApp:ctor(config)
-    WebSocketServerApp.super.ctor(self, config)
-
-    printInfo("---------------- START -----------------")
-
-    self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
-    self:addEventListener(ServerAppBase.APP_QUIT_EVENT, self.onAppQuit, self)
-end
-
-function WebSocketServerApp:doRequest(actionName, data)
-    printInfo("WebSocketServerApp:doRequest() - ACTION >> call [%s]", actionName)
-
-    local _, result = xpcall(function()
-        return WebSocketServerApp.super.doRequest(self, actionName, data)
-    end,
-    function(err)
-        local beg, rear = string_find(err, "module.*not found")
-        if beg then
-            err = string_sub(err, beg, rear)
-        end
-        return {error = string_format([[Handle request failed: %s]], string_gsub(err, [[\]], ""))}
-    end)
-
-    if DEBUG > 1 then
-        printInfo("WebSocketServerApp:doRequest() - ACTION << ret  [%s](%d bytes): %s", actionName, string_len(json_encode(j)), json_encode(j))
-    end
-
-    return result
-end
-
----- events callback
-
-function WebSocketServerApp.onAppQuit(event)
-    printInfo("---------------- QUIT -----------------")
-
-    local ret = event.ret
-    ngx.status = ret
-    ngx_say("websocket connection end")
-end
-
--- dumb here
-function WebSocketServerApp.onClientAbort(event)
-end
+local WebSocketServerApp = class("WebSocketServerApp", WebSocketServerBase)
 
 return WebSocketServerApp
