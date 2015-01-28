@@ -54,6 +54,18 @@ local os_time = os.time
 local debug_traceback = debug.traceback
 local debug_getlocal = debug.getlocal
 
+function throw(fmt, ...)
+    local msg = string.format(fmt, ...)
+    if DEBUG > 2 then
+        local traceback = debug_traceback("", 2)
+        error(msg .. traceback, 2)
+    elseif DEBUG > 1 then
+        error(msg, 2)
+    else
+        error(msg, 0)
+    end
+end
+
 -- internal function, advise you not to call it directly.
 function printLog(tag, fmt, ...)
     if ngx_log then
@@ -621,17 +633,26 @@ function string.split(input, delimiter)
     return arr
 end
 
-function string.ltrim(input)
-    return string_gsub(input, "^[ \t\n\r]+", "")
+
+local _trimChars = " \t\n\r"
+function string.ltrim(input, chars)
+    chars = chars or _trimChars
+    local pattern = "^[" .. chars .. "]+"
+    return string_gsub(input, pattern, "")
 end
 
-function string.rtrim(input)
-    return string_gsub(input, "[ \t\n\r]+$", "")
+function string.rtrim(input, chars)
+    chars = chars or _trimChars
+    local pattern = "[" .. chars .. "]+$"
+    return string_gsub(input, pattern, "")
 end
 
-function string.trim(input)
-    input = string_gsub(input, "^[ \t\n\r]+", "")
-    return string_gsub(input, "[ \t\n\r]+$", "")
+function string.trim(input, chars)
+    chars = chars or _trimChars
+    local pattern = "^[" .. chars .. "]+"
+    input = string_gsub(input, pattern, "")
+    pattern = "[" .. chars .. "]+$"
+    return string_gsub(input, pattern, "")
 end
 
 function string.ucfirst(input)

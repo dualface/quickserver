@@ -55,11 +55,11 @@ function ServerAppBase:ctor(config)
 end
 
 function ServerAppBase:run()
-    error("ServerAppBase:run() - must override in inherited class")
+    throw("ServerAppBase:run() - must override in inherited class")
 end
 
 function ServerAppBase:runEventLoop()
-    error("ServerAppBase:runEventLoop() - must override in inherited class")
+    throw("ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
 function ServerAppBase:doRequest(actionName, data)
@@ -79,13 +79,13 @@ function ServerAppBase:doRequest(actionName, data)
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        error(string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModuleName))
+        throw("failed to load action module \"%s\"", actionModuleName)
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        error(string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModuleName, actionMethodName))
+        throw("invalid action method \"%s:%s()\"", actionModuleName, actionMethodName)
     end
 
     if not data then
@@ -99,15 +99,15 @@ function ServerAppBase:doRequest(actionName, data)
         return result
     end
 
-    error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype))
+    throw("action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype)
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        error(string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
+        throw("invalid action module name \"%s\"", actionModuleName)
     end
     if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        error(string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
+        throw("invalid action module \"%s\"", actionModuleName)
     end
 
     local action = actionModuleName .. ".index"
@@ -170,7 +170,7 @@ function ServerAppBase:setSidTag(key)
     redis:connect()
     local ok, err = redis:command("INCR", SID_KEY)
     if err then
-        error("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
+        throw("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
     end
     self.socketId = ok
     self.internalChannel = string_format("channel.%s", self.socketId)

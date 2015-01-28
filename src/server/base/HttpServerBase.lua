@@ -34,6 +34,7 @@ local req_read_body = ngx.req.read_body
 local req_get_post_args = ngx.req.get_post_args
 local table_merge = table.merge
 local string_gsub = string.gsub
+local string_ltrim = string.ltrim
 local json_encode = json.encode
 
 local ServerAppBase = import(".ServerAppBase")
@@ -110,7 +111,7 @@ end
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
     local uri = self._uri
-    local actionName = string_gsub(uri, "/", ".")
+    local actionName = string_ltrim(string_gsub(uri, "/", "."), ".")
     if DEBUG > 1 then
         printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", actionName, json_encode(self._requestParameters))
     end
