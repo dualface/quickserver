@@ -79,13 +79,13 @@ function ServerAppBase:doRequest(actionName, data)
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        error("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath)
+        error(string.format("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModuleName))
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        error("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName)
+        error(string.format("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModuleName, actionMethodName))
     end
 
     if not data then
@@ -95,36 +95,49 @@ function ServerAppBase:doRequest(actionName, data)
 
     local result = method(action, data)
     local rtype = type(result)
-    if rtype == "table" then
+    if rtype == "nil" then
+        return {}
+    elseif rtype == "table" then
         return result
+    elseif rtype == "string" then
+        return {text = result}
+    else
+        error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModuleName, actionMethodName, rtype))
     end
-
-    error(string.format("ServerAppBase:doRequest() - action method \"%s:%s()\" result is unexpected type \"%s\"", actionModulePath, actionMethodName, rtype))
 end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        error("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName)
+        error(string.format("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName))
     end
     if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        error("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName)
+        error(string.format("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName))
     end
-    actionModuleName = string_ucfirst(string_lower(actionModuleName))
+
+    local action = actionModuleName .. ".index"
+    local actionModuleName, _ = self:normalizeActionName(actionName)
     self._actionModules[actionModuleName] = actionModule
 end
 
 function ServerAppBase:normalizeActionName(actionName)
     local actionName = actionName or "index.index"
+    actionName = string_lower(actionName)
     actionName = string_gsub(actionName, "[^%a.]", "")
     actionName = string_gsub(actionName, "^[.]+", "")
     actionName = string_gsub(actionName, "[.]+$", "")
 
+    -- demo.hello.say --> {"demo", "hello", "say"]
     local parts = string.split(actionName, ".")
-    if #parts == 1 then parts[2] = 'index' end
-    method = string_lower(parts[#parts])
-    table_remove(parts, #parts)
-    parts[#parts] = string_ucfirst(string_lower(parts[#parts]))
-
+    local c = #parts
+    if c == 1 then
+        return string_ucfirst(parts[1]), "index"
+    end
+    -- method = "say"
+    method = parts[c]
+    table_remove(parts, c)
+    c = c - 1
+    -- mdoule = "demo.Hello"
+    parts[c] = string_ucfirst(parts[c])
     return table_concat(parts, "."), method
 end
 
