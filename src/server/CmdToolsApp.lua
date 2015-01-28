@@ -24,11 +24,15 @@ THE SOFTWARE.
 
 ]]
 
+local xpcall = xpcall
+local table_remove = table.remove
+local debug_traceback = debug.traceback
+
 local CmdToolsApp = class("CmdToolsApp", cc.server.CommandLineServerBase)
 
 function CmdToolsApp:ctor(config, arg)
     CmdToolsApp.super.ctor(self, config)
-    self.arg = arg
+
     self.config.actionPackage = "tools"
     self.config.actionModuleSuffix = "Tool"
 end
@@ -38,7 +42,7 @@ function CmdToolsApp:doRequest(actionName, data)
     local ok, result = xpcall(function()
         return CmdToolsApp.super.doRequest(self, actionName, data)
     end, function(msg)
-        return msg .. "\n" .. debug.traceback("", 4)
+        return msg .. "\n" .. debug_traceback("", 4)
     end)
     if not ok then
         printf("> error: %s\n", result)
@@ -46,11 +50,10 @@ function CmdToolsApp:doRequest(actionName, data)
 end
 
 function CmdToolsApp:runEventLoop()
-    local actionName = self.arg[1]
+    local actionName = self._requestParameters[1]
     if not actionName then actionName = "help" end
-    local arg = clone(self.arg)
-    table.remove(arg, 1)
-    return self:doRequest(actionName, arg)
+    table_remove(self._requestParameters, 1)
+    return self:doRequest(actionName, self._requestParameters)
 end
 
 return CmdToolsApp
