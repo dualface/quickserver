@@ -13,7 +13,7 @@ else
         echo -e "\t nginx \t\t start nginx in release mode"
         echo -e "\t redis \t\t start redis"
         echo -e "\t beanstalkd \t start beanstalkd"
-        echo "if the option is not specified, default option is /opt/quick_server."
+        echo "if the option is not specified, default option is \"all\"."
         echo "In default, Quick Server will start in release mode, or else it will start in debug mode when you specified \"debug\" following options." 
         exit 1
     fi
@@ -27,12 +27,12 @@ fi
 if [ $ACTION == "all" ] || [ $ACTION == "nginx" ]; then
     sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
     if [ $DEBUG == "debug" ] ; then
-        echo "start Quick Server in DEBUG mode..."
+        echo "Start Quick Server in DEBUG mode..."
         sed -i "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
     else
         sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
     fi
-    nginx -c $NGINXDIR/conf/nginx.conf
+    nginx -p $(pwd) -c $NGINXDIR/conf/nginx.conf
 fi
 
 #start redis
@@ -46,3 +46,4 @@ if [ $ACTION == "all" ] || [ $ACTION == "beanstalkd" ]; then
 fi
 
 cd $CURRDIR
+echo "Start Quick Server DONE!"

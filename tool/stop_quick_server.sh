@@ -13,7 +13,7 @@ else
         echo -e "\t nginx \t\t stop nginx"
         echo -e "\t redis \t\t stop redis"
         echo -e "\t beanstalkd \t stop beanstalkd"
-        echo "if the param is not specified, default option is /opt/quick_server."
+        echo "if the param is not specified, default option is \"all\"."
         exit 1
     fi
     ACTION=$1 
@@ -21,7 +21,7 @@ fi
 
 #start nginx
 if [ $ACTION == "all" ] || [ $ACTION == "nginx" ]; then
-    nginx -c $NGINX_DIR/conf/nginx.conf -s stop
+    nginx -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s stop
 fi
 
 #start redis
@@ -37,3 +37,4 @@ if [ $ACTION == "all" ] || [ $ACTION == "beanstalkd" ]; then
 fi 
 
 cd $CURRDIR
+echo "Quick Server is Stopped!"

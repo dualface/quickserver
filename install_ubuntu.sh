@@ -67,6 +67,8 @@ cp $CUR_DIR/conf/redis.conf $DEST_DIR/conf/. -f
 sed -i "s#/opt/quick_server#$DEST_DIR#g" $DEST_DIR/openresty/nginx/conf/nginx.conf
 sed -i "s#/opt/quick_server#$DEST_DIR#g" $DEST_DIR/conf/redis.conf
 mkdir -p $DEST_DIR/redis/rdb
+mkdir -p $DEST_DIR/src/conf
+cp $CUR_DIR/conf/config.lua $DEST_DIR/src/conf
 
 #install luasocket
 cd $BUILD_DIR
