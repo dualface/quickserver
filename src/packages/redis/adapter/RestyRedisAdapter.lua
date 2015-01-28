@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -28,7 +26,6 @@ local assert = assert
 local type = type
 local ipairs = ipairs
 local tostring = tostring
-local print = print
 local table_concat = table.concat
 local table_remove = table.remove
 local table_walk = table.walk
@@ -63,10 +60,10 @@ function RestyRedisAdapter:command(command, ...)
     local method = self.instance[command]
     assert(type(method) == "function", string_format("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
 
-    if self.config.debug then
+    if DEBUG > 1 then
         local a = {}
         table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printf("[REDIS] %s: %s", string_upper(command), table_concat(a, ", "))
+        printInfo("RestyRedisAdapter:command() - command %s: %s", string_upper(command), table_concat(a, ", "))
     end
 
     return method(self.instance, ...)
@@ -132,7 +129,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
 
             if not result then
                 if err ~= "timeout" then
-                    printInfo(err)
+                    printWarn("RestyRedisAdapter, subscribe thread - redis read reply message failed: %s" , err)
                     abort()
                     break
                 end
@@ -171,11 +168,11 @@ end
 
 function RestyRedisAdapter:commitPipeline(commands)
     self.instance:init_pipeline()
-    if self.config.debug then print("[REDIS] INIT PIPELINE") end
+    printInfo("RestyRedisAdapter:commitPipeline() - init pipeline")
     for _, arg in ipairs(commands) do
         self:command(arg[1], unpack(arg[2]))
     end
-    if self.config.debug then print("[REDIS] COMMIT PIPELINE") end
+    printInfo("RestyRedisAdapter:commitPipeline() - commit pipeline")
     return self.instance:commit_pipeline()
 end
 

@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -38,9 +36,8 @@ function MysqlLuaAdapter:ctor(config)
     self.env_ = nil
 
     local env, err = mysql.mysql()
-
     if err then
-        printf("[MYSQL] failed to instantiate mysql: %s", err)
+        printWarn("MysqlLuaAdapter:ctor() - failed to instantiate mysql: %s", err)
         return db, err
     end
 
@@ -63,17 +60,15 @@ function MysqlLuaAdapter:query(queryStr)
     assert(self.db_ ~= nil, "Not connect to mysql")
 
     local cur, err = self.db_:execute(queryStr)
-
     if err then
-        printf("[MYSQL] failed to query mysql: %s", err)
+        printWarn("MysqlLuaAdapter:query() - failed to query mysql: %s", err)
         return cur, err
     end
 
     if type(cur) == "userdata" then
         local row, err = cur:fetch ({}, "a")
-
         if err then
-            printf("[MYSQL] failed to query mysql: %s", err)
+            printWarn("MysqlLuaAdapter:query() - failed to query mysql: %s", err)
             return row, err
         end
 

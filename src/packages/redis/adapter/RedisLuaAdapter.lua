@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -28,7 +26,6 @@ local assert = assert
 local pcall = pcall
 local type = type
 local tostring = tostring
-local print = print
 local table_concat = table.concat
 local table_walk = table.walk
 local string_format = string.format
@@ -66,10 +63,10 @@ function RedisLuaAdapter:command(command, ...)
     local method = self.instance[command]
     assert(type(method) == "function", string_format("RedisLuaAdapter:command() - invalid command %s", tostring(command)))
 
-    if self.config.debug then
+    if DEBUG > 1 then
         local a = {}
         table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printf("[REDIS] %s: %s", string_upper(command), table_concat(a, ", "))
+        printInfo("RedisLuaAdapter:command() - command %s: %s", string_upper(command), table_concat(a, ", "))
     end
 
     local arg = {...}
@@ -92,14 +89,14 @@ end
 function RedisLuaAdapter:commitPipeline(commands)
     return pcall(function()
         self.instance:pipeline(function()
-            if self.config.debug then print("[REDIS] INIT PIPELINE") end
+            printInfo("RedisLuaAdapter:commitPipeline() - init pipeline")
             for _, arg in ipairs(commands) do
                 local command = arg[1]
                 local method = self.instance[command]
                 assert(type(method) == "function", string_format("RedisLuaAdapter:commitPipeline() - invalid command %s", tostring(command)))
                 method(self.instance, unpack(arg[2]))
             end
-            if self.config.debug then print("[REDIS] COMMIT PIPELINE") end
+            printInfo("RedisLuaAdapter:commitPipeline() - commit pipeline")
         end)
     end)
 end

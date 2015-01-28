@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -31,21 +29,22 @@ local pairs = pairs
 
 module(...)
 
-local createIndexSql = [[
+local _createIndexSql = [[
 CREATE TABLE IF NOT EXISTS %s (
     entity_id VARCHAR(32) NOT NULL UNIQUE,
     %s VARCHAR(512) NOT NULL,
     PRIMARY KEY(%s, entity_id)
 ) ENGINE=InnoDB; ]]
 
-local dropIndexSql = [[
+local _dropIndexSql = [[
 DROP TABLE %s;
 ]]
 
-local deleteIndexSql = [[
+-- dumb here
+local _deleteIndexSql = [[
 ]]
 
-local findIndexSql = [[
+local _findIndexSql = [[
 SELECT entity_id FROM %s WHERE %s = '%s';
 ]]
 
@@ -55,14 +54,14 @@ INSERT INTO %s (%s,%s) VALUES (%s,%s);
 
 function createIndex(property)
     local tableName = property.."_index"
-    local sql = string_format(createIndexSql, tableName, property, property)
+    local sql = string_format(_createIndexSql, tableName, property, property)
 
     return sql
 end
 
 function dropIndex(property)
     local tableName = property .. "_index"
-    local sql = string_format(dropIndexSql, tableName)
+    local sql = string_format(_dropIndexSql, tableName)
 
     return sql
 end
@@ -73,7 +72,7 @@ function findIndex(propertyTbl)
     local n = pairs(propertyTbl)
     local k, v = n(propertyTbl)
     local tableName = k .. "_index"
-    local sql = string_format(findIndexSql, tableName, k, v)
+    local sql = string_format(_findIndexSql, tableName, k, v)
 
     return sql
 end
