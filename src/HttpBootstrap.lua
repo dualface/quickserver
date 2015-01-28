@@ -27,6 +27,6 @@ THE SOFTWARE.
 require("framework.init")
 
 -- create HTTP server app instance
-local config = require("server.config")
+local config = require("conf.config")
 local app = require("server.HttpServerApp"):create(config)
 app:run()
