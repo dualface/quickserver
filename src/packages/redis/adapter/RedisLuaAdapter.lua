@@ -54,7 +54,7 @@ function RedisLuaAdapter:connect()
     if ok then
         return true
     else
-        return false, result
+        return nil, result
     end
 end
 
@@ -79,7 +79,7 @@ function RedisLuaAdapter:command(command, ...)
     if ok then
         return result
     else
-        return false, result
+        return nil, result
     end
 end
 

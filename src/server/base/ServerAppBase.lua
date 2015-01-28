@@ -34,6 +34,7 @@ local table_concat = table.concat
 local string_format = string.format
 local string_gsub = string.gsub
 local string_lower = string.lower
+local string_ucfirst = string.ucfirst
 local os_time = os.time
 
 local ServerAppBase = class("ServerAppBase")
@@ -57,13 +58,11 @@ function ServerAppBase:ctor(config)
 end
 
 function ServerAppBase:run()
-    self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
-    self:runEventLoop()
-    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+    error("ServerAppBase:run() - must override in inherited class")
 end
 
 function ServerAppBase:runEventLoop()
-    printError("ServerAppBase:runEventLoop() - must override in inherited class")
+    error("ServerAppBase:runEventLoop() - must override in inherited class")
 end
 
 function ServerAppBase:doRequest(actionName, data)
@@ -83,15 +82,13 @@ function ServerAppBase:doRequest(actionName, data)
 
     local t = type(actionModule)
     if t ~= "table" and t ~= "userdata" then
-        printError("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath)
-        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+        error("ServerAppBase:doRequest() - failed to load action module \"%s\"", actionModulePath)
     end
 
     local action = actionModule.new(self)
     local method = action[actionMethodName]
     if type(method) ~= "function" then
-        printError("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName)
-        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+        error("ServerAppBase:doRequest() - invalid action method \"%s:%s()\"", actionModulePath, actionMethodName)
     end
 
     if not data then
@@ -110,14 +107,12 @@ end
 
 function ServerAppBase:registerActionModule(actionModuleName, actionModule)
     if type(actionModuleName) ~= "string" then
-        printError("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName)
-        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+        error("ServerAppBase:registerActionModule() - invalid action module name \"%s\"", actionModuleName)
     end
     if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        printError("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName)
-        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+        error("ServerAppBase:registerActionModule() - invalid action module \"%s\"", actionModuleName)
     end
-    actionModuleName = string.ucfirst(string_lower(actionModuleName))
+    actionModuleName = string_ucfirst(string_lower(actionModuleName))
     self._actionModules[actionModuleName] = actionModule
 end
 
@@ -131,45 +126,26 @@ function ServerAppBase:normalizeActionName(actionName)
     if #parts == 1 then parts[2] = 'index' end
     method = string_lower(parts[#parts])
     table_remove(parts, #parts)
-    parts[#parts] = string.ucfirst(string_lower(parts[#parts]))
+    parts[#parts] = string_ucfirst(string_lower(parts[#parts]))
 
     return table_concat(parts, "."), method
 end
 
-function ServerAppBase:newSession(data)
-    if not data.tag then
-        return nil, "miss parameter tag."
-    end
-
-    local app = self.config.appName
-    local time = os_time()
-    local ip = ngx.var.remote_addr
-
-    local str = app .. "!" .. time .. "!" .. data.tag .. "!" .. ip
-    local token = ngx.md5(str)
-
+function ServerAppBase:newSession(secret)
+    local session = self:_genSession(secret)
+    -- TODO: add Redis, beanstalkd API into ServerAppBase
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    redis:command("SET", token, str)
-    redis:command("EXPIRE", token, self.config.sessionExpiredTime)
+    redis:command("SET", session.sid, session.origin)
+    redis:command("EXPIRE", session.sid, self.config.sessionExpiredTime)
     redis:close()
-
-    return token, nil
+    return session
 end
 
-function ServerAppBase:sendMessage(sid, msg)
+function ServerAppBase:getSidByTag(tag)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
-    local ch = string_format("channel.%s", sid)
-    redis:command("PUBLISH", ch, msg)
-
-    redis:close()
-end
-
-function ServerAppBase:getSidByTag(key)
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    local sid = redis:command("GET", key)
+    local sid = redis:command("GET", tag)
     if sid == nil then
         redis:close()
         return nil, err
@@ -180,16 +156,15 @@ function ServerAppBase:getSidByTag(key)
     end
     redis:close()
 
-    return sid, nil
+    return sid
 end
 
 function ServerAppBase:setSidTag(key)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
     local ok, err = redis:command("INCR", SID_KEY)
-    if not ok then
-        printError("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
-        ngx_exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
+    if err then
+        error("ServerAppBase:setSidTag() - generate socket id failed: %s", err)
     end
     self.socketId = ok
     self.internalChannel = string_format("channel.%s", self.socketId)
@@ -213,7 +188,7 @@ function ServerAppBase:checkSession(data)
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
     local str, err = redis:command("GET", token)
-    if not str then
+    if err then
         redis:close()
         return nil, string_format("check session failed: %s", err)
     end
@@ -232,8 +207,28 @@ function ServerAppBase:checkSession(data)
 
     redis:command("EXPIRE", token, self.config.sessionExpiredTime)
     redis:close()
-
     return data.tag, nil
+end
+
+function ServerAppBase:sendMessage(sid, msg)
+    local redis = cc.load("redis").service.new(self.config.redis)
+    redis:connect()
+    local ch = string.format("channel.%s", sid)
+    redis:command("PUBLISH", ch, msg)
+    redis:close()
+end
+
+function ServerAppBase:_genSession(secret)
+    if not secret then
+        error("ServerAppBase:_genSession() - miss \"secret\"")
+    end
+
+    local app = self.config.appName or "quickserver-app"
+    local time = os.time()
+    local ip = ngx.var.remote_addr
+    local str = app .. "!" .. time .. "!" .. tostring(secret) .. "!" .. ip
+    local sig = ngx.md5(str)
+    return {sid = sid, origin = str}
 end
 
 return ServerAppBase

@@ -39,30 +39,30 @@ function RestyBeanstalkdAdapter:ctor(config)
 end
 
 function RestyBeanstalkdAdapter:connect()
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
 
     local _, err = self.instance:connect(self.config.host, self.config.port)
     if err then
-        return false, err
+        return nil, err
     end
     self.instance:set_timeout(self.config.timeout)
     return true
 end
 
 function RestyBeanstalkdAdapter:close()
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
 
     return self.instance:close()
 end
 
 function RestyBeanstalkdAdapter:setKeepAlive(timeout, size)
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
 
     return self.instance:set_keepalive(timeout, size)
 end
 
 function RestyBeanstalkdAdapter:command(command, ...)
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
     local method = self.instance[command]
     assert(type(method) == "function", string_format("RestyBeanstalkdAdapter:command() - invalid command %s", tostring(command)))
     return method(self.instance, ...)

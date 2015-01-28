@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 ]]
 
-local next = next
+local DEBUG = DEBUG
 local type = type
 local tostring = tostring
 local ngx = ngx
@@ -34,112 +34,135 @@ local table_insert = table.insert
 local table_concat = table.concat
 local string_format = string.format
 
-local WebSocketsServerBase = class("WebSocketsServerBase", import(".ServerAppBase"))
+local ServerAppBase = import(".ServerAppBase")
 
-WebSocketsServerBase.WEBSOCKETS_READY_EVENT = "WEBSOCKETS_READY_EVENT"
-WebSocketsServerBase.WEBSOCKETS_CLOSE_EVENT = "WEBSOCKETS_CLOSE_EVENT"
+local WebSocketServerBase = class("WebSocketServerBase", ServerAppBase)
 
-function WebSocketsServerBase:ctor(config)
-    WebSocketsServerBase.super.ctor(self, config)
+WebSocketServerBase.WEBSOCKET_READY_EVENT = "WEBSOCKET_READY_EVENT"
+WebSocketServerBase.WEBSOCKET_CLOSE_EVENT = "WEBSOCKET_CLOSE_EVENT"
+
+WebSocketServerBase.TEXT_MESSAGE_TYPE   = "text"
+WebSocketServerBase.BINARY_MESSAGE_TYPE = "binary"
+
+WebSocketServerBase.PROTOCOL_PATTERN = "quickserver: ([%w%d-]+)"
+
+WebSocketServerBase.DEFAULT_TIME_OUT        = 10 * 1000 -- 10s
+WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN = 16 * 1024 -- 16KB
+WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT = 5 -- 5 times
+WebSocketServerBase.DEFAULT_MESSAGE_FORMAT  = "json"
+
+function WebSocketServerBase:ctor(config)
+    WebSocketServerBase.super.ctor(self, config)
+
+    self.config.websocketsTimeout       = self.config.websocketsTimeout or WebSocketServerBase.DEFAULT_TIME_OUT
+    self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN
+    self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT
+    self.config.websocketsMessageFormat = self.config.websocketsMessageFormat or WebSocketServerBase.DEFAULT_MESSAGE_FORMAT
 
     self._requestType = "websockets"
-
-    self.config.websocketsTimeout = self.config.websocketsTimeout or 10 * 1000
-    self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or 16 * 1024
-    self.config.websocketsMessageFormat = self.config.websocketsMessageFormat or "json"
-
     self._subscribeBroadcastChannelEnabled = false
     self._subscribeRetryCount = 1
 
     local ok, err = ngx_on_abort(function()
         self:dispatchEvent({name = ServerAppBase.CLIENT_ABORT_EVENT})
     end)
-    if not ok then
-        printInfo("WebSocketsServerBase:ctor() - failed to register the on_abort callback, ", err)
+    if err then
+        printWarn("WebSocketServerBase:ctor() - failed to register the on_abort callback, %s", err)
     end
 end
 
-function WebSocketsServerBase:runEventLoop()
-    -- verify session token
-    local tag, err = self:processWebSocketsSession()
-    if not tag then
-        printWarn("WebSocketsServerBase:runEventLoop() - processWebSocketSession failed: %s", err)
-        return ngx.HTTP_UNAUTHORIZED
+function WebSocketServerBase:run()
+    if not self:_authConnect() then
+        error(string.format("WebSocketServerBase:run() - authConnect failed, %s", err))
+    else
+        self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
+        self:runEventLoop()
+        self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
     end
-    self._tag = tag
+end
 
-    -- create websocket connection
+function WebSocketServerBase:runEventLoop()
     local server = require("resty.websocket.server")
-    local wb, err = server:new({
+    local socket, err = server:new({
         timeout = self.config.websocketsTimeout,
         max_payload_len = self.config.websocketsMaxPayloadLen,
     })
-    if not wb then
-        printWarn("WebSocketsServerBase:runEventLoop() - failed to create websocket connection: %s", err)
-        return ngx.HTTP_SERVICE_UNAVAILABLE
+    if err then
+        error(string.format("WebSocketServerBase:runEventLoop() - failed to create websocket server, %s", err))
     end
-    self._websocket = wb
 
-    --  client tag is bound to this websocket id
-    self:setSidTag(tag)
+    self._socket = socket
+    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_READY_EVENT})
+
+    --  client tag is binding to this websocket id
+    self:setSidTag(self._tag)
 
     -- spawn a thread to subscribe redis channel for broadcast
-    local ok, err = self:subscribeBroadcastChannel()
-    if not ok then
-        printWarn("WebSocketsServerBase:runEventLoop() - failed to subscribe broadcast channel: %s", err)
-        return ngx.HTTP_SERVICE_UNAVAILABLE
+    local ok, err = self:_subscribeBroadcastChannel()
+    if err then
+        error(string.format("WebSocketsServerBase:runEventLoop() - failed to subscribe broadcast channel: %s", err))
     end
 
-    local ret = ngx.HTTP_OK
     local retryCount = 0
-    local maxRetryCount = self.config.maxWebsocketRetryCount
-    local serialData = {}
+    local maxRetryCount = self.config.websocketsMaxRetryCount
+    local framesPool = {}
 
     -- event loop
     while true do
-        local data, typ, err = wb:recv_frame()
-        if not data then
-            printWarn("WebSocketsServerBase:runEventLoop() - failed to receive frame, %s", err)
-            if err and retryCount < maxRetryCount then
-                retryCount = retryCount + 1
-                goto recv_next_message
-            end
-            ret = ngx.HTTP_INTERNAL_SERVER_ERROR
-            break
-        end
+        --[[
+        Receives a WebSocket frame from the wire.
 
-        if err == "again" then
-            table_insert(serialData, data)
+        In case of an error, returns two nil values and a string describing the error.
+
+        The second return value is always the frame type, which could be
+        one of continuation, text, binary, close, ping, pong, or nil (for unknown types).
+
+        For close frames, returns 3 values: the extra status message
+        (which could be an empty string), the string "close", and a Lua number for
+        the status code (if any). For possible closing status codes, see
+
+        http://tools.ietf.org/html/rfc6455#section-7.4.1
+
+        For other types of frames, just returns the payload and the type.
+
+        For fragmented frames, the err return value is the Lua string "again".
+        ]]
+        local frame, ftype, err = socket:recv_frame()
+        if err then
+            if err == "again" then
+                framesPool[#framesPool + 1] = frame
+            elseif retryCount < maxRetryCount then
+                printInfo("WebSocketsServerBase:runEventLoop() - failed to receive frame, %s", err)
+                retryCount = retryCount + 1
+            else
+                break -- exit event loop
+            end
             goto recv_next_message
         end
 
-        if next(serialData) ~= nil then
-            data = table_concat(serialData)
-            serialData = {}
+        if #framesPool > 0 then
+            -- merging fragmented frames
+            framesPool[#framesPool + 1] = frame
+            frame = table.concat(framesPool)
+            framesPool = {}
         end
 
-        if typ == "close" then
+        if ftype == "close" then
             break -- exit event loop
-        elseif typ == "ping" then
-            -- send pong
-            local bytes, err = wb:send_pong()
-            if not bytes then
-                printWarn("WebSocketsServerBase:runEventLoop() - failed to send pong, %s", err)
+        elseif ftype == "ping" then
+            local bytes, err = socket:send_pong()
+            if err then
+                printInfo("WebSocketServerBase:runEventLoop() - failed to send pong, %s", err)
             end
-        elseif typ == "pong" then
-            printInfo("WebSocketsServerBase:runEventLoop() - client ponged")
-        elseif typ == "text" then
-            local ok, err = self:processWebSocketsMessage(data, typ)
-            if not ok then
-                printWarn("WebSocketsServerBase:runEventLoop() - process text message failed: %s", err)
-            end
-        elseif typ == "binary" then
-            local ok, err = self:processWebSocketsMessage(data, typ)
-            if not ok then
-                printWarn("WebSocketsServerBase:runEventLoop() - process binary message failed: %s", err)
+        elseif ftype == "pong" then
+            -- client ponged
+        elseif ftype == "text" or ftype == "binary" then
+            local ok, err = self:_processMessage(frame, ftype)
+            if err then
+                printWarn("WebSocketServerBase:runEventLoop() - process %s message failed, %s", ftype, err)
             end
         else
-            printInfo("WebSocketsServerBase:runEventLoop() - unknwon message type %s", tostring(typ))
+            printWarn("WebSocketServerBase:runEventLoop() - unknwon frame type \"%s\"", tostring(ftype))
         end
 
 ::recv_next_message::
@@ -147,97 +170,97 @@ function WebSocketsServerBase:runEventLoop()
     end -- while
 
     -- end the subscribe thread
-    self:unsubscribeBroadcastChannel()
+    self:_unsubscribeBroadcastChannel()
 
-    -- unbind socket id
+    -- unbinding websocket id
     self:unsetSidTag(self._tag)
 
-    -- close connection
-    wb:send_close()
-    self._websockets = nil
+    -- close connect
+    self._socket:send_close()
+    self._socket = nil
 
-    return ret
+    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_CLOSE_EVENT})
+
+    return exitError
 end
 
-function WebSocketsServerBase:processWebSocketsMessage(rawMessage, messageType)
-    if messageType ~= "text" then
-        return false, string_format("not supported message type %s", messageType)
+function WebSocketServerBase:_processMessage(rawMessage, messageType)
+    local message, err = self:_parseMessage(rawMessage, messageType)
+    if err then
+        return nil, err
     end
 
-    local ok, message = self:parseWebSocketsMessage(rawMessage)
-    if not ok then
-        return false, message
-    end
-
-    local msgid = message.msg_id
+    local msgid = message.__id
     local actionName = message.action
+    local err = nil
+    local ok, result = xpcall(function()
+        return self:doRequest(actionName, message)
+    end, function(_err)
+        err = tostring(_err) .. "\n" .. debug.traceback("", 2)
+    end)
+    if err then
+        return nil, string.format("action \"%s\" occurs error, %s", actionName, err)
+    end
 
-    local result = self:doRequest(actionName, message)
-    if type(result) == "table" then
+    if type(result) ~= "table" then
         if msgid then
-            result.msg_id = msgid
+            return nil, string.format("action \"%s\" return invalid result for message [__id:\"%s\"]", actionName, msgid)
         else
-            printInfo("WebSocketsServerBase:processWebSocketsMessage() - unidentified result from action %s", actionName)
-            result = nil
-        end
-    elseif result ~= nil then
-        if msgid then
-            printInfo("WebSocketsServerBase:processWebSocketsMessage() - invalid result from action %s for message %s", actionName, msgid)
-            result = {error = result}
-        else
-            printInfo("WebSocketsServerBase:processWebSocketsMessage() - invalid and unidentified result from action %s", actionName)
-            result = nil
+            return nil, string.format("action \"%s\" return invalid result", actionName)
         end
     end
 
-    if not self._websockets then
-        return false, "websockets removed"
+    if not msgid then
+        printWarn("WebSocketServerBase:processMessage() - action \"%s\" return unused result", actionName)
+        return true
     end
 
-    if result then
-        local bytes, err = self._websockets:send_text(json.encode(result))
-        if not bytes then
-            return false, err
-        end
+    if not self._socket then
+        return nil, "socket removed"
+    end
+
+    result.__id = msgid
+    local rawMessage, err = self:_packMessage(result)
+    if err then
+        return nil, err
+    end
+
+    local bytes, err = self._socket:send_text(rawMessage)
+    if err then
+        return nil, err
     end
 
     return true
 end
 
-function WebSocketsServerBase:parseWebSocketsMessage(rawMessage)
+function WebSocketServerBase:_packMessage(message, messageType)
+    -- TODO: support message type plugin
+    if messageType ~= WebSocketServerBase.TEXT_MESSAGE_TYPE then
+        return nil, string.format("not supported message type \"%s\"", messageType)
+    end
+    return json.encode(message)
+end
+
+function WebSocketServerBase:_parseMessage(rawMessage, messageType)
+    -- TODO: support message type plugin
+    if messageType ~= WebSocketServerBase.TEXT_MESSAGE_TYPE then
+        return nil, string.format("not supported message type \"%s\"", messageType)
+    end
+
+    -- TODO: support message format plugin
     if self.config.websocketsMessageFormat == "json" then
         local message = json.decode(rawMessage)
         if type(message) == "table" then
-            return true, message
+            return message
         else
-            return false, string_format("invalid message format %s", tostring(rawMessage))
+            return nil, "not supported message format"
         end
     else
-        return false, string_format("not support message format %s", tostring(self.config.websocketsMessageFormat))
+        return nil, string.format("not support message format \"%s\"", tostring(self.config.websocketsMessageFormat))
     end
 end
 
-function WebSocketsServerBase:processWebSocketsSession()
-    -- read http handshake headers
-    local headers = req_get_headers()
-    if not headers["quick_server_token"]  then
-        printWarn("WebSocketsServerBase:processWebSocketSession() - client don't send session token via header")
-        return nil, "client don't send session token via header"
-    end
-
-    if not headers["client_tag"] then
-        printWarn("WebSocketsServerBase:processWebSocketSession() - client don't send tag via header")
-        return nil, "client don't send session token via header"
-    end
-
-    local data = {}
-    data.token = headers["quick_server_token"]
-    data.tag = headers["client_tag"]
-
-    return self:checkSessionId(data)
-end
-
-function WebSocketsServerBase:unsubscribeBroadcastChannel()
+function WebSocketsServerBase:_unsubscribeBroadcastChannel()
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
@@ -248,7 +271,7 @@ function WebSocketsServerBase:unsubscribeBroadcastChannel()
     redis:close()
 end
 
-function WebSocketsServerBase:subscribeBroadcastChannel()
+function WebSocketsServerBase:_subscribeBroadcastChannel()
     if self._subscribeBroadcastChannelEnabled then
         printWarn("WebSocketServerApp:subscribeBroadcastChannel() - failed: already subscribed")
         return nil, "already subscribed"
@@ -305,4 +328,30 @@ function WebSocketsServerBase:subscribeBroadcastChannel()
     return true, nil
 end
 
-return WebSocketsServerBase
+function WebSocketServerBase:_authConnect()
+    if ngx.headers_sent then
+        error("WebSocketServerBase:authConnect() - response header already sent")
+    end
+
+    read_body()
+    local headers = ngx.req.get_headers()
+    local protocols = headers["sec-websocket-protocol"]
+    if type(protocols) == "table" then
+        protocols = protocols[1]
+    else
+        protocols = nil
+    end
+    if not protocols then
+        error("WebSocketServerBase:authConnect() - not set header: Sec-WebSocket-Protocol")
+    end
+
+    local token = string.match(protocols, WebSocketServerBase.PROTOCOL_PATTERN)
+    if not token then
+        error("WebSocketServerBase:authConnect() - not set token in header")
+    end
+
+    -- TODO: check token
+    return true
+end
+
+return WebSocketServerBase

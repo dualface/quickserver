@@ -43,17 +43,17 @@ function BeanstalkdHaricotAdapter:connect()
 end
 
 function BeanstalkdHaricotAdapter:close()
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
     return self.instance:quit()
 end
 
 function BeanstalkdHaricotAdapter:command(command, ...)
-    if not self.instance then return false, self.ctorErr end
+    if not self.instance then return nil, self.ctorErr end
     local method = self.instance[command]
     assert(type(method) == "function", string_format("BeanstalkdHaricotAdapter:command() - invalid command %s", tostring(command)))
     local ok, result = method(self.instance, ...)
     if ok then return result end
-    return false, result
+    return nil, result
 end
 
 return BeanstalkdHaricotAdapter

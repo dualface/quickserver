@@ -36,6 +36,7 @@ local req_read_body = ngx.req.read_body
 local req_get_post_args = ngx.req.get_post_args
 local table_merge = table.merge
 local string_gsub = string.gsub
+local json_encode = json.encode
 
 local HttpServerBase = class("HttpServerBase", import(".ServerAppBase"))
 
@@ -94,12 +95,17 @@ end
 function HttpServerBase:run()
     local ok, result = self:runEventLoop()
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+    printInfo("HttpServerBase:run() - QUIT")
+
     if ok then
         ngx.status = ngx.HTTP_OK
-        ngx.say(result)
+        -- maybe action return ok without output
+        if result then ngx_say(result) end
     else
+        -- return an error page with custom contents
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
-        ngx.say(result)
+        ngx_say(result)
+        ngx.exit(ngx.HTTP_OK)
     end
 end
 
@@ -107,21 +113,25 @@ end
 function HttpServerBase:runEventLoop()
     local uri = self._uri
     local action = string_gsub(uri, "/", ".")
-    printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", action, json.encode(self._requestParameters))
+    if DEBUG > 1 then
+        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", action, json_encode(self._requestParameters))
+    end
 
     local result = self:doRequest(action, self._requestParameters)
+    if not result then
+        -- action return ok without output
+        return true
+    end
 
-    if not result then return true end
+    -- TODO: support custom format
     if type(result) == "table" then
-        result = json.encode(result)
+        result = json_encode(result)
     end
     if type(result) == "string" then
         return true, result
     else
-        return false, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
+        return nil, string.format("HttpServerBase:runEventLoop() - unexpected result type \"%s\"", type(result))
     end
-
-    printInfo("HttpServerBase:runEventLoop() - QUIT")
 end
 
 return HttpServerBase
