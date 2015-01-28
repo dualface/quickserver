@@ -100,7 +100,7 @@ function WebSocketServerBase:runEventLoop()
     -- spawn a thread to subscribe redis channel for broadcast
     local ok, err = self:_subscribeBroadcastChannel()
     if err then
-        error(string.format("WebSocketsServerBase:runEventLoop() - failed to subscribe broadcast channel: %s", err))
+        error(string.format("WebSocketServerBase:runEventLoop() - failed to subscribe broadcast channel: %s", err))
     end
 
     local retryCount = 0
@@ -132,7 +132,7 @@ function WebSocketServerBase:runEventLoop()
             if err == "again" then
                 framesPool[#framesPool + 1] = frame
             elseif retryCount < maxRetryCount then
-                printInfo("WebSocketsServerBase:runEventLoop() - failed to receive frame, %s", err)
+                printInfo("WebSocketServerBase:runEventLoop() - failed to receive frame, %s", err)
                 retryCount = retryCount + 1
             else
                 break -- exit event loop
@@ -260,18 +260,18 @@ function WebSocketServerBase:_parseMessage(rawMessage, messageType)
     end
 end
 
-function WebSocketsServerBase:_unsubscribeBroadcastChannel()
+function WebSocketServerBase:_unsubscribeBroadcastChannel()
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
     -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
     local ok, err = redis:command("publish", self.internalChannel, "QUIT")
     if not ok then
-        printWarn("WebSocketsServerBase:unsubscribeBroadcastChannel() - publish QUIT failed: %s", err)
+        printWarn("WebSocketServerBase:unsubscribeBroadcastChannel() - publish QUIT failed: %s", err)
     end
     redis:close()
 end
 
-function WebSocketsServerBase:_subscribeBroadcastChannel()
+function WebSocketServerBase:_subscribeBroadcastChannel()
     if self._subscribeBroadcastChannelEnabled then
         printWarn("WebSocketServerApp:subscribeBroadcastChannel() - failed: already subscribed")
         return nil, "already subscribed"
@@ -288,16 +288,16 @@ function WebSocketsServerBase:_subscribeBroadcastChannel()
 
         local loop, err = redis:pubsub({subscribe=internalChannel})
         if not loop then
-            printError("WebSocketsServerBase, subscribe thread - redis subscribe channel failed: %s", err)
+            printError("WebSocketServerBase, subscribe thread - redis subscribe channel failed: %s", err)
             ngx_exit(ngx.HTTP_SERVICE_UNAVAILABLE)
         end
 
         for msg, abort in loop do
             if msg.kind == "subscribe" then
-                printInfo("WebSocketsServerBase, subscribe thread - subscribed channel(%s), socket id: %d", msg.channel, self.socketId)
+                printInfo("WebSocketServerBase, subscribe thread - subscribed channel(%s), socket id: %d", msg.channel, self.socketId)
             elseif msg.kind == "message" then
                 local payload = msg.payload
-                printInfo("WebSocketsServerBase, subscribe thread - get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
+                printInfo("WebSocketServerBase, subscribe thread - get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
                 if payload == "QUIT" then
                     abort()
                     isRunning = false
@@ -314,7 +314,7 @@ function WebSocketsServerBase:_subscribeBroadcastChannel()
 
         self._subscribeBroadcastChannelEnabled = false
 
-        printInfo("WebSocketsServerBase, subscribe thread - quit from subscribe loop, socketId = %d", self.socketId)
+        printInfo("WebSocketServerBase, subscribe thread - quit from subscribe loop, socketId = %d", self.socketId)
         printInfo("--------- SUBSCRIBE THREAD QUIT ----------")
 
         -- if an error leads to an exiting, retry to subscribe channel

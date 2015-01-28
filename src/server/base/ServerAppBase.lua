@@ -24,9 +24,6 @@ THE SOFTWARE.
 
 ]]
 
-local pcall = pcall
-local type = type
-local clone = clone
 local ngx = ngx
 local ngx_exit = ngx.exit
 local table_remove = table.remove
@@ -39,9 +36,9 @@ local os_time = os.time
 
 local ServerAppBase = class("ServerAppBase")
 
-ServerAppBase.APP_RUN_EVENT            = "APP_RUN_EVENT"
-ServerAppBase.APP_QUIT_EVENT           = "APP_QUIT_EVENT"
-ServerAppBase.CLIENT_ABORT_EVENT       = "CLIENT_ABORT_EVENT"
+ServerAppBase.APP_RUN_EVENT      = "APP_RUN_EVENT"
+ServerAppBase.APP_QUIT_EVENT     = "APP_QUIT_EVENT"
+ServerAppBase.CLIENT_ABORT_EVENT = "CLIENT_ABORT_EVENT"
 
 local SID_KEY = "_SID_KEY"
 

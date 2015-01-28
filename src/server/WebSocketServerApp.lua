@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 ]]
 
-local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketsServerBase)
+local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketServerBase)
 
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
@@ -33,8 +33,8 @@ function WebSocketServerApp:ctor(config)
         printInfo("---------------- START -----------------")
     end
 
-    self:addEventListener(WebSocketServerApp.WEBSOCKET_READY_EVENT, self.onWebSocketsReady, self)
-    self:addEventListener(WebSocketServerApp.WEBSOCKET_CLOSE_EVENT, self.onWebSocketsClose, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKET_READY_EVENT, self.onWebSocketReady, self)
+    self:addEventListener(WebSocketServerApp.WEBSOCKET_CLOSE_EVENT, self.onWebSocketClose, self)
     self:addEventListener(WebSocketServerApp.CLIENT_ABORT_EVENT, self.onClientAbort, self)
 
     self.subscribeMessageChannelEnabled = false
@@ -67,7 +67,7 @@ end
 
 ---- events callback
 
-function WebSocketServerApp.onWebSocketsReady(event)
+function WebSocketServerApp.onWebSocketReady(event)
     local self = event.tag
 
     -- verify session id process
@@ -87,7 +87,7 @@ function WebSocketServerApp.onWebSocketsReady(event)
     self:subscribePushMessageChannel_()
 end
 
-function WebSocketServerApp.onWebSocketsClose(event)
+function WebSocketServerApp.onWebSocketClose(event)
     local self = event.tag
 
     self:unsetSidTag(self.tag)
