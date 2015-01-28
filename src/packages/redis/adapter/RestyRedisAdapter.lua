@@ -38,40 +38,48 @@ local redis = require("resty.redis")
 local RestyRedisAdapter = class("RestyRedisAdapter")
 
 function RestyRedisAdapter:ctor(config)
-    self.config = config
-    self.instance = redis:new()
+    self._config = config
+    self._instance = redis:new()
     self.name = "RestyRedisAdapter"
 end
 
 function RestyRedisAdapter:connect()
-    self.instance:set_timeout(self.config.timeout)
-    return self.instance:connect(self.config.host, self.config.port)
+    self._instance:set_timeout(self._config.timeout)
+    return self._instance:connect(self._config.host, self._config.port)
 end
 
 function RestyRedisAdapter:close()
-    return self.instance:close()
+    return self._instance:close()
 end
 
 function RestyRedisAdapter:setKeepAlive(timeout, size)
-    return self.instance:set_keepalive(timeout, size)
+    if size then
+        return self._instance:set_keepalive(timeout, size)
+    elseif timeout then
+        return self._instance:set_keepalive(timeout)
+    else
+        return self._instance:set_keepalive()
+    end
 end
 
 function RestyRedisAdapter:command(command, ...)
-    local method = self.instance[command]
-    assert(type(method) == "function", string_format("RestyRedisAdapter:command() - invalid command %s", tostring(command)))
+    local method = self._instance[command]
+    if type(method) ~= "function" then
+        return nil, string_format("invalid redis command \"%s\"", string_upper(command))
+    end
 
     if DEBUG > 1 then
         local a = {}
         table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printInfo("RestyRedisAdapter:command() - command %s: %s", string_upper(command), table_concat(a, ", "))
+        printInfo("redis command %s: %s", string_upper(command), table_concat(a, ", "))
     end
 
-    return method(self.instance, ...)
+    return method(self._instance, ...)
 end
 
 function RestyRedisAdapter:pubsub(subscriptions)
     if type(subscriptions) ~= "table" then
-        return nil, "invalid subscriptions argument"
+        return nil, "invalid redis subscriptions argument"
     end
 
     if type(subscriptions.subscribe) == "string" then
@@ -85,7 +93,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
 
     local function subscribe(f, channels)
         for _, channel in ipairs(channels) do
-            local result, err = f(self.instance, channel)
+            local result, err = f(self._instance, channel)
             if result then
                 subscribeMessages[#subscribeMessages + 1] = result
             end
@@ -94,7 +102,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
 
     local function unsubscribe(f, channels)
         for _, channel in ipairs(channels) do
-            f(self.instance, channel)
+            f(self._instance, channel)
         end
     end
 
@@ -102,19 +110,19 @@ function RestyRedisAdapter:pubsub(subscriptions)
     local function abort()
         if aborting then return end
         if subscriptions.subscribe then
-            unsubscribe(self.instance.unsubscribe, subscriptions.subscribe)
+            unsubscribe(self._instance.unsubscribe, subscriptions.subscribe)
         end
         if subscriptions.psubscribe then
-            unsubscribe(self.instance.punsubscribe, subscriptions.psubscribe)
+            unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe)
         end
         aborting = true
     end
 
     if subscriptions.subscribe then
-        subscribe(self.instance.subscribe, subscriptions.subscribe)
+        subscribe(self._instance.subscribe, subscriptions.subscribe)
     end
     if subscriptions.psubscribe then
-        subscribe(self.instance.psubscribe, subscriptions.psubscribe)
+        subscribe(self._instance.psubscribe, subscriptions.psubscribe)
     end
 
     return coroutine.wrap(function()
@@ -124,7 +132,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
                 result = subscribeMessages[1]
                 table_remove(subscribeMessages, 1)
             else
-                result, err = self.instance:read_reply()
+                result, err = self._instance:read_reply()
             end
 
             if not result then
@@ -167,13 +175,17 @@ function RestyRedisAdapter:pubsub(subscriptions)
 end
 
 function RestyRedisAdapter:commitPipeline(commands)
-    self.instance:init_pipeline()
-    printInfo("RestyRedisAdapter:commitPipeline() - init pipeline")
+    self._instance:init_pipeline()
+    if DEBUG > 1 then
+        printInfo("RestyRedisAdapter:commitPipeline() - init pipeline")
+    end
     for _, arg in ipairs(commands) do
         self:command(arg[1], unpack(arg[2]))
     end
-    printInfo("RestyRedisAdapter:commitPipeline() - commit pipeline")
-    return self.instance:commit_pipeline()
+    if DEBUG > 1 then
+        printInfo("RestyRedisAdapter:commitPipeline() - commit pipeline")
+    end
+    return self._instance:commit_pipeline()
 end
 
 return RestyRedisAdapter

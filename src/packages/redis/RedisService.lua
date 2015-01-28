@@ -24,14 +24,17 @@ THE SOFTWARE.
 
 local type = type
 local pairs = pairs
+local clone = clone
 local string_lower = string.lower
+local string_upper = string.upper
+local table_concat = table.concat
 
 local RedisService = class("RedisService")
 
 local RESULT_CONVERTER = {
     exists = {
-        RedisLuaAdapter = function(self, r)
-            if r == true then
+        RedisLuaAdapter = function(self, result)
+            if result == true then
                 return 1
             else
                 return 0
@@ -40,95 +43,82 @@ local RESULT_CONVERTER = {
     },
 
     hgetall = {
-        RestyRedisAdapter = function(self, r)
-            return self:arrayToHash(r)
+        RestyRedisAdapter = function(self, result)
+            return self:arrayToHash(result)
         end,
     },
 }
 
-local adapter
+local RedisAdapter
 if ngx then
-    adapter = import(".adapter.RestyRedisAdapter")
+    RedisAdapter = import(".adapter.RestyRedisAdapter")
 else
-    adapter = import(".adapter.RedisLuaAdapter")
+    RedisAdapter = import(".adapter.RedisLuaAdapter")
 end
-local trans = import(".RedisTransaction")
-local pipline = import(".RedisPipeline")
+local RedisTransaction = import(".RedisTransaction")
+local RedisPipeline = import(".RedisPipeline")
 
 function RedisService:ctor(config)
-    if not config or type(config) ~= "table" then
-        return nil, "config is invalid."
+    if type(config) ~= "table" then
+        throw("invalid redis config")
     end
-
-    self.config = config
-    self.redis = adapter.new(self.config)
+    self._config = clone(config)
+    self._redis = RedisAdapter:create(self._config)
 end
 
 function RedisService:connect()
-    local redis = self.redis
-    if not redis then
-        return nil, "Package redis is not initialized."
+    local ok, err = self._redis:connect()
+    if err then
+        throw("connect to redis failed, %s", err)
     end
-
-    return redis:connect()
 end
 
 function RedisService:close()
-    local redis = self.redis
-    if not redis then
-        return nil, "Package redis is not initialized."
-    end
-
-    return redis:close()
+    self._redis:close()
 end
 
 function RedisService:setKeepAlive(timeout, size)
     if not ngx then
-        return self:close()
+        self:close()
+        return
     end
-
-    local redis = self.redis
-    if not redis then
-        return nil, "Package redis is not initialized."
-    end
-
-    return redis:setKeepAlive(timeout, size)
+    self._redis:setKeepAlive(timeout, size)
 end
 
 function RedisService:command(command, ...)
-    local redis = self.redis
-    if not redis then
-        return nil, "Package redis is not initialized."
-    end
-
     command = string_lower(command)
-    local res, err = redis:command(command, ...)
-    if not err then
-        -- converting result
-        local convert = RESULT_CONVERTER[command]
-        if convert and convert[redis.name] then
-            res = convert[redis.name](self, res)
-        end
+    local res, err = self._redis:command(command, ...)
+    if err then
+        throw("redis command \"%s\" failed, %s", string_upper(command), err)
     end
 
-    return res, err
+    -- converting result
+    local convert = RESULT_CONVERTER[command]
+    if convert and convert[self._redis.name] then
+        res = convert[self._redis.name](self, res)
+    end
+    return res
 end
 
 function RedisService:pubsub(subscriptions)
-    local redis = self.redis
-    if not redis then
-        return nil, "Package redis is not initialized."
+    local loop, err = self._redis:pubsub(subscriptions)
+    if err then
+        local a = {"{"}
+        for k, v in pairs(subscriptions) do
+            a[#a + 1] = string.format("%s: %s", tostring(k), tostring(v))
+        end
+        a[#a + 1] = "}"
+        throw("redis pubsub failed, %s", table_concat(a, ","))
     end
-
-    return self.redis:pubsub(subscriptions)
+    return loop
 end
 
 function RedisService:newPipeline()
-    return pipline.new(self)
+    return RedisPipeline:create(self)
 end
 
 function RedisService:newTransaction(...)
-    return trans.new(self, ...)
+    return RedisTransaction:create(self, ...)
 end
 
 function RedisService:hashToArray(hash)
