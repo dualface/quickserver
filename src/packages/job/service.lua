@@ -117,7 +117,7 @@ function JobService:newJob(data)
     local jobActionList = string_format(jobActionListPattern, string_gsub(data.job.action, "%.", "_"))
     local ok, err = redis:command("SADD", jobActionList, data.rid)
     if not ok then
-        printWarn("index actions to %s failed: %s", jobActionList, err) 
+        printWarn("index actions to %s failed: %s", jobActionList, err)
     end
     redis:close()
 
@@ -131,10 +131,10 @@ function JobService:getJob(rid)
     end
 
     redis:connect()
-    local job, err = redis:command("HGET", jobHashList, rid) 
+    local job, err = redis:command("HGET", jobHashList, rid)
     redis:close()
     if not job then
-        return nil, string_format("get job failed: %s", err) 
+        return nil, string_format("get job failed: %s", err)
     end
     if ngx and job == ngx.null then
         return nil, string_format("job[%d] does not exist.", rid)
@@ -175,7 +175,7 @@ function JobService:removeJob(rid)
     end
 
     redis:connect()
-    local jobStr, err = redis:command("HGET", jobHashList, rid)  
+    local jobStr, err = redis:command("HGET", jobHashList, rid)
     if not jobStr then
         return nil, string_format("get job failed: %s", err)
     end
@@ -188,7 +188,7 @@ function JobService:removeJob(rid)
     redis:command("HDEL", jobHashList, rid)
 
     job, err = json_decode(jobStr)
-    if not job then 
+    if not job then
         redis:close()
         printWarn("remove job, josn decode job failed: %s, job contents: %s", err, jobStr)
         return nil, string_format("job[%d] is invalid.", rid)

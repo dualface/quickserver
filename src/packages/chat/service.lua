@@ -74,7 +74,7 @@ function ChatService:broadcast(data)
     rds:connect()
     data.time = os_date("%Y-%m-%d %H:%M:%S")
 
-    local to = data.to 
+    local to = data.to
     data.to = nil
     data.msg_id = nil
 
@@ -84,7 +84,7 @@ function ChatService:broadcast(data)
             self.app:sendMessage(sid, json_encode(data))
         end
     end
-    
+
     rds:close()
     return true, nil
 end

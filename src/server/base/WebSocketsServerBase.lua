@@ -61,9 +61,9 @@ end
 
 function WebSocketsServerBase:runEventLoop()
     -- verify session token
-    local tag, err = self:processWebSocketsSession() 
+    local tag, err = self:processWebSocketsSession()
     if not tag then
-        printWarn("WebSocketsServerBase:runEventLoop() - processWebSocketSession failed: %s", err) 
+        printWarn("WebSocketsServerBase:runEventLoop() - processWebSocketSession failed: %s", err)
         return ngx.HTTP_UNAUTHORIZED
     end
     self._tag = tag
@@ -80,7 +80,7 @@ function WebSocketsServerBase:runEventLoop()
     end
     self._websocket = wb
 
-    --  client tag is bound to this websocket id 
+    --  client tag is bound to this websocket id
     self:setSidTag(tag)
 
     -- spawn a thread to subscribe redis channel for broadcast
@@ -93,7 +93,7 @@ function WebSocketsServerBase:runEventLoop()
     local ret = ngx.HTTP_OK
     local retryCount = 0
     local maxRetryCount = self.config.maxWebsocketRetryCount
-    local serialData = {} 
+    local serialData = {}
 
     -- event loop
     while true do
@@ -108,14 +108,14 @@ function WebSocketsServerBase:runEventLoop()
             break
         end
 
-        if err == "again" then 
+        if err == "again" then
             table_insert(serialData, data)
             goto recv_next_message
         end
 
         if next(serialData) ~= nil then
             data = table_concat(serialData)
-            serialData = {} 
+            serialData = {}
         end
 
         if typ == "close" then
@@ -233,8 +233,8 @@ function WebSocketsServerBase:processWebSocketsSession()
     local data = {}
     data.token = headers["quick_server_token"]
     data.tag = headers["client_tag"]
-    
-    return self:checkSessionId(data) 
+
+    return self:checkSessionId(data)
 end
 
 function WebSocketsServerBase:unsubscribeBroadcastChannel()
@@ -251,10 +251,10 @@ end
 function WebSocketsServerBase:subscribeBroadcastChannel()
     if self._subscribeBroadcastChannelEnabled then
         printWarn("WebSocketServerApp:subscribeBroadcastChannel() - failed: already subscribed")
-        return nil, "already subscribed" 
+        return nil, "already subscribed"
     end
 
-    local internalChannel = self.internalChannel 
+    local internalChannel = self.internalChannel
 
     local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
@@ -276,7 +276,7 @@ function WebSocketsServerBase:subscribeBroadcastChannel()
                 local payload = msg.payload
                 printInfo("WebSocketsServerBase, subscribe thread - get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
                 if payload == "QUIT" then
-                    abort() 
+                    abort()
                     isRunning = false
                     break
                 end
@@ -284,7 +284,7 @@ function WebSocketsServerBase:subscribeBroadcastChannel()
             end
         end
 
-        -- when error occured or exit normally, 
+        -- when error occured or exit normally,
         -- connect will auto close, channel will be unsubscribed
         redis:close()
         redis = nil
@@ -294,7 +294,7 @@ function WebSocketsServerBase:subscribeBroadcastChannel()
         printInfo("WebSocketsServerBase, subscribe thread - quit from subscribe loop, socketId = %d", self.socketId)
         printInfo("--------- SUBSCRIBE THREAD QUIT ----------")
 
-        -- if an error leads to an exiting, retry to subscribe channel 
+        -- if an error leads to an exiting, retry to subscribe channel
         if isRunning and self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self._subscribeRetryCount = self._subscribeRetryCount + 1
             self:subscribeBroadcastChannel()

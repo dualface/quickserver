@@ -31,7 +31,7 @@ local tostring = tostring
 local print = print
 local table_concat = table.concat
 local table_walk = table.walk
-local string_format = string.format 
+local string_format = string.format
 local string_upper = string.upper
 
 local redis = require("3rd.redis.redis_lua")

@@ -44,7 +44,7 @@ function CmdBroadcastWorker:doRequest(actionName, data)
 end
 
 function CmdBroadcastWorker:runEventLoop()
-    -- connect to beanstalkd, supervisor a tube 
+    -- connect to beanstalkd, supervisor a tube
     local bean = cc.load("beanstalkd").service.new(self.config.beanstalkd)
     bean:connect()
     local ok, err = bean:command("watch", self.config.broadcastJobTube)
@@ -55,7 +55,7 @@ function CmdBroadcastWorker:runEventLoop()
     end
 
     -- connect to redis
-    local redis = cc.load("redis").service.new(self.config.redis) 
+    local redis = cc.load("redis").service.new(self.config.redis)
     redis:connect()
 
     while true do
@@ -76,11 +76,11 @@ function CmdBroadcastWorker:runEventLoop()
         else
             printInfo("CmdBroadcastWorker:runEventLoop() - get job [%s], contents: %s", job.id, job.data)
 
-            -- remove redis data, which is related to this job 
+            -- remove redis data, which is related to this job
             local jobService = cc.load("job").service.new(self.config)
             jobService:removeJob(data.rid)
 
-            -- as current connection is not end and reservd a job, 
+            -- as current connection is not end and reservd a job,
             -- job service can't delete this job via another connection
             bean:command("delete", job.id)
 

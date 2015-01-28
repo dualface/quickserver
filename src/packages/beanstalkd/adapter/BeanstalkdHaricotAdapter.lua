@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 ]]
 
-local assert = assert 
+local assert = assert
 local type = type
 local tostring = tostring
 local string_format = string.format
