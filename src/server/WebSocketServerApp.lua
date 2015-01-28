@@ -29,9 +29,7 @@ local WebSocketServerApp = class("WebSocketServerApp", cc.server.WebSocketServer
 function WebSocketServerApp:ctor(config)
     WebSocketServerApp.super.ctor(self, config)
 
-    if self.config.debug then
-        printInfo("---------------- START -----------------")
-    end
+    printInfo("---------------- START -----------------")
 
     self:addEventListener(WebSocketServerApp.WEBSOCKET_READY_EVENT, self.onWebSocketReady, self)
     self:addEventListener(WebSocketServerApp.WEBSOCKET_CLOSE_EVENT, self.onWebSocketClose, self)
@@ -42,9 +40,7 @@ function WebSocketServerApp:ctor(config)
 end
 
 function WebSocketServerApp:doRequest(actionName, data)
-    if self.config.debug then
-        printInfo("ACTION >> call [%s]", actionName)
-    end
+    printInfo("ACTION >> call [%s]", actionName)
 
     local _, result = xpcall(function()
         return WebSocketServerApp.super.doRequest(self, actionName, data)
@@ -57,7 +53,7 @@ function WebSocketServerApp:doRequest(actionName, data)
         return {error = string.format([[Handle request failed: %s]], string.gsub(err, [[\]], ""))}
     end)
 
-    if self.config.debug then
+    if DEBUG > 1 then
         local j = json.encode(result)
         printInfo("ACTION << ret  [%s] = (%d bytes) %s", actionName, string.len(j), j)
     end

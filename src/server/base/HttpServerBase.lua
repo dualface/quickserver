@@ -36,7 +36,9 @@ local table_merge = table.merge
 local string_gsub = string.gsub
 local json_encode = json.encode
 
-local HttpServerBase = class("HttpServerBase", import(".ServerAppBase"))
+local ServerAppBase = import(".ServerAppBase")
+
+local HttpServerBase = class("HttpServerBase", ServerAppBase)
 
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
@@ -117,7 +119,7 @@ function HttpServerBase:runEventLoop()
     local ok, result = xpcall(function()
         return self:doRequest(actionName, self._requestParameters)
     end, function(_err)
-        err = tostring(_err) .. "\n" .. debug.traceback("", 2)
+        err = _err
     end)
     if err then
         return nil, string.format("action \"%s\" occurs error, %s", actionName, err)

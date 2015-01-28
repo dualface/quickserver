@@ -26,12 +26,12 @@ local _DBG_WARN = 1
 local _DBG_INFO = 2
 local _DBG_DEBUG = 3
 
+DEBUG = _DBG_DEBUG
+
 local config = {
     appName                   = "myapp",
 
     appModuleName             = "sample",
-
-    debug                     = _DBUG_INFO,
 
     sessionExpiredTime        = 60*10,
 
