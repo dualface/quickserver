@@ -25,8 +25,6 @@ THE SOFTWARE.
 ]]
 
 require("framework.init")
-
--- create HTTP server app instance
-local config = require("conf.config")
-local app = require("server.HttpServerApp"):create(config)
+-- SERVER_CONFIG from init_by_lua, see nginx.conf
+local app = require("server.HttpServerApp").new(SERVER_CONFIG)
 app:run()

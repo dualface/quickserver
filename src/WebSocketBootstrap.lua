@@ -25,8 +25,6 @@ THE SOFTWARE.
 ]]
 
 require("framework.init")
-
--- create server app instance
-local config = require("server.config")
-local app = require("server.WebSocketServerApp").new(config)
+-- SERVER_CONFIG from init_by_lua, see nginx.conf
+local app = require("server.WebSocketServerApp").new(SERVER_CONFIG)
 app:run()
