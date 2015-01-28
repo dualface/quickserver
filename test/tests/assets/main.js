@@ -1,7 +1,10 @@
 
 $(document).ready(function()
 {
-    $("#http_server_addr").val(document.location + "api/");
+    var l = document.location;
+    $("#http_server_addr").val(l + "api/");
+    $("#websocket_server_addr").val("ws://" + l.host + "/socket/");
+    $("#input_username").val("USER" + parseInt((Math.random() * 10000000)).toString());
 });
 
 var log = {

@@ -11,7 +11,11 @@ function HelloAction:sayAction(arg)
 end
 
 function HelloAction:loginAction(arg)
+    if not arg.username then
+        error("not set argument: \"username\"")
+    end
     local session = self._app:startSession()
+    session:set("username", arg.username)
     session:set("count", 0)
     session:save()
     return {sid = session:getSid(), count = session:get("count")}
