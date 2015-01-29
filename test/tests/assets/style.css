@@ -1,7 +1,8 @@
 
 * {
     font-family: monospace;
-    font-size: 14px;
+    font-size: 12px;
+    color: #333;
 }
 
 body {
@@ -14,7 +15,7 @@ h1 {
 }
 
 div.widget {
-    padding: 1em;
+    padding: 1em 2em;
     border: 1px solid #eee;
     margin: 1em 0;
 }
@@ -25,6 +26,28 @@ div.widget h3 {
     margin: 0 0 10px 0;
     padding: 0;
     line-height: 22px;
+}
+
+table.form {
+    width: 800px;
+    margin: 10px 0 40px 0;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid #ccc;
+}
+
+table.form th.title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+table.form th {
+    text-align: left;
+    width: 14em;
+    font-weight: normal;
+}
+
+table.form td span {
+    margin-right: 0.5em;
 }
 
 #session_id {
@@ -46,9 +69,20 @@ div.widget h3 {
 }
 
 input[type=text] {
-    min-width: 320px;
+    width: 32em;
     font-size: 12px;
     margin: 0.5em 0;
+    border: 1px solid #666;
+    padding: 0.1em 0.5em;
+}
+
+input.small[type=text] {
+    width: 8em;
+}
+
+input:disabled[type=text] {
+    color: #999;
+    border: 1px solid #999;
 }
 
 input[type=button] {
