@@ -1,39 +1,70 @@
 <!doctype html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Quick Server Tests</title>
-<script type="text/javascript" src="assets/jquery-2.1.3.min.js"></script>
-<script type="text/javascript" src="assets/main.js"></script>
-<link rel="stylesheet" href="assets/style.css" />
+<script type="application/javascript" src="assets/jquery-2.1.3.min.js"></script>
+<script type="application/javascript" src="assets/main.js"></script>
+<link type="text/css" rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
 <h1>Quick Server Tests</h1>
 
 <div class="widget">
-    <h3>Login</h3>
-    <label>Server :</label>
-    <input type="text" id="http_server_addr" value="" />
-    <br />
-    <label>Username&nbsp;:</label>
-    <input type="text" id="input_username" value="" />
-    &nbsp;
-    <input type="button" value="Login" onclick="return test.login($('#http_server_addr').val(), $('#input_username').val());" />
-    <input type="button" value="Logout" onclick="return test.logout();" />
-    <br />
-    <input type="button" value="Count" onclick="return test.count();" />
-    &nbsp;
-    <span id="session_id"></span>
-</div>
-
-<div class="widget">
-    <h3>Connect to WebSocket Server</h3>
-    <label>WebSocket Server&nbsp;&nbsp;&nbsp;:</label>
-    <input type="text" id="websocket_server_addr" value="" />
-    &nbsp;
-    <input type="button" value="Connect" onclick="return test.connect($('#websocket_server_addr').val());" />
-    <input type="button" value="Disconnect" onclick="return test.disconnect();" />
-    <br />
+    <table class="form">
+        <tr>
+            <th colspan="2" class="title">STEP 1 : Set Server Address</th>
+        </tr>
+        <tr>
+            <th>Server :</th>
+            <td><input type="text" id="server_addr" /></td>
+        </tr>
+        <tr>
+            <th>HTTP entry :</th>
+            <td><span id="http_server_addr"></span><input type="text" id="http_entry" class="small" /></td>
+        </tr>
+        <tr>
+            <th>WebSocket entry :</th>
+            <td><span id="websocket_server_addr"></span><input type="text" id="websocket_entry" class="small" /></td>
+        </tr>
+    </table>
+    <table class="form">
+        <tr>
+            <th colspan="2" class="title">STEP 2 : Login and get Session ID</th>
+        </tr>
+        <tr>
+            <th>Username :</th>
+            <td>
+                <input type="text" id="input_username" />
+                <input type="button" value="Login" onclick="return test.login();" />
+                <input type="button" value="Logout" onclick="return test.logout();" />
+            </td>
+        </tr>
+        <tr>
+            <th>Session ID :</th>
+            <td>
+                <span id="session_id">none</span>
+            </td>
+        </tr>
+        <tr>
+            <th>Persistent session :</th>
+            <td>
+                <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Count" onclick="return test.count();" />
+            </td>
+        </tr>
+    </table>
+    <table class="form">
+        <tr>
+            <th colspan="2" class="title">STEP 3 : Connect to WebSocket with Session ID</th>
+        </tr>
+        <tr>
+            <th>WebSocket :</th>
+            <td>
+                <span id="last_msg_id_value">[LAST MSG ID = *]</span>&nbsp;<input type="button" value="Connect" onclick="return test.connect();" />
+                <input type="button" value="Disconnect" onclick="return test.disconnect();" />
+            </td>
+        </tr>
+    </table>
 </div>
 
 <div class="widget">

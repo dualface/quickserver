@@ -26,8 +26,6 @@ local DEBUG = DEBUG
 local type = type
 local tostring = tostring
 local ngx = ngx
-local ngx_on_abort = ngx.on_abort
-local ngx_exit = ngx.exit
 local ngx_thread_spawn = ngx.thread.spawn
 local req_read_body = ngx.req.read_body
 local req_get_headers = ngx.req.get_headers
@@ -45,12 +43,11 @@ WebSocketServerBase.WEBSOCKET_CLOSE_EVENT = "WEBSOCKET_CLOSE_EVENT"
 WebSocketServerBase.TEXT_MESSAGE_TYPE   = "text"
 WebSocketServerBase.BINARY_MESSAGE_TYPE = "binary"
 
-WebSocketServerBase.PROTOCOL_PATTERN = "quickserver: ([%w%d-]+)"
+WebSocketServerBase.PROTOCOL_PATTERN = "quickserver%-([%w%d%-]+)"
 
 WebSocketServerBase.DEFAULT_TIME_OUT        = 10 * 1000 -- 10s
 WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN = 16 * 1024 -- 16KB
 WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT = 5 -- 5 times
-WebSocketServerBase.DEFAULT_MESSAGE_FORMAT  = "json"
 
 function WebSocketServerBase:ctor(config)
     WebSocketServerBase.super.ctor(self, config)
@@ -58,7 +55,6 @@ function WebSocketServerBase:ctor(config)
     self.config.websocketsTimeout       = self.config.websocketsTimeout or WebSocketServerBase.DEFAULT_TIME_OUT
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN
     self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT
-    self.config.websocketsMessageFormat = self.config.websocketsMessageFormat or WebSocketServerBase.DEFAULT_MESSAGE_FORMAT
 
     self._requestType = "websockets"
     self._subscribeBroadcastChannelEnabled = false
@@ -66,9 +62,12 @@ function WebSocketServerBase:ctor(config)
 end
 
 function WebSocketServerBase:run()
-    if not self:_authConnect() then
-        error(string.format("WebSocketServerBase:run() - authConnect failed, %s", err))
+    local token, err = self:_getToken()
+    if err then
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.exit(ngx.ERROR)
     else
+        self._token = token
         self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
         self:runEventLoop()
         self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
@@ -82,25 +81,25 @@ function WebSocketServerBase:runEventLoop()
         max_payload_len = self.config.websocketsMaxPayloadLen,
     })
     if err then
-        error(string.format("WebSocketServerBase:runEventLoop() - failed to create websocket server, %s", err))
+        throw("failed to create websocket server, %s", err)
     end
 
     self._socket = socket
-    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_READY_EVENT})
-
-    --  client tag is binding to this websocket id
-    self:setSidTag(self._tag)
 
     -- spawn a thread to subscribe redis channel for broadcast
     local ok, err = self:_subscribeBroadcastChannel()
     if err then
-        error(string.format("WebSocketServerBase:runEventLoop() - failed to subscribe broadcast channel: %s", err))
+        throw("failed to subscribe broadcast channel, %s", err)
     end
+
+    --  client tag is binding to this websocket id
+    self:setClientTag(self._token)
+
+    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_READY_EVENT})
 
     local retryCount = 0
     local maxRetryCount = self.config.websocketsMaxRetryCount
     local framesPool = {}
-
     -- event loop
     while true do
         --[[
@@ -314,7 +313,7 @@ function WebSocketServerBase:_subscribeBroadcastChannel()
         -- if an error leads to an exiting, retry to subscribe channel
         if isRunning and self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self._subscribeRetryCount = self._subscribeRetryCount + 1
-            self:subscribeBroadcastChannel()
+            self:_subscribeBroadcastChannel()
         end
     end
     ngx_thread_spawn(subscribe)
@@ -322,9 +321,9 @@ function WebSocketServerBase:_subscribeBroadcastChannel()
     return true, nil
 end
 
-function WebSocketServerBase:_authConnect()
+function WebSocketServerBase:_getToken()
     if ngx.headers_sent then
-        error("WebSocketServerBase:authConnect() - response header already sent")
+        return nil, "response header already sent"
     end
 
     req_read_body()
@@ -332,20 +331,18 @@ function WebSocketServerBase:_authConnect()
     local protocols = headers["sec-websocket-protocol"]
     if type(protocols) == "table" then
         protocols = protocols[1]
-    else
-        protocols = nil
     end
     if not protocols then
-        error("WebSocketServerBase:authConnect() - not set header: Sec-WebSocket-Protocol")
+        return nil, "not set header: Sec-WebSocket-Protocol"
     end
 
     local token = string.match(protocols, WebSocketServerBase.PROTOCOL_PATTERN)
     if not token then
-        error("WebSocketServerBase:authConnect() - not set token in header")
+        return nil, "not found token in header: Sec-WebSocket-Protocol"
     end
 
     -- TODO: check token
-    return true
+    return token
 end
 
 return WebSocketServerBase

@@ -2,8 +2,11 @@
 $(document).ready(function()
 {
     var l = document.location;
-    $("#http_server_addr").val(l + "api/");
-    $("#websocket_server_addr").val("ws://" + l.host + "/socket/");
+    $("#server_addr").val(l.host);
+    $("#http_server_addr").text("http://" + l.host + "/");
+    $("#http_entry").val("api");
+    $("#websocket_server_addr").text("ws://" + l.host + "/");
+    $("#websocket_entry").val("socket");
     $("#input_username").val("USER" + parseInt((Math.random() * 10000000)).toString());
 });
 
@@ -35,16 +38,53 @@ function isFunction(functionToCheck)
 }
 
 var test = {
-    ws: null,
+    server_addr: null,
+    http_entry: null,
     http_server_addr: null,
+    websocket_entry: null,
     websocket_server_addr: null,
-    msg_id: 0,
+
+    username: null,
     session_id: null,
-    callbacks: {},
-    username: null
+
+    socket: null,
+    msg_id: 0,
+    callbacks: {}
 };
 
-test.login = function(http_server_addr, username)
+test.set_inputs_disabled = function(disabled)
+{
+    $("#server_addr").prop("disabled", disabled);
+    $("#http_entry").prop("disabled", disabled);
+    $("#websocket_entry").prop("disabled", disabled);
+    $("#input_username").prop("disabled", disabled);
+}
+
+test.validate_res = function(res, fields)
+{
+    var err = res["err"];
+    if (typeof err !== "undefined")
+    {
+        test.set_inputs_disabled(false);
+        log.add("ERR: " + err.toString());
+        return false;
+    }
+
+    for (var i = 0; i < fields.length; i++)
+    {
+        var field = fields[i];
+        var v = res[field];
+        if (typeof v === "undefined")
+        {
+            log.add("ERR: not found field \"" + field + "\" in result");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+test.login = function()
 {
     if (test.session_id)
     {
@@ -52,21 +92,34 @@ test.login = function(http_server_addr, username)
         return false;
     }
 
-    test.http_server_addr = http_server_addr;
-    username = username.toString();
+    var username = $("#input_username").val();
     if (username === "")
     {
         log.add("PLEASE ENTER username");
         return false;
     }
 
+    test.username = username;
+    test.server_addr = $("#server_addr").val();
+    test.http_entry = $("#http_entry").val();
+    test.http_server_addr = "http://" + test.server_addr + "/" + test.http_entry
+    test.websocket_entry = $("#websocket_entry").val();
+    test.websocket_server_addr = "ws://" + test.server_addr + "/" + test.websocket_entry
+
+    test.set_inputs_disabled(true);
+
     var data = {"username": username}
-    test.http_request("hello.login", data, function(recv_data) {
-        test.session_id = recv_data["sid"].toString();
-        test.username = username;
+    test.http_request("hello.login", data, function(res) {
+        if (!test.validate_res(res, ["sid", "count"]))
+        {
+            test.set_inputs_disabled(false);
+            return;
+        }
+        test.session_id = res["sid"].toString();
         log.add("GET SESSION ID: " + test.session_id);
-        log.add("count = " + recv_data["count"].toString());
+        log.add("count = " + res["count"].toString());
         $("#session_id").text("SESSION ID: " + test.session_id);
+        $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
     });
 }
 
@@ -78,10 +131,12 @@ test.logout = function()
         return false;
     }
 
-    test.http_request("hello.logout", {"sid": test.session_id}, function(recv_data) {
+    test.http_request("hello.logout", {"sid": test.session_id}, function(res) {
         test.session_id = null;
         log.add("LOGOUTED");
-        $("#session_id").text("");
+        $("#session_id").text("none");
+        $("#count_value").text("[COUNT = *]");
+        test.set_inputs_disabled(false);
     });
 }
 
@@ -93,32 +148,45 @@ test.count = function()
         return false;
     }
 
-    test.http_request("hello.count", {"sid": test.session_id}, function(recv_data) {
-        log.add("count = " + recv_data["count"].toString());
+    test.http_request("hello.count", {"sid": test.session_id}, function(res) {
+        if (!test.validate_res(res, ["count"])) return;
+        log.add("count = " + res["count"].toString());
+        $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
     });
 }
 
-test.connect = function(server_addr)
+test.connect = function()
 {
-    if (test.ws !== null)
+    if (test.socket !== null)
     {
         return log.add("ALREADY CONNECTED");
     }
 
-    server_addr = server_addr.toString();
-    var ws = new WebSocket(server_addr);
-    ws.onopen = function()
+    if (test.websocket_server_addr === null)
     {
-        log.add("<" + server_addr + "> CONNECTED");
+        return log.add("LOGIN FIRST");
+    }
+
+    var protocol = "quickserver-" + test.session_id;
+    log.add("CONNECT WEBSOCKET with PROTOCOL: " + protocol.toString());
+
+    var socket = new WebSocket(test.websocket_server_addr, protocol);
+    socket.onopen = function()
+    {
+        log.add("WEBSOCKET CONNECTED");
     };
-    ws.onerror = function(error)
+    socket.onerror = function(error)
     {
-        if (!(error instanceof Event))
+        if (error instanceof Event)
+        {
+            log.add("ERR: CONNECT FAILED");
+        }
+        else
         {
             log.add("ERR: " + error.toString());
         }
     };
-    ws.onmessage = function(event)
+    socket.onmessage = function(event)
     {
         log.add("RECV: " + event.data.toString());
         var data = JSON.parse(event.data);
@@ -132,28 +200,28 @@ test.connect = function(server_addr)
             }
         }
     };
-    ws.onclose = function()
+    socket.onclose = function()
     {
-        log.add("<" + server_addr + "> DISCONNECTED");
-        test.ws = null;
+        log.add("WEBSOCKET DISCONNECTED");
+        test.socket = null;
         test.server_addr = null;
     };
 
-    test.ws = ws;
+    test.socket = socket;
     test.server_addr = server_addr
     return false;
 }
 
 test.disconnect = function()
 {
-    if (test.ws === null)
+    if (test.socket === null)
     {
         log.add("NOT CONNECTED");
     }
     else
     {
-        test.ws.close();
-        test.ws = null;
+        test.socket.close();
+        test.socket = null;
         test.server_addr = null;
         test.session_id = null;
         test.callbacks = {};
@@ -164,12 +232,13 @@ test.disconnect = function()
 
 test.http_request = function(action, data, callback)
 {
-    $.getJSON(test.http_server_addr + "?action=" + action, data, callback);
+    var url = test.http_server_addr + "?action=" + action;
+    $.post(url, data, callback, "json");
 }
 
 test.send_data = function(data, callback)
 {
-    if (test.ws === null)
+    if (test.socket === null)
     {
         log.add("NOT CONNECTED");
         return false;
@@ -184,7 +253,7 @@ test.send_data = function(data, callback)
         test.callbacks[test.msg_id.toString()] = callback;
     }
 
-    test.ws.send(json_str);
+    test.socket.send(json_str);
     log.add("SEND: " + json_str);
 }
 
