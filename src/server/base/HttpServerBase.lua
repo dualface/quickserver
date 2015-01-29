@@ -90,6 +90,19 @@ function HttpServerBase:run()
     self:unsetClientTag()
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 
+    local rtype = type(result)
+    if not err then
+        if rtype == "nil" then
+            ngx.status = ngx.HTTP_OK
+            return
+        elseif rtype == "string" then
+            ngx.status = ngx.HTTP_OK
+            ngx_say(result)
+            return
+        end
+    end
+
+    local result, err = self:_genOutput(result, err)
     if err then
         -- return an error page with custom contents
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
@@ -117,23 +130,7 @@ function HttpServerBase:runEventLoop()
     if err then
         return nil, string.format("run action \"%s\" error, %s", actionName, err)
     end
-
-    local output, err = self:_genOutput(result)
-    if err then
-        return nil, err
-    end
-    return output
-end
-
-function HttpServerBase:_genOutput(result)
-    local rtype = type(result)
-    if rtype == "nil" then
-        return ""
-    elseif rtype == "table" then
-        return json_encode(result)
-    else
-        return tostring(result)
-    end
+    return result
 end
 
 return HttpServerBase

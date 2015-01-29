@@ -49,6 +49,10 @@ ServerAppBase.APP_RUN_EVENT      = "APP_RUN_EVENT"
 ServerAppBase.APP_QUIT_EVENT     = "APP_QUIT_EVENT"
 ServerAppBase.CLIENT_ABORT_EVENT = "CLIENT_ABORT_EVENT"
 
+ServerAppBase.MESSAGE_FORMAT_JSON = "json"
+ServerAppBase.MESSAGE_FORMAT_TEXT = "text"
+ServerAppBase.DEFAULT_MESSAGE_FORMAT  = ServerAppBase.MESSAGE_FORMAT_JSON
+
 local _CLIENT_ID_PREFIX      = "C_"
 local _CLIENT_TAG_PREFIX     = "T_"
 local _CLIENT_TAG_PREFIX_LEN = string_len(_CLIENT_TAG_PREFIX)
@@ -64,6 +68,7 @@ function ServerAppBase:ctor(config)
     self.config.appModuleName = config.appModuleName or "app"
     self.config.actionPackage = config.actionPackage or "actions"
     self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
+    self.config.messageFormat = self.config.messageFormat or ServerAppBase.DEFAULT_MESSAGE_FORMAT
 
     self._actionModules = {}
     self._requestParameters = nil
@@ -256,6 +261,28 @@ function ServerAppBase:_getInternalRedis()
     end
 
     return self._internalRedis
+end
+
+function ServerAppBase:_genOutput(result, err)
+    local rtype = type(result)
+    if self.config.messageFormat == ServerAppBase.MESSAGE_FORMAT_JSON then
+        if err then
+            result = {err = err}
+        elseif rtype == "nil" then
+            result = {}
+        elseif rtype ~= "table" then
+            result = {result = tostring(result)}
+        end
+        return json_encode(result)
+    elseif self.config.messageFormat == ServerAppBase.MESSAGE_FORMAT_TEXT then
+        if err then
+            return nil, err
+        elseif rtype == "nil" then
+            return ""
+        else
+            return tostring(result)
+        end
+    end
 end
 
 return ServerAppBase
