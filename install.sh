@@ -2,7 +2,7 @@
 
 function showHelp()
 {
-    echo "Usage: [sudo] ./install_ubuntu.sh [--prefix=absolute_path] [OPTIONS]"
+    echo "Usage: [sudo] ./install.sh [--prefix=absolute_path] [OPTIONS]"
     echo "Options:" 
     echo -e "\t -a | --all \t\t install nginx(openresty) and Quick Server framework, redis and beanstalkd"
     echo -e "\t -n | --nginx \t\t install nginx(openresty) and Quick Server framework"
