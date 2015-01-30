@@ -161,8 +161,7 @@ function ServerAppBase:startSession(sid)
     local session
     if sid then
         session = self:_loadSession(sid)
-    end
-    if not session then
+    else
         session = self:_genSession()
     end
     self._session = session
@@ -236,7 +235,9 @@ end
 
 function ServerAppBase:_loadSession(sid)
     local redis = self:_getInternalRedis()
-    return SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
+    local session = SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
+    if session then session:setKeepAlive() end
+    return session
 end
 
 function ServerAppBase:_genSession()
