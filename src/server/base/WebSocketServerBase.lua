@@ -70,6 +70,7 @@ function WebSocketServerBase:run()
         self._token = token
         self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
         self:runEventLoop()
+        self:unsetClientTag()
         self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
     end
 end
