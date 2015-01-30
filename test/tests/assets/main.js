@@ -8,12 +8,15 @@ $(document).ready(function()
     $("#websocket_server_addr").text("ws://" + l.host + "/");
     $("#websocket_entry").val("socket");
     $("#input_username").val("USER" + parseInt((Math.random() * 10000000)).toString());
+
+    test.set_inputs_disabled(false);
 });
 
 var log = {
     add: function(message)
     {
         var now = new Date();
+        message = message.replace("\n", "<br />\n");
         $("#log").append("<li>" + "[" + now.getTime().toString() + "] " + $("<div/>").text(message).html() + "</li>");
         return false;
     },

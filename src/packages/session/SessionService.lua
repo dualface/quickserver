@@ -58,6 +58,7 @@ end
 function SessionService:ctor(redis, sid, expired, remoteAddr, data)
     self._redis = redis
     self._sid = tostring(sid)
+    self._key = _SID_KEY_PREFIX .. self._sid
     self._expired = checkint(expired)
     if self._expired < 0 then
         self._expired = _DEFAULT_EXPIRED
@@ -93,13 +94,15 @@ function SessionService:set(key, value)
 end
 
 function SessionService:save()
-    local key = _SID_KEY_PREFIX .. self._sid
-    self._redis:command("SET", key, json_encode(self:vardump()), "EX", self._expired)
+    self._redis:command("SET", self._key, json_encode(self:vardump()), "EX", self._expired)
+end
+
+function SessionService:setKeepAlive()
+    self._redis:command("EXPIRE", self._key, self._expired)
 end
 
 function SessionService:destroy()
-    local key = _SID_KEY_PREFIX .. self._sid
-    self._redis:command("DEL", key)
+    self._redis:command("DEL", self._key)
 end
 
 function SessionService:vardump()

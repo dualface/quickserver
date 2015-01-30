@@ -12,7 +12,7 @@ end
 
 function HelloAction:loginAction(arg)
     if not arg.username then
-        error("not set argument: \"username\"")
+        throw("not set argument: \"username\"")
     end
     local session = self._app:startSession()
     session:set("username", arg.username)
@@ -23,7 +23,7 @@ end
 
 function HelloAction:logoutAction(arg)
     if not arg.sid then
-        error("not set argument: \"sid\"")
+        throw("not set argument: \"sid\"")
     end
     self._app:destroySession(arg.sid)
     return {ok = "ok"}
@@ -31,22 +31,26 @@ end
 
 function HelloAction:countAction(arg)
     if not arg.sid then
-        error("not set argument: \"sid\"")
+        throw("not set argument: \"sid\"")
     end
     local session = self._app:startSession(arg.sid)
-    local count = session:get("count")
-    count = count + 1
-    session:set("count", count)
-    session:save()
-    return {count = count}
+    if session then
+        local count = session:get("count")
+        count = count + 1
+        session:set("count", count)
+        session:save()
+        return {count = count}
+    else
+        throw("session is expired")
+    end
 end
 
 function HelloAction:talkAction(arg)
     if not arg.tag then
-        error("not set argument: \"tag\"")
+        throw("not set argument: \"tag\"")
     end
     if not arg.message then
-        error("not set argument: \"message\"")
+        throw("not set argument: \"message\"")
     end
 
     local clientId = self._app:getClientIdByTag(arg.tag)
