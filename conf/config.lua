@@ -27,7 +27,7 @@ local _DBG_WARN  = 1
 local _DBG_INFO  = 2
 local _DBG_DEBUG = 3
 
-DEBUG = _DBG_DEBUG
+DEBUG = _DBG_WARN
 
 local config = {
     appName                   = "myapp",
