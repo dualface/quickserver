@@ -127,6 +127,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
     ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_BIN_DIR/openresty/luajit/bin/lua
     cp -rf $CUR_DIR/src $DEST_DIR
+    cp -rf $CUR_DIR/welcome $DEST_DIR
     cd $CUR_DIR/tool/
 
     #deploy tool script
