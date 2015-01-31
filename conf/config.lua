@@ -27,14 +27,12 @@ local _DBG_WARN  = 1
 local _DBG_INFO  = 2
 local _DBG_DEBUG = 3
 
-DEBUG = _DBG_WARN
+DEBUG = _DBG_DEBUG
 
 local config = {
-    appName                   = "myapp",
+    appRootPath = "_QUICK_SERVER_ROOT_/welcome/app",
 
-    appModuleName             = "sample",
-
-    sessionExpiredTime        = 60 * 10, -- 10m
+    sessionExpiredTime = 60 * 10, -- 10m
 
     websocketsTimeout         = 60 * 1000, -- 60s
     websocketsMaxPayloadLen   = 16 * 1024, -- 16KB

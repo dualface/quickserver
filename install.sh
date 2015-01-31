@@ -138,6 +138,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
 
     #install luasocket
     cd $BUILD_DIR

@@ -93,12 +93,13 @@ fi
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
     if [ $DEBUG -eq 1 ] ; then
-        #\033[41;37m [Beanstalkd] \033[0m
         echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
+        sed -i "s#DEBUG = _DBG_WARN#DEBUG = _DBG_DEBUG#g" $CURRDIR/conf/config.lua
         sed -i "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
         sed -i "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
     else
         echo -e "Start Nginx in \033[31m RELEASE \033[0m mode..."
+        sed -i "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_WARN#g" $CURRDIR/conf/config.lua
         sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
         sed -i "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
     fi

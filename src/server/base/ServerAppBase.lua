@@ -58,6 +58,9 @@ local _CLIENT_TAG_PREFIX     = "T_"
 local _CLIENT_TAG_PREFIX_LEN = string_len(_CLIENT_TAG_PREFIX)
 local _TAG_CLIENT_ID_DICT    = "_CLIENT_TAGS"
 
+local _ACTION_PACKAGE_NAME = 'actions'
+local _DEFAULT_ACTION_MODULE_SUFFIX = 'Action'
+
 local RedisService = cc.load("redis").service
 local SessionService = cc.load("session").service
 
@@ -65,10 +68,13 @@ function ServerAppBase:ctor(config)
     cc.bind(self, "event")
 
     self.config = clone(checktable(config))
-    self.config.appModuleName = config.appModuleName or "app"
-    self.config.actionPackage = config.actionPackage or "actions"
-    self.config.actionModuleSuffix = config.actionModuleSuffix or "Action"
+    self.config.appRootPath = self.config.appRootPath or ""
+    self.config.actionModuleSuffix = config.actionModuleSuffix or _DEFAULT_ACTION_MODULE_SUFFIX
     self.config.messageFormat = self.config.messageFormat or ServerAppBase.DEFAULT_MESSAGE_FORMAT
+
+    if self.config.appRootPath ~= "" then
+        package.path = self.config.appRootPath .. "/?.lua;" .. package.path
+    end
 
     self._actionModules = {}
     self._requestParameters = nil
@@ -93,7 +99,7 @@ function ServerAppBase:doRequest(actionName, data)
     local actionModule = self._actionModules[actionModuleName]
     local actionModulePath
     if not actionModule then
-        actionModulePath = string_format("%s.%s.%s%s", self.config.appModuleName, actionPackage, actionModuleName, self.config.actionModuleSuffix)
+        actionModulePath = string_format("%s.%s%s", _ACTION_PACKAGE_NAME, actionModuleName, self.config.actionModuleSuffix)
         local ok, _actionModule = pcall(require,  actionModulePath)
         if ok then
             actionModule = _actionModule
