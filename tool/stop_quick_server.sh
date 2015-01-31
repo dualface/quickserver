@@ -3,7 +3,7 @@
 function showHelp()
 {
     echo "Usage: [sudo] ./stop_quick_server.sh [OPTIONS] [--reload]"
-    echo "Options:" 
+    echo "Options:"
     echo -e "\t -a | --all \t\t stop nginx, redis and beanstalkd"
     echo -e "\t -n | --nginx \t\t stop nginx"
     echo -e "\t -r | --redis \t\t stop redis"
@@ -14,7 +14,7 @@ function showHelp()
 }
 
 CURRDIR=$(dirname $(readlink -f $0))
-NGINX_DIR=$CURRDIR/openresty/nginx/
+NGINX_DIR=$CURRDIR/bin/openresty/nginx/
 
 ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,reload,help -n 'Stop quick server' -- "$@")
 
@@ -33,7 +33,7 @@ fi
 
 while true ; do
     case "$1" in
-        --reload) 
+        --reload)
             RELOAD=1
             shift
             ;;
@@ -60,12 +60,12 @@ while true ; do
 
         -h|--help)
             showHelp;
-            exit 0 
+            exit 0
             ;;
 
         --) shift; break ;;
 
-        *) 
+        *)
             echo "invalid option: $1"
             exit 1
             ;;
@@ -80,11 +80,11 @@ fi
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
-        nginx -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s stop
+        nginx -q -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s stop
         echo "Stop Nginx DONE"
     else
         nginx -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s reload
-        echo "Reload Nginx conf DONE" 
+        echo "Reload Nginx conf DONE"
     fi
 fi
 
@@ -98,9 +98,12 @@ fi
 if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     killall beanstalkd
     echo "Stop Beanstalkd DONE"
-fi 
+fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
     echo -e "\033[31mStop Quick Server DONE! \033[0m"
 fi
+
+sleep 1
+$CURRDIR/status_quick_server.sh

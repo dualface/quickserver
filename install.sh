@@ -3,7 +3,7 @@
 function showHelp()
 {
     echo "Usage: [sudo] ./install.sh [--prefix=absolute_path] [OPTIONS]"
-    echo "Options:" 
+    echo "Options:"
     echo -e "\t -a | --all \t\t install nginx(openresty) and Quick Server framework, redis and beanstalkd"
     echo -e "\t -n | --nginx \t\t install nginx(openresty) and Quick Server framework"
     echo -e "\t -r | --redis \t\t install redis"
@@ -40,7 +40,7 @@ fi
 
 while true ; do
     case "$1" in
-        --prefix) 
+        --prefix)
             DEST_DIR=$2
             shift 2
             ;;
@@ -67,11 +67,11 @@ while true ; do
 
         -h|--help)
             showHelp;
-            exit 0 
+            exit 0
             ;;
 
         --) shift; break ;;
-        
+
         *)
             echo "invalid option: $1"
             exit 1
@@ -83,8 +83,8 @@ eval apt-get > /dev/null 2> /dev/null
 if [ $? -eq 0 ] ; then
     apt-get install -y build-essential libpcre3-dev libssl-dev git-core unzip
 else
-    yum install -y pcre-devel zlib-devel openssl-devel unzip
     yum groupinstall -y "Development Tools"
+    yum install -y pcre-devel zlib-devel openssl-devel unzip
 fi
 
 set -e
@@ -101,48 +101,53 @@ rm -fr $BUILD_DIR
 mkdir -p $BUILD_DIR
 cp -f $CUR_DIR/install/*.tar.gz $BUILD_DIR
 
+DEST_BIN_DIR=$DEST_DIR/bin
+
 mkdir -p $DEST_DIR
+mkdir -p $DEST_BIN_DIR
+
 mkdir -p $DEST_DIR/logs
 mkdir -p $DEST_DIR/tmp
 mkdir -p $DEST_DIR/conf
+mkdir -p $DEST_DIR/db
 
-# install nginx and Quick Server framework 
+# install nginx and Quick Server framework
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd $BUILD_DIR
     tar zxf ngx_openresty-$OPENRESTY_VER.tar.gz
     cd ngx_openresty-$OPENRESTY_VER
-    mkdir -p $DEST_DIR/openresty
+    mkdir -p $DEST_BIN_DIR/openresty
 
     # install nginx
-    ./configure --prefix=$DEST_DIR/openresty --with-luajit
+    ./configure --prefix=$DEST_BIN_DIR/openresty --with-luajit
     make
     make install
 
     # install quick server framework
-    ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
-    ln -f -s $DEST_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_DIR/openresty/luajit/bin/lua
+    ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
+    ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_BIN_DIR/openresty/luajit/bin/lua
     cp -rf $CUR_DIR/src $DEST_DIR
     cd $CUR_DIR/tool/
 
     #deploy tool script
     cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR
-    ln -f -s $DEST_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
+    ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
     #copy nginx and Quick Server framework conf file
-    cp -f $CUR_DIR/conf/nginx.conf $DEST_DIR/openresty/nginx/conf/.
-    sed -i "s#/opt/quick_server#$DEST_DIR#g" $DEST_DIR/openresty/nginx/conf/nginx.conf
+    cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
 
     #install luasocket
     cd $BUILD_DIR
     tar zxf luasocket.tar.gz
-    cp -rf socket $DEST_DIR/openresty/luajit/lib/lua/5.1/.
-    cp -f socket.lua $DEST_DIR/openresty/luajit/share/lua/5.1/.
+    cp -rf socket $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+    cp -f socket.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     #install cjson
     cd $BUILD_DIR
     tar zxf cjson.tar.gz
-    cp -f cjson.so $DEST_DIR/openresty/luajit/lib/lua/5.1/.
+    cp -f cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
 
     echo "Install Openresty and Quick Server framework DONE"
 fi
@@ -152,20 +157,20 @@ if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ] ; then
     cd $BUILD_DIR
     tar zxf redis-$REDIS_VAR.tar.gz
     cd redis-$REDIS_VAR
-    mkdir -p $DEST_DIR/redis/bin
+    mkdir -p $DEST_BIN_DIR/redis/bin
 
     make
-    cp src/redis-server $DEST_DIR/redis/bin
-    cp src/redis-cli $DEST_DIR/redis/bin
-    cp src/redis-sentinel $DEST_DIR/redis/bin
-    cp src/redis-benchmark $DEST_DIR/redis/bin
-    cp src/redis-check-aof $DEST_DIR/redis/bin
-    cp src/redis-check-dump $DEST_DIR/redis/bin
+    cp src/redis-server $DEST_BIN_DIR/redis/bin
+    cp src/redis-cli $DEST_BIN_DIR/redis/bin
+    cp src/redis-sentinel $DEST_BIN_DIR/redis/bin
+    cp src/redis-benchmark $DEST_BIN_DIR/redis/bin
+    cp src/redis-check-aof $DEST_BIN_DIR/redis/bin
+    cp src/redis-check-dump $DEST_BIN_DIR/redis/bin
 
-    cp $CUR_DIR/conf/redis.conf $DEST_DIR/conf/. -f
-    sed -i "s#/opt/quick_server#$DEST_DIR#g" $DEST_DIR/conf/redis.conf
-    mkdir -p $DEST_DIR/redis/rdb
-    
+    mkdir -p $DEST_BIN_DIR/redis/conf
+    cp $CUR_DIR/conf/redis.conf $DEST_BIN_DIR/redis/conf/. -f
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/redis/conf/redis.conf
+
     echo "Install Redis DONE"
 fi
 
@@ -174,10 +179,10 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ] ; then
     cd $BUILD_DIR
     tar zxf beanstalkd-$BEANSTALKD_VER.tar.gz
     cd beanstalkd-$BEANSTALKD_VER
-    mkdir -p $DEST_DIR/beanstalkd/bin
+    mkdir -p $DEST_BIN_DIR/beanstalkd/bin
 
     make
-    cp beanstalkd $DEST_DIR/beanstalkd/bin
+    cp beanstalkd $DEST_BIN_DIR/beanstalkd/bin
 
     echo "Install Beanstalkd DONE"
 fi
