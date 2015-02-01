@@ -45,7 +45,6 @@ function WebSocketServerBase:ctor(config)
 
     self.config.websocketsTimeout       = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or Constants.WEBSOCKET_DEFAULT_MAX_PAYLOAD_LEN
-    self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_RETRY_COUNT
     self.config.maxSubscribeRetryCount  = self.config.maxSubscribeRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_SUB_RETRY_COUNT
 
     self._requestType = Constants.WEBSOCKET_REQUEST_TYPE
@@ -96,7 +95,6 @@ function WebSocketServerBase:runEventLoop()
     if self._handler and self._handler.onConnectReady then self._handler:onConnectReady() end
 
     local retryCount = 0
-    local maxRetryCount = self.config.websocketsMaxRetryCount
     local framesPool = {}
     -- event loop
     while true do
@@ -122,11 +120,10 @@ function WebSocketServerBase:runEventLoop()
         if err then
             if err == "again" then
                 framesPool[#framesPool + 1] = frame
-            elseif retryCount < maxRetryCount and ftype ~= "close" then
-                printInfo("failed to receive frame [%s], %s", ftype, err)
-                retryCount = retryCount + 1
-            else
+            elseif ftype == "close" then
                 break -- exit event loop
+            elseif ftype ~= nil then
+                printWarn("failed to receive frame, type \"%s\", %s", ftype, err)
             end
             goto recv_next_message
         end
@@ -143,7 +140,7 @@ function WebSocketServerBase:runEventLoop()
         elseif ftype == "ping" then
             local bytes, err = socket:send_pong()
             if err then
-                printInfo("failed to send pong, %s", err)
+                printWarn("failed to send pong, %s", err)
             end
         elseif ftype == "pong" then
             -- client ponged
@@ -270,13 +267,16 @@ function WebSocketServerBase:_subscribeChannel()
         self._channelEnabled = false
         redis:setKeepAlive()
 
+        -- if recv "QUIT", exit thread
+        if not isRunning then return end
+
         -- if an error leads to an exiting, retry to subscribe channel
-        if isRunning and self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
+        if self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self._subscribeRetryCount = self._subscribeRetryCount + 1
-            printInfo("subscribe channel \"%s\" loop ended, try [%d]", channel, self._subscribeRetryCount)
+            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, self._subscribeRetryCount)
             self:_subscribeChannel()
         else
-            printInfo("subscribe channel \"%s\" loop ended, max try", channel)
+            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
         end
     end
 
