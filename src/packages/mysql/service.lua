@@ -24,135 +24,97 @@ THE SOFTWARE.
 
 local type = type
 local pairs = pairs
+local ngx = ngx
 local string_format = string.format
 local table_concat = table.concat
 
 local MysqlService = class("MysqlService")
 
-local adapter
+local MysqlAdapter
 if ngx then
-    adapter = import(".adapter.MysqlRestyAdapter")
+    MysqlAdapter = import(".adapter.MysqlRestyAdapter")
 else
-    adapter = import(".adapter.MysqlLuaAdapter")
+    MysqlAdapter = import(".adapter.MysqlLuaAdapter")
 end
 
 function MysqlService:ctor(config)
     if not config or type(config) ~= "table" then
-        return nil, "config is invalid."
+        throw("invalid mysql config")
     end
 
-    self.config = config
-    self.mysql = adapter.new(config)
+    self._config = config
+    self._mysql = MysqlAdapter:create(config)
 end
 
 function MysqlService:close()
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is not initialized."
-    end
-
-    return mysql:close()
+    return self._mysql:close()
 end
 
 function MysqlService:setKeepAlive(timeout, size)
     if not ngx then
         return self:close()
     end
-
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is not initialized."
-    end
-
-    return mysql:setKeepAlive(timeout, size)
+    return self._mysql:setKeepAlive(timeout, size)
 end
 
 function MysqlService:query(queryStr)
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is no initialized."
-    end
-
-    return mysql:query(queryStr)
-end
-
-function MysqlService:escapeValue_(value)
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is no initialized."
-    end
-
-    return mysql:escapeValue(value)
-end
-
-function MysqlService:escapeName_(name)
-    return string_format([[`%s`]], name)
+    return self._mysql:query(queryStr)
 end
 
 function MysqlService:insert(tableName, params)
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is no initialized."
-    end
-
     local fieldNames = {}
     local fieldValues = {}
 
     for name, value in pairs(params) do
-        fieldNames[#fieldNames + 1] = self:escapeName_(name)
-        fieldValues[#fieldValues + 1] = self:escapeValue_(value)
+        fieldNames[#fieldNames + 1] = self:_escapeName(name)
+        fieldValues[#fieldValues + 1] = self:_escapeValue(value)
     end
 
     local sql = string_format("INSERT INTO %s (%s) VALUES (%s)",
-                       self:escapeName_(tableName),
-                       table_concat(fieldNames, ","),
-                       table_concat(fieldValues, ","))
-
-    return mysql:query(sql)
+                        self:_escapeName(tableName),
+                        table_concat(fieldNames, ","),
+                        table_concat(fieldValues, ","))
+    return self._mysql:query(sql)
 end
 
 function MysqlService:update(tableName, params, where)
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is no initialized."
-    end
-
     local fields = {}
     local whereFields = {}
 
     for name, value in pairs(params) do
-        fields[#fields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
+        fields[#fields + 1] = self:_escapeName(name) .. "=" .. self:_escapeValue(value)
     end
 
     for name, value in pairs(where) do
-        whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
+        whereFields[#whereFields + 1] = self:_escapeName(name) .. "=" .. self:_escapeValue(value)
     end
 
-    local sql = string_format("UPDATE %s SET %s %s",
-                       self:escapeName_(tableName),
-                       table_concat(fields, ","),
-                       "WHERE " .. table_concat(whereFields, " AND "))
-
-    return mysql:query(sql)
+    local sql = string_format("UPDATE %s SET %s WHERE %s",
+                        self:_escapeName(tableName),
+                        table_concat(fields, ","),
+                        table_concat(whereFields, " AND "))
+    return self._mysql:query(sql)
 end
 
 function MysqlService:del(tableName, where)
-    local mysql = self.mysql
-    if not mysql then
-        return nil, "Package mysql is no initialized."
-    end
-
     local whereFields = {}
 
     for name, value in pairs(where) do
-        whereFields[#whereFields + 1] = self:escapeName_(name) .. "=".. self:escapeValue_(value)
+        whereFields[#whereFields + 1] = self:_escapeName(name) .. "=" .. self:_escapeValue(value)
     end
 
-    local sql = string_format("DElETE FROM %s %s",
-                       self:escapeName_(tableName),
-                       "WHERE " .. table_concat(whereFields, " AND "))
+    local sql = string_format("DElETE FROM %s WHERE %s",
+                        self:_escapeName(tableName),
+                        table_concat(whereFields, " AND "))
+    return self._mysql:query(sql)
+end
 
-    return mysql:query(sql)
+function MysqlService:_escapeValue(value)
+    return self._mysql:escapeValue(value)
+end
+
+function MysqlService:_escapeName(name)
+    return string_format([[`%s`]], name)
 end
 
 return MysqlService
