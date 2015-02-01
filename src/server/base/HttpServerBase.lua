@@ -41,6 +41,8 @@ local ServerAppBase = import(".ServerAppBase")
 
 local HttpServerBase = class("HttpServerBase", ServerAppBase)
 
+local Constants = import(".Constants")
+
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
 
@@ -87,7 +89,6 @@ end
 
 function HttpServerBase:run()
     local result, err = self:runEventLoop()
-    self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 
     local rtype = type(result)
     if not err then

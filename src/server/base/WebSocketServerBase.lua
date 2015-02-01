@@ -26,6 +26,7 @@ local DEBUG = DEBUG
 local type = type
 local tostring = tostring
 local ngx = ngx
+local ngx_log = ngx.log
 local ngx_thread_spawn = ngx.thread.spawn
 local req_read_body = ngx.req.read_body
 local req_get_headers = ngx.req.get_headers
@@ -38,7 +39,6 @@ local ServerAppBase = import(".ServerAppBase")
 local WebSocketServerBase = class("WebSocketServerBase", ServerAppBase)
 
 local Constants = import(".Constants")
-local Events = import(".Events")
 
 function WebSocketServerBase:ctor(config)
     WebSocketServerBase.super.ctor(self, config)
@@ -51,19 +51,29 @@ function WebSocketServerBase:ctor(config)
     self._requestType = Constants.WEBSOCKET_REQUEST_TYPE
     self._channelEnabled = false
     self._subscribeRetryCount = 0
+
+    if self.config.appRootPath then
+        -- try load the websocket handler
+        local ok, handlerClass = pcall(require, "WebSocketHandler")
+        if ok then
+            self._handler = handlerClass:create(self)
+        end
+    end
 end
 
 function WebSocketServerBase:run()
-    local connectId, err = self:_authConnect()
-    if err then
-        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
-        ngx.say(tostring(err))
-        ngx.exit(ngx.ERROR)
-    else
-        self:dispatchEvent({name = Events.APP_RUN_EVENT})
+    local ok, err = xpcall(function()
+        self:_authConnect()
         self:runEventLoop()
-        self:dispatchEvent({name = Events.APP_QUIT_EVENT})
-    end
+    end, function(err)
+        if DEBUG > 1 then
+            ngx_log(ngx.ERR, err .. debug.traceback("", 4))
+        else
+            ngx_log(ngx.ERR, err)
+        end
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.exit(ngx.ERROR)
+    end)
 end
 
 function WebSocketServerBase:runEventLoop()
@@ -76,12 +86,14 @@ function WebSocketServerBase:runEventLoop()
         throw("failed to create websocket server, %s", err)
     end
 
+    -- ready
+    self._socket = socket
+
     -- spawn a thread to subscribe redis channel for broadcast
     self:_subscribeChannel()
 
-    -- ready
-    self._socket = socket
-    self:dispatchEvent({name = Events.WEBSOCKET_READY_EVENT})
+    -- event callback
+    if self._handler and self._handler.onConnectReady then self._handler:onConnectReady() end
 
     local retryCount = 0
     local maxRetryCount = self.config.websocketsMaxRetryCount
@@ -110,8 +122,8 @@ function WebSocketServerBase:runEventLoop()
         if err then
             if err == "again" then
                 framesPool[#framesPool + 1] = frame
-            elseif retryCount < maxRetryCount then
-                printInfo("WebSocketServerBase:runEventLoop() - failed to receive frame, %s", err)
+            elseif retryCount < maxRetryCount and ftype ~= "close" then
+                printInfo("failed to receive frame [%s], %s", ftype, err)
                 retryCount = retryCount + 1
             else
                 break -- exit event loop
@@ -131,17 +143,17 @@ function WebSocketServerBase:runEventLoop()
         elseif ftype == "ping" then
             local bytes, err = socket:send_pong()
             if err then
-                printInfo("WebSocketServerBase:runEventLoop() - failed to send pong, %s", err)
+                printInfo("failed to send pong, %s", err)
             end
         elseif ftype == "pong" then
             -- client ponged
         elseif ftype == "text" or ftype == "binary" then
             local ok, err = self:_processMessage(frame, ftype)
             if err then
-                printWarn("WebSocketServerBase:runEventLoop() - process %s message failed, %s", ftype, err)
+                printWarn("process %s message failed, %s", ftype, err)
             end
         else
-            printWarn("WebSocketServerBase:runEventLoop() - unknwon frame type \"%s\"", tostring(ftype))
+            printWarn("unknwon frame type \"%s\"", tostring(ftype))
         end
 
 ::recv_next_message::
@@ -158,73 +170,47 @@ function WebSocketServerBase:runEventLoop()
     self._socket:send_close()
     self._socket = nil
 
-    self:dispatchEvent({name = Events.WEBSOCKET_CLOSE_EVENT})
+    if self._handler and self._handler.onConnectClose then self._handler:onConnectClose() end
 end
 
 function WebSocketServerBase:_processMessage(rawMessage, messageType)
-    local message, err = self:_parseMessage(rawMessage, messageType)
-    if err then
-        return nil, err
-    end
-
+    local message = self:_parseMessage(rawMessage, messageType)
     local msgid = message.__id
     local actionName = message.action
     local err = nil
-    local ok, result = xpcall(function()
-        return self:doRequest(actionName, message)
-    end, function(_err)
-        err = tostring(_err)
-        if DEBUG > 1 then
-            err = err .. "\n" .. debug.traceback("", 4)
-        end
-    end)
-    if err then
-        return nil, string.format("action \"%s\" occurs error, %s", actionName, err)
-    end
-
-    if type(result) ~= "table" then
+    local result = self:doRequest(actionName, message)
+    local rtype = type(result)
+    if rtype == "nil" then return end
+    if rtype ~= "table" then
         if msgid then
-            return nil, string.format("action \"%s\" return invalid result for message [__id:\"%s\"]", actionName, msgid)
+            printWarn("action \"%s\" return invalid result for message [__id:\"%s\"]", actionName, msgid)
         else
-            return nil, string.format("action \"%s\" return invalid result", actionName)
+            printWarn("action \"%s\" return invalid result", actionName)
         end
     end
 
     if not msgid then
-        printWarn("WebSocketServerBase:processMessage() - action \"%s\" return unused result", actionName)
-        return true
+        printWarn("action \"%s\" return unused result", actionName)
+        return
     end
 
     if not self._socket then
-        return nil, "socket removed"
+        printWarn("socket removed, action \"%s\"", actionName)
+        return
     end
 
     result.__id = msgid
-    local rawMessage, err = self:_packMessage(result, messageType)
+    local message = json.encode(result)
+    local bytes, err = self._socket:send_text(message)
     if err then
-        return nil, err
+        throw("send message to client failed, %s", err)
     end
-
-    local bytes, err = self._socket:send_text(rawMessage)
-    if err then
-        return nil, err
-    end
-
-    return true
-end
-
-function WebSocketServerBase:_packMessage(message, messageType)
-    -- TODO: support message type plugin
-    if messageType ~= Constants.TEXT_MESSAGE_TYPE then
-        return nil, string.format("not supported message type \"%s\"", messageType)
-    end
-    return json.encode(message)
 end
 
 function WebSocketServerBase:_parseMessage(rawMessage, messageType)
     -- TODO: support message type plugin
-    if messageType ~= Constants.TEXT_MESSAGE_TYPE then
-        return nil, string.format("not supported message type \"%s\"", messageType)
+    if messageType ~= Constants.WEBSOCKET_TEXT_MESSAGE_TYPE then
+        throw("not supported message type \"%s\"", messageType)
     end
 
     -- TODO: support message format plugin
@@ -233,10 +219,10 @@ function WebSocketServerBase:_parseMessage(rawMessage, messageType)
         if type(message) == "table" then
             return message
         else
-            return nil, "not supported message format"
+            throw("not supported message format \"%s\"", type(message))
         end
     else
-        return nil, string.format("not support message format \"%s\"", tostring(self.config.websocketsMessageFormat))
+        throw("not support message format \"%s\"", tostring(self.config.websocketsMessageFormat))
     end
 end
 
@@ -266,11 +252,15 @@ function WebSocketServerBase:_subscribeChannel()
                 local payload = msg.payload
                 printInfo("get msg from channel \"%s\", msg: %s", channel, payload)
                 if payload == "QUIT" then
+                    -- quit connect thread
+                    if self._socket then
+                        self._socket:send_close()
+                    end
                     abort()
                     isRunning = false
                     break
                 end
-                -- forward message to connect
+                -- forward message to client
                 self._socket:send_text(payload)
             end
         end
@@ -279,12 +269,14 @@ function WebSocketServerBase:_subscribeChannel()
         -- connect will auto close, channel will be unsubscribed
         self._channelEnabled = false
         redis:setKeepAlive()
-        printInfo("subscribe channel \"%s\" loop ended", channel)
 
         -- if an error leads to an exiting, retry to subscribe channel
         if isRunning and self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self._subscribeRetryCount = self._subscribeRetryCount + 1
+            printInfo("subscribe channel \"%s\" loop ended, try [%d]", channel, self._subscribeRetryCount)
             self:_subscribeChannel()
+        else
+            printInfo("subscribe channel \"%s\" loop ended, max try", channel)
         end
     end
 
@@ -298,7 +290,7 @@ end
 
 function WebSocketServerBase:_authConnect()
     if ngx.headers_sent then
-        return nil, "response header already sent"
+        throw("response header already sent")
     end
 
     req_read_body()
@@ -308,21 +300,36 @@ function WebSocketServerBase:_authConnect()
         protocols = protocols[1]
     end
     if not protocols then
-        return nil, "not set header: Sec-WebSocket-Protocol"
+        throw("not set header: Sec-WebSocket-Protocol")
     end
 
-    local sid = string.match(protocols, Constants.WEBSOCKET_SUBPROTOCOL_PATTERN)
-    if not sid then
-        return nil, "not found session id in header: Sec-WebSocket-Protocol"
+    local token = string.match(protocols, Constants.WEBSOCKET_SUBPROTOCOL_PATTERN)
+    if not token then
+        throw("not found token in header: Sec-WebSocket-Protocol")
     end
 
-    local session = self:startSession(sid)
+    -- convert token to session id
+    local sid
+    if self._handler and self._handler.convertTokenToSessionId then
+        sid = self._handler:convertTokenToSessionId(token)
+        if not sid then
+            throw("WebSocketHandler:convertTokenToSessionId() return invalid sid")
+        end
+    else
+        sid = token
+    end
+
+    local session = self:openSession(sid)
     if not session then
-        return nil, "not set valid session id in header: Sec-WebSocket-Protocol"
+        throw("not set valid session id in header: Sec-WebSocket-Protocol")
     end
 
-    self._channel = Constants.CONNECT_CHANNEL_PREFIX .. self:getConnectId()
-    return true
+    -- save connect id in session
+    local connectId = self:getConnectId()
+    session:setConnectId(connectId)
+    session:setKeepAlive()
+    session:save()
+    self._channel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
 end
 
 function WebSocketServerBase:getConnectId()
@@ -337,6 +344,10 @@ function WebSocketServerBase:setConnectTag(tag)
     if not tag then
         throw("set connect tag with invalid tag \"%s\"", tostring(tag))
     else
+        if self._connectTag then
+            self:removeConnectTag()
+        end
+
         local connectId = self:getConnectId()
         tag = tostring(tag)
         local pipe = self:_getRedis():newPipeline()
@@ -362,7 +373,7 @@ function WebSocketServerBase:removeConnectTag()
     local tag = self:getConnectTag()
     local pipe = self:_getRedis():newPipeline()
     pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
-    pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag)
+    pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
     pipe:commit()
 end
 

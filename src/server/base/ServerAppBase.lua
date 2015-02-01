@@ -50,12 +50,10 @@ local RedisService = cc.load("redis").service
 local SessionService = cc.load("session").service
 
 function ServerAppBase:ctor(config)
-    cc.bind(self, "event")
-
     self.config = clone(checktable(config))
 
-    self.config.appRootPath = self.config.appRootPath or ""
-    if self.config.appRootPath ~= "" then
+    self.config.appRootPath = self.config.appRootPath
+    if self.config.appRootPath then
         package.path = self.config.appRootPath .. "/?.lua;" .. package.path
     end
 
@@ -149,15 +147,27 @@ function ServerAppBase:normalizeActionName(actionName)
     return table_concat(parts, "."), method
 end
 
-function ServerAppBase:startSession(sid)
-    local session
-    if sid then
-        session = self:_loadSession(sid)
-    else
-        session = self:_genSession()
+function ServerAppBase:getSession()
+    return self._session
+end
+
+function ServerAppBase:openSession(sid)
+    if self._session then
+        throw("session \"%s\" already exists, disallow open an other session", self._session:getSid())
     end
-    self._session = session
-    return session
+    if type(sid) ~= "string" or sid == "" then
+        throw("open session with invalid sid")
+    end
+    self._session = self:_loadSession(sid)
+    return self._session
+end
+
+function ServerAppBase:newSession()
+    if self._session then
+        throw("session \"%s\" already exists, disallow start a new session", self._session:getSid())
+    end
+    self._session = self:_genSession()
+    return self._session
 end
 
 function ServerAppBase:destroySession(sid)
@@ -187,6 +197,13 @@ function ServerAppBase:getConnectTagById(connectId)
     end
 end
 
+function ServerAppBase:closeConnectByTag(tag)
+    local connectId = self:getConnectIdByTag(tag)
+    if connectId then
+        self:sendMessageToConnect(connectId, "QUIT")
+    end
+end
+
 function ServerAppBase:sendMessageToConnect(connectId, message)
     if not connectId or not message then
         throw("send message to connect with invalid id \"%s\" or invalid message", tostring(connectId))
@@ -200,7 +217,10 @@ end
 function ServerAppBase:_loadSession(sid)
     local redis = self:_getRedis()
     local session = SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
-    if session then session:setKeepAlive() end
+    if session then
+        session:setKeepAlive()
+        printInfo("load session \"%s\"", sid)
+    end
     return session
 end
 
