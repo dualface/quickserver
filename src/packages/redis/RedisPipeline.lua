@@ -24,20 +24,20 @@ THE SOFTWARE.
 
 local RedisPipeline = class("RedisPipeline")
 
-function RedisPipeline:ctor(easy)
-    self.easy = easy
-    self.commandsCount = 0
-    self.commands = {}
+function RedisPipeline:ctor(service)
+    self._service = service
+    self._commandsCount = 0
+    self._commands = {}
 end
 
 function RedisPipeline:command(command, ...)
-    self.commandsCount = self.commandsCount + 1
-    self.commands[#self.commands + 1] = {command, {...}}
+    self._commandsCount = self._commandsCount + 1
+    self._commands[#self._commands + 1] = {command, {...}}
 end
 
 function RedisPipeline:commit()
-    if self.commandsCount > 0 then
-        return self.easy.adapter:commitPipeline(self.commands)
+    if self._commandsCount > 0 then
+        return self._service._redis:commitPipeline(self._commands)
     else
         return {}
     end
