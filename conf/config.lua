@@ -44,8 +44,9 @@ local config = {
     broadcastJobTube = "jobTube",
 
     redis = {
-        host       = "127.0.0.1",
-        port       = 6379,
+        socket     = "unix:_QUICK_SERVER_ROOT_/tmp/redis.sock",
+        -- host       = "127.0.0.1",
+        -- port       = 6379,
         timeout    = 10 * 1000, -- 10 seconds
     },
 

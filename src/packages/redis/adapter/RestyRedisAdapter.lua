@@ -47,7 +47,11 @@ end
 
 function RestyRedisAdapter:connect()
     self._instance:set_timeout(self._config.timeout)
-    return self._instance:connect(self._config.host, self._config.port)
+    if self._config.socket then
+        return self._instance:connect(self._config.socket)
+    else
+        return self._instance:connect(self._config.host, self._config.port)
+    end
 end
 
 function RestyRedisAdapter:close()
