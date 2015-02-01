@@ -3,12 +3,7 @@ $(document).ready(function()
 {
     var l = document.location;
     $("#server_addr").val(l.host);
-    $("#http_server_addr").text("http://" + l.host + "/");
-    $("#http_entry").val("api");
-    $("#websocket_server_addr").text("ws://" + l.host + "/");
-    $("#websocket_entry").val("socket");
     $("#input_username").val("USER" + parseInt((Math.random() * 10000000)).toString());
-
     test.set_inputs_disabled(false);
 });
 
@@ -68,9 +63,9 @@ var isFunction = function(functionToCheck)
 
 var test = {
     server_addr: null,
-    http_entry: null,
+    http_entry: "api",
     http_server_addr: null,
-    websocket_entry: null,
+    websocket_entry: "socket",
     websocket_server_addr: null,
 
     username: null,
@@ -84,8 +79,6 @@ var test = {
 test.set_inputs_disabled = function(disabled)
 {
     $("#server_addr").prop("disabled", disabled);
-    $("#http_entry").prop("disabled", disabled);
-    $("#websocket_entry").prop("disabled", disabled);
     $("#input_username").prop("disabled", disabled);
 }
 
@@ -130,9 +123,7 @@ test.login = function()
 
     test.username = username;
     test.server_addr = $("#server_addr").val();
-    test.http_entry = $("#http_entry").val();
     test.http_server_addr = "http://" + test.server_addr + "/" + test.http_entry
-    test.websocket_entry = $("#websocket_entry").val();
     test.websocket_server_addr = "ws://" + test.server_addr + "/" + test.websocket_entry
 
     test.set_inputs_disabled(true);
@@ -147,8 +138,11 @@ test.login = function()
         test.session_id = res["sid"].toString();
         log.add("GET SESSION ID: " + test.session_id);
         log.add("count = " + res["count"].toString());
-        $("#session_id").text("SESSION ID: " + test.session_id);
+        $("#session_id").text(test.session_id);
+        $("#connect_tag").text(res["tag"]);
         $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
+
+        test.connect();
     });
 }
 
@@ -164,6 +158,7 @@ test.logout = function()
         test.session_id = null;
         log.add("LOGOUTED");
         $("#session_id").text("none");
+        $("#connect_tag").text("none");
         $("#count_value").text("[COUNT = *]");
         test.set_inputs_disabled(false);
     });
@@ -217,7 +212,7 @@ test.connect = function()
     };
     socket.onmessage = function(event)
     {
-        log.add("RECV: " + event.data.toString());
+        log.add("SOCKET RECV: " + event.data.toString());
         var data = JSON.parse(event.data);
         if (data["_msgid"])
         {
@@ -261,6 +256,32 @@ test.http_request = function(action, data, callback)
     $.post(url, data, callback, "json");
 }
 
+test.send_message = function(dest, message)
+{
+    dest = dest.toString();
+    if (dest === "")
+    {
+        log.add("PLEASE ENTER destination Connect Tag");
+        return false;
+    }
+
+    message = message.toString();
+    if (message === "")
+    {
+        log.add("PLEASE ENTER message");
+        return false;
+    }
+
+    var data = {
+        "action": "hello.sendmessage",
+        "tag": dest,
+        "message": message,
+        "user": test.username
+    }
+
+    test.send_data(data);
+}
+
 test.send_data = function(data, callback)
 {
     if (test.socket === null)
@@ -270,7 +291,7 @@ test.send_data = function(data, callback)
     }
 
     test.msg_id++;
-    data["_msgid"] = test.msg_id;
+    data["__id"] = test.msg_id;
     var json_str = JSON.stringify(data);
 
     if (isFunction(callback))
@@ -279,62 +300,5 @@ test.send_data = function(data, callback)
     }
 
     test.socket.send(json_str);
-    log.add("SEND: " + json_str);
-}
-
-test.send_message = function(message)
-{
-    if (!test.session_id)
-    {
-        log.add("NOT LOGIN");
-        return false;
-    }
-
-    message = message.toString();
-    if (message == "")
-    {
-        log.add("PLEASE ENTER message");
-        return false;
-    }
-
-    var data = {
-        "action": "chat.broadcast",
-        "session_id" : test.session_id,
-        "content": message,
-        "user": test.username
-    }
-
-    test.send_data(data);
-}
-
-test.call_action = function(call_action, more)
-{
-    if (!test.session_id)
-    {
-        log.add("NOT LOGIN");
-        return false;
-    }
-
-    call_action = call_action.toString();
-    if (call_action == "")
-    {
-        log.add("NOT SET action");
-        return false;
-    }
-
-    var data = {
-        "action": call_action,
-        "session_id" : test.session_id,
-        "user": test.username
-    }
-
-    if (typeof more !== "undefined")
-    {
-        for (var key in more)
-        {
-            data[key] = more[key];
-        }
-    }
-
-    test.send_data(data);
+    log.add("SOCKET SEND: " + json_str);
 }

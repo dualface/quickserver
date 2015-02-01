@@ -13,26 +13,13 @@
     <h1>Quick Server Tests</h1>
 
     <div class="widget">
-        <table class="form">
+        <table class="form last">
             <tr>
-                <th colspan="2" class="title">STEP 1 : Set Server Address</th>
+                <th colspan="2" class="title">Login</th>
             </tr>
             <tr>
                 <th>Server :</th>
-                <td><input type="text" id="server_addr" /></td>
-            </tr>
-            <tr>
-                <th>HTTP entry :</th>
-                <td><span id="http_server_addr"></span><input type="text" id="http_entry" class="small" /></td>
-            </tr>
-            <tr>
-                <th>WebSocket entry :</th>
-                <td><span id="websocket_server_addr"></span><input type="text" id="websocket_entry" class="small" /></td>
-            </tr>
-        </table>
-        <table class="form">
-            <tr>
-                <th colspan="2" class="title">STEP 2 : Login and get Session ID</th>
+                <td><input type="text" id="server_addr" />&nbsp;<span>[api/socket]</span></td>
             </tr>
             <tr>
                 <th>Username :</th>
@@ -43,9 +30,9 @@
                 </td>
             </tr>
             <tr>
-                <th>Session ID :</th>
+                <th>Session ID / Tag :</th>
                 <td>
-                    <span id="session_id">none</span>
+                    <span id="session_id">none</span>/<span id="connect_tag">none</span>
                 </td>
             </tr>
             <tr>
@@ -55,33 +42,27 @@
                 </td>
             </tr>
         </table>
+    </div>
+
+    <div class="widget">
         <table class="form">
             <tr>
-                <th colspan="2" class="title">STEP 3 : Connect to WebSocket with Session ID</th>
+                <th colspan="2" class="title">Test : Send message to connect</th>
             </tr>
             <tr>
-                <th>WebSocket :</th>
+                <th>Connect Tag :</th>
+                <td><input type="text" id="dest_connect_tag" /></td>
+            </tr>
+            <tr>
+                <th>Message :</th>
                 <td>
-                    <span id="last_msg_id_value">[LAST MSG ID = *]</span>&nbsp;<input type="button" value="Connect" onclick="return test.connect();" />
-                    <input type="button" value="Disconnect" onclick="return test.disconnect();" />
+                    <input type="text" id="send_message" />
+                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_tag').val(), $('#send_message').val());" />
                 </td>
             </tr>
         </table>
     </div>
 
-    <div class="widget">
-        <h3>Test: Hello World</h3>
-        <input type="button" value="Say Hello" onclick="return test.call_action('helloworld.sayhello');" />
-        <input type="button" value="Say HI" onclick="return test.call_action('helloworld.sayhi');" />
-    </div>
-
-    <div class="widget">
-        <h3>Test: Chatroom</h3>
-        <label>Message&nbsp;&nbsp;:</label>
-        <input type="text" id="input_message" value="" />
-        <br />
-        <input type="button" value="Send" onclick="return test.send_message($('#input_message').val());" />
-    </div>
 </div>
 
 <div id="console">

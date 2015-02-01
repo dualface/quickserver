@@ -37,9 +37,14 @@ div.widget h3 {
 
 table.form {
     width: 700px;
-    margin: 10px 0 40px 0;
+    margin: 10px 0 20px 0;
     padding: 0 0 10px 0;
     border-bottom: 1px solid #ccc;
+}
+
+table.last {
+    margin: 10px 0 0 0;
+    border-bottom: none !important;
 }
 
 table.form th.title {
@@ -57,7 +62,7 @@ table.form td span {
     margin-right: 0.5em;
 }
 
-#session_id {
+#session_id, #connect_tag {
     color: #f66;
 }
 
@@ -113,6 +118,11 @@ div#console {
     padding: 1em;
     height: 14em;
     overflow: auto;
+    white-space: pre-wrap;       /* css-3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }
 
 #console pre strong {
