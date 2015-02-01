@@ -45,22 +45,7 @@ local os_time = os.time
 
 local ServerAppBase = class("ServerAppBase")
 
-ServerAppBase.APP_RUN_EVENT      = "APP_RUN_EVENT"
-ServerAppBase.APP_QUIT_EVENT     = "APP_QUIT_EVENT"
-ServerAppBase.CLIENT_ABORT_EVENT = "CLIENT_ABORT_EVENT"
-
-ServerAppBase.MESSAGE_FORMAT_JSON = "json"
-ServerAppBase.MESSAGE_FORMAT_TEXT = "text"
-ServerAppBase.DEFAULT_MESSAGE_FORMAT  = ServerAppBase.MESSAGE_FORMAT_JSON
-
-local _CLIENT_ID_PREFIX      = "C_"
-local _CLIENT_TAG_PREFIX     = "T_"
-local _CLIENT_TAG_PREFIX_LEN = string_len(_CLIENT_TAG_PREFIX)
-local _TAG_CLIENT_ID_DICT    = "_CLIENT_TAGS"
-
-local _ACTION_PACKAGE_NAME = 'actions'
-local _DEFAULT_ACTION_MODULE_SUFFIX = 'Action'
-
+local Constants = import(".Constants")
 local RedisService = cc.load("redis").service
 local SessionService = cc.load("session").service
 
@@ -68,13 +53,14 @@ function ServerAppBase:ctor(config)
     cc.bind(self, "event")
 
     self.config = clone(checktable(config))
-    self.config.appRootPath = self.config.appRootPath or ""
-    self.config.actionModuleSuffix = config.actionModuleSuffix or _DEFAULT_ACTION_MODULE_SUFFIX
-    self.config.messageFormat = self.config.messageFormat or ServerAppBase.DEFAULT_MESSAGE_FORMAT
 
+    self.config.appRootPath = self.config.appRootPath or ""
     if self.config.appRootPath ~= "" then
         package.path = self.config.appRootPath .. "/?.lua;" .. package.path
     end
+
+    self.config.actionModuleSuffix = config.actionModuleSuffix or Constants.DEFAULT_ACTION_MODULE_SUFFIX
+    self.config.messageFormat      = self.config.messageFormat or Constants.DEFAULT_MESSAGE_FORMAT
 
     self._actionModules = {}
     self._requestParameters = nil
@@ -99,7 +85,7 @@ function ServerAppBase:doRequest(actionName, data)
     local actionModule = self._actionModules[actionModuleName]
     local actionModulePath
     if not actionModule then
-        actionModulePath = string_format("%s.%s%s", _ACTION_PACKAGE_NAME, actionModuleName, self.config.actionModuleSuffix)
+        actionModulePath = string_format("%s.%s%s", Constants.ACTION_PACKAGE_NAME, actionModuleName, self.config.actionModuleSuffix)
         local ok, _actionModule = pcall(require,  actionModulePath)
         if ok then
             actionModule = _actionModule
@@ -183,64 +169,36 @@ function ServerAppBase:destroySession(sid)
     self._session = nil
 end
 
-function ServerAppBase:getClientId()
-    if not self._clientId then
-        self._clientId = _CLIENT_ID_PREFIX .. ngx_md5(tostring(ngx.ctx))
-    end
-    return self._clientId
-end
-
-function ServerAppBase:setClientTag(tag)
-    local clientId = self:getClientId()
-    tag = tostring(tag)
-    tagkey = _CLIENT_TAG_PREFIX .. tag
-    local redis = self:_getInternalRedis()
-    redis:command("HMSET", _TAG_CLIENT_ID_DICT, clientId, tagkey, tagkey, clientId)
-    self._clientTag = tag
-end
-
-function ServerAppBase:getClientTag()
-    if not self._clientTag then
-        local clientId = self:getClientId()
-        local redis = self:_getInternalRedis()
-        local tagkey = redis:command("HGET", _TAG_CLIENT_ID_DICT, clientId)
-        if type(tagkey) == "string" then
-            self._clientTag = string_sub(tagkey, _CLIENT_TAG_PREFIX_LEN + 1)
-        end
-    end
-    return self._clientTag
-end
-
-function ServerAppBase:getClientIdByTag(tag)
-    tagkey = _CLIENT_TAG_PREFIX .. tostring(tag)
-    local redis = self:_getInternalRedis()
-    redis:command("HGET", _TAG_CLIENT_ID_DICT, tagkey)
-end
-
-function ServerAppBase:getClientTagById(clientId)
-    local redis = self:_getInternalRedis()
-    local tagkey = redis:command("HGET", _TAG_CLIENT_ID_DICT, clientId)
-    if type(tagkey) == "string" then
-        return string_sub(tagkey, _CLIENT_TAG_PREFIX_LEN + 1)
+function ServerAppBase:getConnectIdByTag(tag)
+    if not tag then
+        throw("get connect id by invalid tag \"%s\"", tostring(tag))
+    else
+        local redis = self:_getRedis()
+        return redis:command("HGET", Constants.CONNECTS_TAG_DICT_KEY, tostring(tag))
     end
 end
 
-function ServerAppBase:unsetClientTag()
-    if not self._clientId then return end
-    local clientId = self:getClientId()
-    local tagkey = _CLIENT_TAG_PREFIX .. tostring(self:getClientTag())
-    local redis = self:_getInternalRedis()
-    redis:command("HDEL", _TAG_CLIENT_ID_DICT, clientId, tagkey)
+function ServerAppBase:getConnectTagById(connectId)
+    if not connectId then
+        throw("get connect tag by invalid id \"%s\"", tostring(connectId))
+    else
+        local redis = self:_getRedis()
+        return redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, tostring(connectId))
+    end
 end
 
-function ServerAppBase:sendMessageToClient(clientId, message)
-    local redis = self:_getInternalRedis()
-    local channel = string.format("channel.%s", clientId)
-    redis:command("PUBLISH", channel, message)
+function ServerAppBase:sendMessageToConnect(connectId, message)
+    if not connectId or not message then
+        throw("send message to connect with invalid id \"%s\" or invalid message", tostring(connectId))
+    else
+        local redis = self:_getRedis()
+        local channel = Constants.CONNECT_CHANNEL_PREFIX .. tostring(connectId)
+        redis:command("PUBLISH", channel, tostring(message))
+    end
 end
 
 function ServerAppBase:_loadSession(sid)
-    local redis = self:_getInternalRedis()
+    local redis = self:_getRedis()
     local session = SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
     if session then session:setKeepAlive() end
     return session
@@ -254,25 +212,28 @@ function ServerAppBase:_genSession()
     local mask = string.format("%0.5f|%0.10f|%s", now, random, self._secret)
     local origin = string.format("%s|%s", addr, ngx_md5(mask))
     local sid = ngx_md5(origin)
-    return SessionService:create(self:_getInternalRedis(), sid, self.config.sessionExpiredTime, addr)
+    return SessionService:create(self:_getRedis(), sid, self.config.sessionExpiredTime, addr)
 end
 
-function ServerAppBase:_getInternalRedis()
-    if not self._internalRedis then
-        self._internalRedis = RedisService:create(self.config.redis)
+function ServerAppBase:_getRedis()
+    if not self._redis then
+        self._redis = self:_newRedis()
     end
+    return self._redis
+end
 
-    local ok, err = self._internalRedis:connect()
+function ServerAppBase:_newRedis()
+    local redis = RedisService:create(self.config.redis)
+    local ok, err = redis:connect()
     if err then
         throw("connect internal redis failed, %s", err)
     end
-
-    return self._internalRedis
+    return redis
 end
 
 function ServerAppBase:_genOutput(result, err)
     local rtype = type(result)
-    if self.config.messageFormat == ServerAppBase.MESSAGE_FORMAT_JSON then
+    if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON then
         if err then
             result = {err = err}
         elseif rtype == "nil" then
@@ -281,7 +242,7 @@ function ServerAppBase:_genOutput(result, err)
             result = {result = tostring(result)}
         end
         return json_encode(result)
-    elseif self.config.messageFormat == ServerAppBase.MESSAGE_FORMAT_TEXT then
+    elseif self.config.messageFormat == Constants.MESSAGE_FORMAT_TEXT then
         if err then
             return nil, err
         elseif rtype == "nil" then

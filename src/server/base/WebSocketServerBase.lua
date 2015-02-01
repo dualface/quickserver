@@ -37,41 +37,32 @@ local ServerAppBase = import(".ServerAppBase")
 
 local WebSocketServerBase = class("WebSocketServerBase", ServerAppBase)
 
-WebSocketServerBase.WEBSOCKET_READY_EVENT = "WEBSOCKET_READY_EVENT"
-WebSocketServerBase.WEBSOCKET_CLOSE_EVENT = "WEBSOCKET_CLOSE_EVENT"
-
-WebSocketServerBase.TEXT_MESSAGE_TYPE   = "text"
-WebSocketServerBase.BINARY_MESSAGE_TYPE = "binary"
-
-WebSocketServerBase.PROTOCOL_PATTERN = "quickserver%-([%w%d%-]+)"
-
-WebSocketServerBase.DEFAULT_TIME_OUT        = 10 * 1000 -- 10s
-WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN = 16 * 1024 -- 16KB
-WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT = 5 -- 5 times
+local Constants = import(".Constants")
+local Events = import(".Events")
 
 function WebSocketServerBase:ctor(config)
     WebSocketServerBase.super.ctor(self, config)
 
-    self.config.websocketsTimeout       = self.config.websocketsTimeout or WebSocketServerBase.DEFAULT_TIME_OUT
-    self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or WebSocketServerBase.DEFAULT_MAX_PAYLOAD_LEN
-    self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or WebSocketServerBase.DEFAULT_MAX_RETRY_COUNT
+    self.config.websocketsTimeout       = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
+    self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or Constants.WEBSOCKET_DEFAULT_MAX_PAYLOAD_LEN
+    self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_RETRY_COUNT
+    self.config.maxSubscribeRetryCount  = self.config.maxSubscribeRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_SUB_RETRY_COUNT
 
     self._requestType = "websockets"
-    self._subscribeBroadcastChannelEnabled = false
-    self._subscribeRetryCount = 1
+    self._channelEnabled = false
+    self._subscribeRetryCount = 0
 end
 
 function WebSocketServerBase:run()
-    local token, err = self:_getToken()
+    local connectId, err = self:_authConnect()
     if err then
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx.say(tostring(err))
         ngx.exit(ngx.ERROR)
     else
-        self._token = token
-        self:dispatchEvent({name = ServerAppBase.APP_RUN_EVENT})
+        self:dispatchEvent({name = Events.APP_RUN_EVENT})
         self:runEventLoop()
-        self:unsetClientTag()
-        self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
+        self:dispatchEvent({name = Events.APP_QUIT_EVENT})
     end
 end
 
@@ -85,18 +76,12 @@ function WebSocketServerBase:runEventLoop()
         throw("failed to create websocket server, %s", err)
     end
 
-    self._socket = socket
-
     -- spawn a thread to subscribe redis channel for broadcast
-    local ok, err = self:_subscribeBroadcastChannel()
-    if err then
-        throw("failed to subscribe broadcast channel, %s", err)
-    end
+    self:_subscribeChannel()
 
-    --  client tag is binding to this websocket id
-    self:setClientTag(self._token)
-
-    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_READY_EVENT})
+    -- ready
+    self._socket = socket
+    self:dispatchEvent({name = Events.WEBSOCKET_READY_EVENT})
 
     local retryCount = 0
     local maxRetryCount = self.config.websocketsMaxRetryCount
@@ -164,18 +149,16 @@ function WebSocketServerBase:runEventLoop()
     end -- while
 
     -- end the subscribe thread
-    self:_unsubscribeBroadcastChannel()
+    self:_unsubscribeChannel()
 
-    -- unbinding websocket id
-    self:unsetSidTag(self._tag)
+    -- cleanup tag
+    self:removeConnectTag()
 
     -- close connect
     self._socket:send_close()
     self._socket = nil
 
-    self:dispatchEvent({name = WebSocketServerBase.WEBSOCKET_CLOSE_EVENT})
-
-    return exitError
+    self:dispatchEvent({name = Events.WEBSOCKET_CLOSE_EVENT})
 end
 
 function WebSocketServerBase:_processMessage(rawMessage, messageType)
@@ -190,7 +173,10 @@ function WebSocketServerBase:_processMessage(rawMessage, messageType)
     local ok, result = xpcall(function()
         return self:doRequest(actionName, message)
     end, function(_err)
-        err = tostring(_err) .. "\n" .. debug.traceback("", 2)
+        err = tostring(_err)
+        if DEBUG > 1 then
+            err = err .. "\n" .. debug.traceback("", 4)
+        end
     end)
     if err then
         return nil, string.format("action \"%s\" occurs error, %s", actionName, err)
@@ -229,7 +215,7 @@ end
 
 function WebSocketServerBase:_packMessage(message, messageType)
     -- TODO: support message type plugin
-    if messageType ~= WebSocketServerBase.TEXT_MESSAGE_TYPE then
+    if messageType ~= Constants.TEXT_MESSAGE_TYPE then
         return nil, string.format("not supported message type \"%s\"", messageType)
     end
     return json.encode(message)
@@ -237,7 +223,7 @@ end
 
 function WebSocketServerBase:_parseMessage(rawMessage, messageType)
     -- TODO: support message type plugin
-    if messageType ~= WebSocketServerBase.TEXT_MESSAGE_TYPE then
+    if messageType ~= Constants.TEXT_MESSAGE_TYPE then
         return nil, string.format("not supported message type \"%s\"", messageType)
     end
 
@@ -254,75 +240,63 @@ function WebSocketServerBase:_parseMessage(rawMessage, messageType)
     end
 end
 
-function WebSocketServerBase:_unsubscribeBroadcastChannel()
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
-    -- once this WebSocketServerApp receives "QUIT" from channel.quit, message loop will be ended.
-    local ok, err = redis:command("publish", self.internalChannel, "QUIT")
-    if not ok then
-        printWarn("WebSocketServerBase:unsubscribeBroadcastChannel() - publish QUIT failed: %s", err)
+function WebSocketServerBase:_subscribeChannel()
+    if self._channelEnabled then
+        printWarn("already subscribed broadcast channel \"%s\"", self._channel)
+        return
     end
-    redis:close()
-end
-
-function WebSocketServerBase:_subscribeBroadcastChannel()
-    if self._subscribeBroadcastChannelEnabled then
-        printWarn("WebSocketServerApp:subscribeBroadcastChannel() - failed: already subscribed")
-        return nil, "already subscribed"
-    end
-
-    local internalChannel = self.internalChannel
-
-    local redis = cc.load("redis").service.new(self.config.redis)
-    redis:connect()
 
     local function subscribe()
-        self._subscribeBroadcastChannelEnabled = true
+        self._channelEnabled = true
         local isRunning = true
 
-        local loop, err = redis:pubsub({subscribe=internalChannel})
+        -- pubsub thread need separated redis connect
+        local redis = self:_newRedis()
+
+        local channel = self._channel
+        local loop, err = redis:pubsub({subscribe = channel})
         if not loop then
-            printError("WebSocketServerBase, subscribe thread - redis subscribe channel failed: %s", err)
-            ngx_exit(ngx.HTTP_SERVICE_UNAVAILABLE)
+            throw("subscribe channel \"%s\" failed, %s", channel, err)
         end
 
         for msg, abort in loop do
             if msg.kind == "subscribe" then
-                printInfo("WebSocketServerBase, subscribe thread - subscribed channel(%s), socket id: %d", msg.channel, self.socketId)
+                printInfo("subscribe channel \"%s\"", channel)
             elseif msg.kind == "message" then
                 local payload = msg.payload
-                printInfo("WebSocketServerBase, subscribe thread - get msg from channel(%s), socket id: %d, msg: %s", msg.channel, self.socketId, payload)
+                printInfo("get msg from channel \"%s\", msg: %s", channel, payload)
                 if payload == "QUIT" then
                     abort()
                     isRunning = false
                     break
                 end
-                self.websockets:send_text(payload)
+                -- forward message to connect
+                self._socket:send_text(payload)
             end
         end
 
         -- when error occured or exit normally,
         -- connect will auto close, channel will be unsubscribed
-        redis:close()
-        redis = nil
-
-        self._subscribeBroadcastChannelEnabled = false
-
-        printInfo("WebSocketServerBase, subscribe thread - quit from subscribe loop, socketId = %d", self.socketId)
-        printInfo("--------- SUBSCRIBE THREAD QUIT ----------")
+        self._channelEnabled = false
+        redis:setKeepAlive()
+        printInfo("subscribe channel \"%s\" loop ended", channel)
 
         -- if an error leads to an exiting, retry to subscribe channel
         if isRunning and self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
             self._subscribeRetryCount = self._subscribeRetryCount + 1
-            self:_subscribeBroadcastChannel()
+            self:_subscribeChannel()
         end
     end
-    ngx_thread_spawn(subscribe)
 
-    return true, nil
+    ngx_thread_spawn(subscribe)
 end
 
-function WebSocketServerBase:_getToken()
+function WebSocketServerBase:_unsubscribeChannel()
+    local redis = self:_getRedis()
+    redis:command("PUBLISH", self._channel, "QUIT")
+end
+
+function WebSocketServerBase:_authConnect()
     if ngx.headers_sent then
         return nil, "response header already sent"
     end
@@ -337,13 +311,59 @@ function WebSocketServerBase:_getToken()
         return nil, "not set header: Sec-WebSocket-Protocol"
     end
 
-    local token = string.match(protocols, WebSocketServerBase.PROTOCOL_PATTERN)
-    if not token then
-        return nil, "not found token in header: Sec-WebSocket-Protocol"
+    local sid = string.match(protocols, Constants.WEBSOCKET_SUBPROTOCOL_PATTERN)
+    if not sid then
+        return nil, "not found session id in header: Sec-WebSocket-Protocol"
     end
 
-    -- TODO: check token
-    return token
+    local session = self:startSession(sid)
+    if not session then
+        return nil, "not set valid session id in header: Sec-WebSocket-Protocol"
+    end
+
+    self._channel = Constants.CONNECT_CHANNEL_PREFIX .. self:getConnectId()
+    return true
+end
+
+function WebSocketServerBase:getConnectId()
+    if not self._connectId then
+        local redis = self:_getRedis()
+        self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
+    end
+    return self._connectId
+end
+
+function WebSocketServerBase:setConnectTag(tag)
+    if not tag then
+        throw("set connect tag with invalid tag \"%s\"", tostring(tag))
+    else
+        local connectId = self:getConnectId()
+        tag = tostring(tag)
+        local pipe = self:_getRedis():newPipeline()
+        pipe:command("HMSET", Constants.CONNECTS_ID_DICT_KEY, connectId, tag)
+        pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag, connectId)
+        pipe:commit()
+        self._connectTag = tag
+    end
+end
+
+function WebSocketServerBase:getConnectTag()
+    if not self._connectTag then
+        local connectId = self:getConnectId()
+        local redis = self:_getRedis()
+        self._connectTag = redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, connectId)
+    end
+    return self._connectTag
+end
+
+function WebSocketServerBase:removeConnectTag()
+    if not self._connectId then return end
+    local connectId = self:getConnectId()
+    local tag = self:getConnectTag()
+    local pipe = self:_getRedis():newPipeline()
+    pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
+    pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag)
+    pipe:commit()
 end
 
 return WebSocketServerBase

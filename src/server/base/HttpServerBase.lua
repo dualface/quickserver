@@ -87,7 +87,6 @@ end
 
 function HttpServerBase:run()
     local result, err = self:runEventLoop()
-    self:unsetClientTag()
     self:dispatchEvent({name = ServerAppBase.APP_QUIT_EVENT})
 
     local rtype = type(result)
@@ -117,8 +116,9 @@ end
 -- actually it is not a loop, since it is based on HTTP.
 function HttpServerBase:runEventLoop()
     local actionName = self._requestParameters.action or ""
+    actionName = tostring(actionName)
     if DEBUG > 1 then
-        printInfo("HttpServerBase:runEventLoop() - action: %s, data: %s", tostring(actionName), json_encode(self._requestParameters))
+        printInfo("HTTP request, action: %s, data: %s", actionName, json_encode(self._requestParameters))
     end
 
     local err = nil
@@ -126,6 +126,10 @@ function HttpServerBase:runEventLoop()
         return self:doRequest(actionName, self._requestParameters)
     end, function(_err)
         err = _err
+        if DEBUG > 1 then
+            printWarn("HTTP request, action: %s, %s", actionName, err .. debug.traceback("", 4))
+        end
+        -- error message need return to client
     end)
     if err then
         return nil, string.format("run action \"%s\" error, %s", actionName, err)

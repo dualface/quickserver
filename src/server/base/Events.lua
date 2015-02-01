@@ -1,0 +1,9 @@
+
+local Events = {}
+
+Events.APP_RUN_EVENT         = "APP_RUN_EVENT"
+Events.APP_QUIT_EVENT        = "APP_QUIT_EVENT"
+Events.WEBSOCKET_READY_EVENT = "WEBSOCKET_READY_EVENT"
+Events.WEBSOCKET_CLOSE_EVENT = "WEBSOCKET_CLOSE_EVENT"
+
+return Events
