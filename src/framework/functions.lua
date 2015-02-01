@@ -56,10 +56,7 @@ local debug_getlocal = debug.getlocal
 
 function throw(fmt, ...)
     local msg = string.format(fmt, ...)
-    if DEBUG > 2 then
-        local traceback = debug_traceback("", 2)
-        error(msg .. traceback, 2)
-    elseif DEBUG > 1 then
+    if DEBUG > 1 then
         error(msg, 2)
     else
         error(msg, 0)
