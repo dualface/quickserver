@@ -26,17 +26,15 @@ local RedisPipeline = class("RedisPipeline")
 
 function RedisPipeline:ctor(service)
     self._service = service
-    self._commandsCount = 0
     self._commands = {}
 end
 
 function RedisPipeline:command(command, ...)
-    self._commandsCount = self._commandsCount + 1
     self._commands[#self._commands + 1] = {command, {...}}
 end
 
 function RedisPipeline:commit()
-    if self._commandsCount > 0 then
+    if #self._commands > 0 then
         return self._service._redis:commitPipeline(self._commands)
     else
         return {}

@@ -97,6 +97,7 @@ function RedisService:command(command, ...)
     if convert and convert[self._redis.name] then
         res = convert[self._redis.name](self, res)
     end
+
     return res
 end
 

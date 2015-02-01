@@ -26,9 +26,11 @@ local assert = assert
 local type = type
 local ipairs = ipairs
 local tostring = tostring
+local ngx_null = ngx.null
 local table_concat = table.concat
 local table_remove = table.remove
 local table_walk = table.walk
+local string_lower = string.lower
 local string_upper = string.upper
 local string_format = string.format
 local string_match = string.match
@@ -62,19 +64,28 @@ function RestyRedisAdapter:setKeepAlive(timeout, size)
     end
 end
 
+local function _formatCommand(args)
+    local result = {}
+    table_walk(args, function(v) result[#result + 1] = tostring(v) end)
+    return table_concat(result, ", ")
+end
+
 function RestyRedisAdapter:command(command, ...)
+    command = string_lower(command)
     local method = self._instance[command]
     if type(method) ~= "function" then
-        return nil, string_format("invalid redis command \"%s\"", string_upper(command))
+        local err = string_format("invalid redis command \"%s\"", string_upper(command))
+        printError("%s", err)
+        return nil, err
     end
 
     if DEBUG > 1 then
-        local a = {}
-        table_walk({...}, function(v) a[#a + 1] = tostring(v) end)
-        printInfo("redis command %s: %s", string_upper(command), table_concat(a, ", "))
+        printInfo("redis command: %s %s", string_upper(command), _formatCommand({...}))
     end
 
-    return method(self._instance, ...)
+    local res, err = method(self._instance, ...)
+    if res == ngx_null then res = nil end
+    return res, err
 end
 
 function RestyRedisAdapter:pubsub(subscriptions)
@@ -176,14 +187,8 @@ end
 
 function RestyRedisAdapter:commitPipeline(commands)
     self._instance:init_pipeline()
-    if DEBUG > 1 then
-        printInfo("RestyRedisAdapter:commitPipeline() - init pipeline")
-    end
     for _, arg in ipairs(commands) do
         self:command(arg[1], unpack(arg[2]))
-    end
-    if DEBUG > 1 then
-        printInfo("RestyRedisAdapter:commitPipeline() - commit pipeline")
     end
     return self._instance:commit_pipeline()
 end
