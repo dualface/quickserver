@@ -65,7 +65,8 @@ function HelloAction:sendmessageAction(arg)
         local session = self._app:getSession()
         local message = {
             username = session:get("username"),
-            message = arg.message
+            message = arg.message,
+            tag = self._app:getConnectTag()
         }
         self._app:sendMessageToConnect(connectId, json.encode(message))
     end
