@@ -8,84 +8,89 @@
 <link type="text/css" rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
-<h1>Quick Server Tests</h1>
 
-<div class="widget">
-    <table class="form">
-        <tr>
-            <th colspan="2" class="title">STEP 1 : Set Server Address</th>
-        </tr>
-        <tr>
-            <th>Server :</th>
-            <td><input type="text" id="server_addr" /></td>
-        </tr>
-        <tr>
-            <th>HTTP entry :</th>
-            <td><span id="http_server_addr"></span><input type="text" id="http_entry" class="small" /></td>
-        </tr>
-        <tr>
-            <th>WebSocket entry :</th>
-            <td><span id="websocket_server_addr"></span><input type="text" id="websocket_entry" class="small" /></td>
-        </tr>
-    </table>
-    <table class="form">
-        <tr>
-            <th colspan="2" class="title">STEP 2 : Login and get Session ID</th>
-        </tr>
-        <tr>
-            <th>Username :</th>
-            <td>
-                <input type="text" id="input_username" />
-                <input type="button" value="Login" onclick="return test.login();" />
-                <input type="button" value="Logout" onclick="return test.logout();" />
-            </td>
-        </tr>
-        <tr>
-            <th>Session ID :</th>
-            <td>
-                <span id="session_id">none</span>
-            </td>
-        </tr>
-        <tr>
-            <th>Persistent session :</th>
-            <td>
-                <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Count" onclick="return test.count();" />
-            </td>
-        </tr>
-    </table>
-    <table class="form">
-        <tr>
-            <th colspan="2" class="title">STEP 3 : Connect to WebSocket with Session ID</th>
-        </tr>
-        <tr>
-            <th>WebSocket :</th>
-            <td>
-                <span id="last_msg_id_value">[LAST MSG ID = *]</span>&nbsp;<input type="button" value="Connect" onclick="return test.connect();" />
-                <input type="button" value="Disconnect" onclick="return test.disconnect();" />
-            </td>
-        </tr>
-    </table>
+<div id="contents">
+    <h1>Quick Server Tests</h1>
+
+    <div class="widget">
+        <table class="form">
+            <tr>
+                <th colspan="2" class="title">STEP 1 : Set Server Address</th>
+            </tr>
+            <tr>
+                <th>Server :</th>
+                <td><input type="text" id="server_addr" /></td>
+            </tr>
+            <tr>
+                <th>HTTP entry :</th>
+                <td><span id="http_server_addr"></span><input type="text" id="http_entry" class="small" /></td>
+            </tr>
+            <tr>
+                <th>WebSocket entry :</th>
+                <td><span id="websocket_server_addr"></span><input type="text" id="websocket_entry" class="small" /></td>
+            </tr>
+        </table>
+        <table class="form">
+            <tr>
+                <th colspan="2" class="title">STEP 2 : Login and get Session ID</th>
+            </tr>
+            <tr>
+                <th>Username :</th>
+                <td>
+                    <input type="text" id="input_username" />
+                    <input type="button" value="Login" onclick="return test.login();" />
+                    <input type="button" value="Logout" onclick="return test.logout();" />
+                </td>
+            </tr>
+            <tr>
+                <th>Session ID :</th>
+                <td>
+                    <span id="session_id">none</span>
+                </td>
+            </tr>
+            <tr>
+                <th>Persistent session :</th>
+                <td>
+                    <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Count" onclick="return test.count();" />
+                </td>
+            </tr>
+        </table>
+        <table class="form">
+            <tr>
+                <th colspan="2" class="title">STEP 3 : Connect to WebSocket with Session ID</th>
+            </tr>
+            <tr>
+                <th>WebSocket :</th>
+                <td>
+                    <span id="last_msg_id_value">[LAST MSG ID = *]</span>&nbsp;<input type="button" value="Connect" onclick="return test.connect();" />
+                    <input type="button" value="Disconnect" onclick="return test.disconnect();" />
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="widget">
+        <h3>Test: Hello World</h3>
+        <input type="button" value="Say Hello" onclick="return test.call_action('helloworld.sayhello');" />
+        <input type="button" value="Say HI" onclick="return test.call_action('helloworld.sayhi');" />
+    </div>
+
+    <div class="widget">
+        <h3>Test: Chatroom</h3>
+        <label>Message&nbsp;&nbsp;:</label>
+        <input type="text" id="input_message" value="" />
+        <br />
+        <input type="button" value="Send" onclick="return test.send_message($('#input_message').val());" />
+    </div>
 </div>
 
-<div class="widget">
-    <h3>Test: Hello World</h3>
-    <input type="button" value="Say Hello" onclick="return test.call_action('helloworld.sayhello');" />
-    <input type="button" value="Say HI" onclick="return test.call_action('helloworld.sayhi');" />
-</div>
-
-<div class="widget">
-    <h3>Test: Chatroom</h3>
-    <label>Message&nbsp;&nbsp;:</label>
-    <input type="text" id="input_message" value="" />
-    <br />
-    <input type="button" value="Send" onclick="return test.send_message($('#input_message').val());" />
-</div>
-
-<div id="logs">
-    <ul id="log"></ul>
-    <input type="button" value="Insert Mark" onclick="return log.add_mark();" />
-    &nbsp;&nbsp;
-    <input type="button" value="Clear" onclick="return log.clear();" />
+<div id="console">
+    <pre id="log"></pre>
+    <div id="console_toolbar">
+        <input type="button" value="Insert Mark" onclick="return log.add_mark();" />
+        &nbsp;&nbsp;
+        <input type="button" value="Clear" onclick="return log.clear();" />
+    </div>
 </div>
 
 </body>

@@ -12,18 +12,44 @@ $(document).ready(function()
     test.set_inputs_disabled(false);
 });
 
+var f2num = function(n, l)
+{
+    if (typeof l == "undefined") l = 2;
+    while (n.length < l)
+    {
+        n = "0" + n;
+    }
+    return n;
+}
+
 var log = {
+    _lasttime: 0,
+
     add: function(message)
     {
+        var _log = $("#log");
         var now = new Date();
+        var nowtime = now.getTime();
+        if (log._lasttime > 0 && nowtime - log._lasttime > 10000) // 10s
+        {
+            $("#log").append("-------------------------\n");
+        }
+        log._lasttime = nowtime;
+
+        var time = f2num(now.getHours().toString()) + ":" + f2num(now.getMinutes().toString()) + ":" + f2num(now.getSeconds().toString());
+        message = $("<div/>").text(message).html();
         message = message.replace("\n", "<br />\n");
-        $("#log").append("<li>" + "[" + now.getTime().toString() + "] " + $("<div/>").text(message).html() + "</li>");
+        _log.append("[<strong>" + time + "</strong>] " + message + "\n");
+        _log.scrollTop(_log.prop("scrollHeight"));
+
         return false;
     },
 
     add_mark: function()
     {
-        $("#log").append("<li>--------</li>");
+        var _log = $("#log");
+        _log.append("<strong>--------<strong>\n");
+        _log.scrollTop(_log.prop("scrollHeight"));
         return false;
     },
 
@@ -34,7 +60,7 @@ var log = {
     }
 }
 
-function isFunction(functionToCheck)
+var isFunction = function(functionToCheck)
 {
     var getType = {};
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
@@ -165,7 +191,7 @@ test.connect = function()
         return log.add("ALREADY CONNECTED");
     }
 
-    if (test.websocket_server_addr === null)
+    if (test.session_id === null)
     {
         return log.add("LOGIN FIRST");
     }
@@ -198,8 +224,9 @@ test.connect = function()
             var msgid = data["_msgid"].toString();
             if (typeof test.callbacks[msgid] !== "undefined")
             {
-                test.callbacks[msgid](data);
+                var callback = test.callbacks[msgid];
                 test.callbacks[msgid] = null;
+                callback(data);
             }
         }
     };
@@ -207,11 +234,9 @@ test.connect = function()
     {
         log.add("WEBSOCKET DISCONNECTED");
         test.socket = null;
-        test.server_addr = null;
     };
 
     test.socket = socket;
-    test.server_addr = server_addr
     return false;
 }
 
@@ -225,10 +250,7 @@ test.disconnect = function()
     {
         test.socket.close();
         test.socket = null;
-        test.server_addr = null;
-        test.session_id = null;
         test.callbacks = {};
-        test.username = null;
     }
     return false;
 }
