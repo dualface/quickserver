@@ -48,7 +48,7 @@ function WebSocketServerBase:ctor(config)
     self.config.websocketsMaxRetryCount = self.config.websocketsMaxRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_RETRY_COUNT
     self.config.maxSubscribeRetryCount  = self.config.maxSubscribeRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_SUB_RETRY_COUNT
 
-    self._requestType = "websockets"
+    self._requestType = Constants.WEBSOCKET_REQUEST_TYPE
     self._channelEnabled = false
     self._subscribeRetryCount = 0
 end

@@ -29,7 +29,7 @@ local CommandLineServerBase = class("CommandLineServerBase", import(".ServerAppB
 function CommandLineServerBase:ctor(config, arg)
     CommandLineServerBase.super.ctor(self, config)
 
-    self._requestType = "commandline"
+    self._requestType = Constants.CLI_REQUEST_TYPE
     self._requestParameters = arg
 end
 

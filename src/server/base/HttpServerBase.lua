@@ -44,7 +44,7 @@ local HttpServerBase = class("HttpServerBase", ServerAppBase)
 function HttpServerBase:ctor(config)
     HttpServerBase.super.ctor(self, config)
 
-    self._requestType = "http"
+    self._requestType = Constants.HTTP_REQUEST_TYPE
     self._requestMethod = req_get_method()
     self._requestParameters = req_get_uri_args()
 
