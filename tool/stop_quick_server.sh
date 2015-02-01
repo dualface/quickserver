@@ -73,8 +73,9 @@ while true ; do
 done
 
 # "--reload" option has no effect on other options, except "--ngxin(-n)".
-if [ $NGINX -ne 1 ] ; then
+if [ $NGINX -ne 1 ]  || [ $ALL -ne 1] ; then
     RELOAD=0
+    echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
 fi
 
 #stop nginx

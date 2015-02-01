@@ -75,6 +75,8 @@ done
 # "debug" option has no effect on other options, except "--all(-a)" and "--nginx(-n)".
 if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ]; then
     DEBUG=0
+    echo "please NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
+
 fi
 
 #start redis
