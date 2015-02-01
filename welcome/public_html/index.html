@@ -22,11 +22,12 @@
                 <td><input type="text" id="server_addr" />&nbsp;<span>[api/socket]</span></td>
             </tr>
             <tr>
-                <th>Username :</th>
+                <th>Username / Password :</th>
                 <td>
-                    <input type="text" id="input_username" />
-                    <input type="button" value="Login" onclick="return test.login();" />
-                    <input type="button" value="Logout" onclick="return test.logout();" />
+                    <input type="text" id="input_username" class="small" />
+                    <!-- <input type="password" id="input_password" class="small" /> -->
+                    <input type="button" value="Login" id="button_login" />
+                    <!-- <input type="button" value="Register" id="button_register" onclick="return test.register();" class="register" /> -->
                 </td>
             </tr>
             <tr>
@@ -38,7 +39,7 @@
             <tr>
                 <th>Persistent session :</th>
                 <td>
-                    <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Count" onclick="return test.count();" />
+                    <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Test persistent session" onclick="return test.count();" />
                 </td>
             </tr>
         </table>

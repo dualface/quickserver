@@ -3,7 +3,7 @@ $(document).ready(function()
 {
     var l = document.location;
     $("#server_addr").val(l.host);
-    $("#input_username").val("USER" + parseInt((Math.random() * 10000000)).toString());
+    $("#dest_connect_tag").val("");
     test.set_inputs_disabled(false);
 });
 
@@ -80,6 +80,13 @@ test.set_inputs_disabled = function(disabled)
 {
     $("#server_addr").prop("disabled", disabled);
     $("#input_username").prop("disabled", disabled);
+    $("#input_password").prop("disabled", disabled);
+
+    $("#button_login").val(disabled ? "Logout" : "Login")
+        .unbind("click")
+        .click(disabled ? function() { return test.logout(); } : function() { return test.login(); });
+
+    $("#button_register").prop("disabled", disabled);
 }
 
 test.validate_res = function(res, fields)
@@ -129,7 +136,7 @@ test.login = function()
     test.set_inputs_disabled(true);
 
     var data = {"username": username}
-    test.http_request("hello.login", data, function(res) {
+    test.http_request("user.login", data, function(res) {
         if (!test.validate_res(res, ["sid", "count"]))
         {
             test.set_inputs_disabled(false);
@@ -154,9 +161,10 @@ test.logout = function()
         return false;
     }
 
-    test.http_request("hello.logout", {"sid": test.session_id}, function(res) {
+    test.http_request("user.logout", {"sid": test.session_id}, function(res) {
         test.session_id = null;
         log.add("LOGOUTED");
+        log.add_mark();
         $("#session_id").text("none");
         $("#connect_tag").text("none");
         $("#count_value").text("[COUNT = *]");
@@ -172,7 +180,7 @@ test.count = function()
         return false;
     }
 
-    test.http_request("hello.count", {"sid": test.session_id}, function(res) {
+    test.http_request("user.count", {"sid": test.session_id}, function(res) {
         if (!test.validate_res(res, ["count"])) return;
         log.add("count = " + res["count"].toString());
         $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
@@ -273,7 +281,7 @@ test.send_message = function(dest, message)
     }
 
     var data = {
-        "action": "hello.sendmessage",
+        "action": "chat.sendmessage",
         "tag": dest,
         "message": message,
         "user": test.username

@@ -84,6 +84,19 @@ input:disabled[type=text] {
     border: 1px solid #ddd;
 }
 
+input.small[type=password] {
+    width: 8em;
+    font-size: 12px;
+    margin: 0.5em 0;
+    border: 1px solid #aaa;
+    padding: 0.1em 0.5em;
+}
+
+input.small:disabled[type=password] {
+    color: #999;
+    border: 1px solid #ddd;
+}
+
 input[type=button] {
     border: 1px solid #ddd;
     background: #eee;
@@ -94,11 +107,18 @@ input[type=button] {
     margin: 0;
 }
 
-input[type=button]:active {
+input:disabled[type=button] {
+    color: #999;
+    border: 1px solid #ddd;
+}
+
+input:active[type=button] {
     background: #ddd;
 }
 
-
+input.register {
+    color: #33f;
+}
 
 /* console */
 

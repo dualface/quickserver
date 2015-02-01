@@ -1,16 +1,14 @@
 
-local HelloAction = class("HelloAction")
+local UserAction = class("UserAction")
 
-function HelloAction:ctor(app)
+function UserAction:ctor(app)
     self._app = app
 end
 
-function HelloAction:sayAction(arg)
-    local name = arg.name or "quickserver"
-    return string.format("hello, %s", name)
+function UserAction:registerAction(arg)
 end
 
-function HelloAction:loginAction(arg)
+function UserAction:loginAction(arg)
     if not arg.username then
         throw("not set argument: \"username\"")
     end
@@ -23,7 +21,7 @@ function HelloAction:loginAction(arg)
     return {sid = session:getSid(), count = session:get("count"), tag = tag}
 end
 
-function HelloAction:logoutAction(arg)
+function UserAction:logoutAction(arg)
     if not arg.sid then
         throw("not set argument: \"sid\"")
     end
@@ -36,7 +34,7 @@ function HelloAction:logoutAction(arg)
     return {ok = "ok"}
 end
 
-function HelloAction:countAction(arg)
+function UserAction:countAction(arg)
     if not arg.sid then
         throw("not set argument: \"sid\"")
     end
@@ -52,24 +50,4 @@ function HelloAction:countAction(arg)
     end
 end
 
-function HelloAction:sendmessageAction(arg)
-    if not arg.tag then
-        throw("not set argument: \"tag\"")
-    end
-    if not arg.message then
-        throw("not set argument: \"message\"")
-    end
-    local connectId = self._app:getConnectIdByTag(arg.tag)
-    printWarn("connectId = %s", tostring(connectId))
-    if connectId then
-        local session = self._app:getSession()
-        local message = {
-            username = session:get("username"),
-            message = arg.message,
-            tag = self._app:getConnectTag()
-        }
-        self._app:sendMessageToConnect(connectId, json.encode(message))
-    end
-end
-
-return HelloAction
+return UserAction
