@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 ]]
 
+local DEBUG = DEBUG
 local tostring = tostring
 local tonumber = tonumber
 local assert = assert
@@ -35,7 +36,7 @@ local ngx_log = nil
 if ngx then ngx_log = ngx.log end
 local table_insert = table.insert
 local table_remove = table.remove
-local table_format = string.format
+local string_format = string.format
 local string_upper = string.upper
 local string_len = string.len
 local string_rep = string.rep
@@ -54,6 +55,8 @@ local os_time = os.time
 local debug_traceback = debug.traceback
 local debug_getlocal = debug.getlocal
 
+if type(DEBUG) ~= "number" then DEBUG = 2 end
+
 function throw(fmt, ...)
     local msg = string.format(fmt, ...)
     if DEBUG > 1 then
@@ -66,9 +69,10 @@ end
 -- internal function, advise you not to call it directly.
 function printLog(tag, fmt, ...)
     if ngx_log then
-        ngx_log(ngx[tag], table_format(tostring(fmt), ...))
-        if tag == "ERR" then
-            ngx_log(ngx.ERR, debug_traceback("", 2))
+        if tag == "ERR" and DEBUG > 1 then
+            ngx_log(ngx.ERR, string_format(tostring(fmt), ...) .. "\n" .. debug_traceback("", 3))
+        else
+            ngx_log(ngx[tag], string_format(tostring(fmt), ...))
         end
         return
     end
@@ -77,7 +81,7 @@ function printLog(tag, fmt, ...)
         "[",
         string_upper(tostring(tag)),
         "] ",
-        table_format(tostring(fmt), ...)
+        string_format(tostring(fmt), ...)
     }
     if tag == "ERR" then
         table_insert(t, debug_traceback("", 2))
@@ -126,15 +130,15 @@ function dump(value, desciption, nesting)
             spc = string_rep(" ", keylen - string_len(_dump_value(desciption)))
         end
         if type(value) ~= "table" then
-            result[#result +1 ] = table_format("%s%s%s = %s", indent, _dump_value(desciption), spc, _dump_value(value))
+            result[#result +1 ] = string_format("%s%s%s = %s", indent, _dump_value(desciption), spc, _dump_value(value))
         elseif lookup[tostring(value)] then
-            result[#result +1 ] = table_format("%s%s%s = *REF*", indent, _dump_value(desciption), spc)
+            result[#result +1 ] = string_format("%s%s%s = *REF*", indent, _dump_value(desciption), spc)
         else
             lookup[tostring(value)] = true
             if nest > nesting then
-                result[#result +1 ] = table_format("%s%s = *MAX NESTING*", indent, _dump_value(desciption))
+                result[#result +1 ] = string_format("%s%s = *MAX NESTING*", indent, _dump_value(desciption))
             else
-                result[#result +1 ] = table_format("%s%s = {", indent, _dump_value(desciption))
+                result[#result +1 ] = string_format("%s%s = {", indent, _dump_value(desciption))
                 local indent2 = indent.."    "
                 local keys = {}
                 local keylen = 0
@@ -156,7 +160,7 @@ function dump(value, desciption, nesting)
                 for i, k in ipairs(keys) do
                     _dump(values[k], k, indent2, nest + 1, keylen)
                 end
-                result[#result +1] = table_format("%s}", indent)
+                result[#result +1] = string_format("%s}", indent)
             end
         end
     end
@@ -168,7 +172,7 @@ function dump(value, desciption, nesting)
 end
 
 function printf(fmt, ...)
-    print(table_format(tostring(fmt), ...))
+    print(string_format(tostring(fmt), ...))
 end
 
 function checknumber(value, base)
@@ -240,12 +244,12 @@ function class(classname, ...)
     for _, super in ipairs(supers) do
         local superType = type(super)
         assert(superType == "nil" or superType == "table" or superType == "function",
-            table_format("class() - create class \"%s\" with invalid super class type \"%s\"",
+            string_format("class() - create class \"%s\" with invalid super class type \"%s\"",
                 classname, superType))
 
         if superType == "function" then
             assert(cls.__create == nil,
-                table_format("class() - create class \"%s\" with more than one creating function",
+                string_format("class() - create class \"%s\" with more than one creating function",
                     classname));
             -- if super is function, set it to __create
             cls.__create = super
@@ -253,7 +257,7 @@ function class(classname, ...)
             if super[".isclass"] then
                 -- super is native class
                 assert(cls.__create == nil,
-                    table_format("class() - create class \"%s\" with more than one creating function or native class",
+                    string_format("class() - create class \"%s\" with more than one creating function or native class",
                         classname));
                 cls.__create = function() return super:create() end
             else
@@ -266,7 +270,7 @@ function class(classname, ...)
                 end
             end
         else
-            error(table_format("class() - create class \"%s\" with invalid super type",
+            error(string_format("class() - create class \"%s\" with invalid super type",
                         classname), 0)
         end
     end
@@ -657,7 +661,7 @@ function string.ucfirst(input)
 end
 
 local function urlencodechar(char)
-    return "%" .. table_format("%02X", string_byte(char))
+    return "%" .. string_format("%02X", string_byte(char))
 end
 function string.urlencode(input)
     input = string_gsub(tostring(input), "\n", "\r\n")
