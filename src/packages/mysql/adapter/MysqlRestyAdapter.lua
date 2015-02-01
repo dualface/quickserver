@@ -24,61 +24,48 @@ THE SOFTWARE.
 
 local assert = assert
 local tostring = tostring
-local quoteSqlStr = ngx.quote_sql_str
+local throw = throw
+local ngx_quote_sql_str = ngx.quote_sql_str
 
 local mysql = require("resty.mysql")
 
 local MysqlRestyAdapter = class("MysqlRestyAdapter")
 
 function MysqlRestyAdapter:ctor(config)
-    self.db_ = nil
+    self._config = config
+
     local db, err = mysql:new()
-    if not db then
-        printWarn("MysqlRestyAdapter:ctor() - failed to instantiate mysql: %s", err)
-        return db, err
+    if err then
+        throw("failed to instantiation mysql: %s", err)
     end
 
-    self.db_ = db
-
-    self.db_:set_timeout(config.timeout)
-
+    self._db = db
+    self._db:set_timeout(config.timeout)
     local ok, err, errno, sqlstate = db:connect(config)
-    if not ok then
-        printWarn("MysqlRestyAdapter:ctor() - mysql connect error: %s, %s, %s", err, tostring(errno), sqlstate)
-        return ok, err
+    if err then
+        throw("mysql connect error [%s] %s, %s", tostring(errno), err, sqlstate)
     end
-
-    self.config = config
-
-    self.db_:query("SET NAMES 'utf8'")
+    self._db:query("SET NAMES 'utf8'")
 end
 
 function MysqlRestyAdapter:close()
-    assert(self.db_ ~= nil, "Not connect to mysql")
-
-    self.db_:close()
+    self._db:close()
 end
 
 function MysqlRestyAdapter:setKeepAlive(timeout, size)
-    assert(self.db_ ~= nil, "Not connect to mysql")
-    
-    self.db_:setKeepAlive(timeout, size)
+    self._db:setKeepAlive(timeout, size)
 end
 
 function MysqlRestyAdapter:query(queryStr)
-    assert(self.db_ ~= nil, "Not connect to mysql")
-
-    local res, err, errno, sqlstate = self.db_:query(queryStr)
-
+    local res, err, errno, sqlstate = self._db:query(queryStr)
     if err then
-        printWarn("MysqlRestyAdapter:query() - mysql query error: %s, %s, %s", err, tostring(errno), sqlstate)
+        throw("mysql query error: [%s] %s, %s", tostring(errno), err, sqlstate)
     end
-
-    return res, err
+    return res
 end
 
 function MysqlRestyAdapter:escapeValue(value)
-    return quoteSqlStr(value)
+    return ngx_quote_sql_str(value)
 end
 
 return MysqlRestyAdapter
