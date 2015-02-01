@@ -64,6 +64,10 @@ function SessionService:ctor(redis, sid, expired, remoteAddr, data)
         self._expired = _DEFAULT_EXPIRED
     end
     self._remoteAddr = tostring(remoteAddr)
+    if data and data.__cid then
+        self._connectId = data.__cid
+        data.__cid = nil
+    end
     self._data = clone(checktable(data))
 end
 
@@ -73,6 +77,14 @@ end
 
 function SessionService:getExpired()
     return self._expired
+end
+
+function SessionService:getConnectId()
+    return self._connectId
+end
+
+function SessionService:setConnectId(connectId)
+    self._connectId = connectId
 end
 
 function SessionService:get(key)
@@ -109,6 +121,9 @@ function SessionService:vardump()
     local v = clone(self._data)
     v.__id = self._sid
     v.__addr = self._remoteAddr
+    if self._connectId then
+        v.__cid = self._connectId
+    end
     return v
 end
 
