@@ -50,14 +50,6 @@ function WebSocketServerBase:ctor(config)
     self._requestType = Constants.WEBSOCKET_REQUEST_TYPE
     self._channelEnabled = false
     self._subscribeRetryCount = 0
-
-    if self.config.appRootPath then
-        -- try load the websocket handler
-        local ok, handlerClass = pcall(require, "WebSocketHandler")
-        if ok then
-            self._handler = handlerClass:create(self)
-        end
-    end
 end
 
 function WebSocketServerBase:run()
@@ -76,6 +68,8 @@ function WebSocketServerBase:run()
 end
 
 function WebSocketServerBase:runEventLoop()
+    self:beforeConnectReady()
+
     local server = require("resty.websocket.server")
     local socket, err = server:new({
         timeout = self.config.websocketsTimeout,
@@ -92,7 +86,7 @@ function WebSocketServerBase:runEventLoop()
     self:_subscribeChannel()
 
     -- event callback
-    if self._handler and self._handler.onConnectReady then self._handler:onConnectReady() end
+    self:afterConnectReady()
 
     local retryCount = 0
     local framesPool = {}
@@ -161,13 +155,14 @@ function WebSocketServerBase:runEventLoop()
     self:_unsubscribeChannel()
 
     -- cleanup tag
+    self:beforeConnectClose()
     self:removeConnectTag()
 
     -- close connect
     self._socket:send_close()
     self._socket = nil
 
-    if self._handler and self._handler.onConnectClose then self._handler:onConnectClose() end
+    self:afterConnectClose()
 end
 
 function WebSocketServerBase:_processMessage(rawMessage, messageType)
@@ -321,14 +316,9 @@ function WebSocketServerBase:_authConnect()
     end
 
     -- convert token to session id
-    local sid
-    if self._handler and self._handler.convertTokenToSessionId then
-        sid = self._handler:convertTokenToSessionId(token)
-        if not sid then
-            throw("WebSocketHandler:convertTokenToSessionId() return invalid sid")
-        end
-    else
-        sid = token
+    local sid = self:convertTokenToSessionId(token)
+    if not sid then
+        throw("convertTokenToSessionId() return invalid sid")
     end
 
     local session = self:openSession(sid)
@@ -387,6 +377,22 @@ function WebSocketServerBase:removeConnectTag()
     pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
     pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
     pipe:commit()
+end
+
+function WebSocketServerBase:beforeConnectReady()
+end
+
+function WebSocketServerBase:afterConnectReady()
+end
+
+function WebSocketServerBase:beforeConnectClose()
+end
+
+function WebSocketServerBase:afterConnectClose()
+end
+
+function WebSocketServerBase:convertTokenToSessionId(token)
+    return token
 end
 
 return WebSocketServerBase

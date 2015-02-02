@@ -54,12 +54,8 @@ function ServerAppBase:ctor(config)
     self.config = clone(checktable(config))
 
     self.config.appRootPath = self.config.appRootPath
-    if self.config.appRootPath then
-        package.path = self.config.appRootPath .. "/?.lua;" .. package.path
-    end
-
     self.config.actionModuleSuffix = config.actionModuleSuffix or Constants.DEFAULT_ACTION_MODULE_SUFFIX
-    self.config.messageFormat      = self.config.messageFormat or Constants.DEFAULT_MESSAGE_FORMAT
+    self.config.messageFormat = self.config.messageFormat or Constants.DEFAULT_MESSAGE_FORMAT
 
     self._actionModules = {}
     self._requestParameters = nil

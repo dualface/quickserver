@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 ]]
 
-local WebSocketServerApp = class("WebSocketServerApp", require("server.base.WebSocketServerBase"))
+local ServerFactory = require("server.base.ServerFactory")
 
 -- SERVER_CONFIG from init_by_lua, see nginx.conf
-local app = WebSocketServerApp:create(SERVER_CONFIG)
+local app = ServerFactory.createApp(SERVER_CONFIG, "WebSocket")
 app:run()

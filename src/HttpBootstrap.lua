@@ -24,8 +24,8 @@ THE SOFTWARE.
 
 ]]
 
-local HttpServerApp = class("HttpServerApp", require("server.base.HttpServerBase"))
+local ServerFactory = require("server.base.ServerFactory")
 
 -- SERVER_CONFIG from init_by_lua, see nginx.conf
-local app = HttpServerApp:create(SERVER_CONFIG)
+local app = ServerFactory.createApp(SERVER_CONFIG, "Http")
 app:run()
