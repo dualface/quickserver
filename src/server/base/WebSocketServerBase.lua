@@ -175,7 +175,18 @@ function WebSocketServerBase:_processMessage(rawMessage, messageType)
     local msgid = message.__id
     local actionName = message.action
     local err = nil
-    local result = self:doRequest(actionName, message)
+    local ok, result = xpcall(function()
+        return self:doRequest(actionName, message)
+    end, function(_err)
+        err = _err
+        if DEBUG > 1 then
+            err = err .. debug.traceback("", 4)
+        end
+    end)
+    if err then
+        return nil, err
+    end
+
     local rtype = type(result)
     if rtype == "nil" then return end
     if rtype ~= "table" then
@@ -188,20 +199,21 @@ function WebSocketServerBase:_processMessage(rawMessage, messageType)
 
     if not msgid then
         printWarn("action \"%s\" return unused result", actionName)
-        return
+        return true
     end
 
     if not self._socket then
-        printWarn("socket removed, action \"%s\"", actionName)
-        return
+        return nil, string.format("socket removed, action \"%s\"", actionName)
     end
 
     result.__id = msgid
     local message = json.encode(result)
     local bytes, err = self._socket:send_text(message)
     if err then
-        throw("send message to client failed, %s", err)
+        return nil, string.format("send message to client failed, %s", err)
     end
+
+    return true
 end
 
 function WebSocketServerBase:_parseMessage(rawMessage, messageType)

@@ -30,7 +30,7 @@ function CommandLineServerBase:ctor(config, arg)
     CommandLineServerBase.super.ctor(self, config)
 
     self._requestType = Constants.CLI_REQUEST_TYPE
-    self._requestParameters = arg
+    self._requestParameters = checktable(arg)
 end
 
 return CommandLineServerBase

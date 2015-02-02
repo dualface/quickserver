@@ -46,8 +46,9 @@ local os_time = os.time
 local ServerAppBase = class("ServerAppBase")
 
 local Constants = import(".Constants")
+local SessionService = import(".SessionService")
+
 local RedisService = cc.load("redis").service
-local SessionService = cc.load("session").service
 
 function ServerAppBase:ctor(config)
     self.config = clone(checktable(config))
