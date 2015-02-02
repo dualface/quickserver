@@ -7,7 +7,6 @@ function ServerFactory.createApp(config, classNamePrefix)
     if config.appRootPath then
         package.path = config.appRootPath .. "/?.lua;" .. package.path
         local className = classNamePrefix .. "ServerApp"
-        -- try load the websocket handler
         local ok, _serverAppClass = pcall(require, className)
         if ok then
             serverAppClass = _serverAppClass
