@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,8 +22,8 @@ THE SOFTWARE.
 
 ]]
 
-local ServerFactory = require("server.base.ServerFactory")
+local ConnectFactory = require("server.base.ConnectFactory")
 
 -- SERVER_CONFIG from init_by_lua, see nginx.conf
-local app = ServerFactory.createApp(SERVER_CONFIG, "Http")
+local app = ConnectFactory.createConnect(SERVER_CONFIG, "Http")
 app:run()

@@ -29,7 +29,7 @@ local string_format = string.format
 local json_encode = json.encode
 local os_date = os.date
 
-local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineServerBase)
+local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineBase)
 
 function CmdBroadcastWorker:ctor(config)
     CmdBroadcastWorker.super.ctor(self, config)

@@ -28,7 +28,7 @@ local xpcall = xpcall
 local table_remove = table.remove
 local debug_traceback = debug.traceback
 
-local CmdToolsApp = class("CmdToolsApp", cc.server.CommandLineServerBase)
+local CmdToolsApp = class("CmdToolsApp", cc.server.CommandLineBase)
 
 function CmdToolsApp:ctor(config, arg)
     CmdToolsApp.super.ctor(self, config)

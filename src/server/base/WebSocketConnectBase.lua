@@ -33,15 +33,16 @@ local req_get_headers = ngx.req.get_headers
 local table_insert = table.insert
 local table_concat = table.concat
 local string_format = string.format
+local string_sub = string.sub
 
-local ServerAppBase = import(".ServerAppBase")
+local ConnectBase = import(".ConnectBase")
 
-local WebSocketServerBase = class("WebSocketServerBase", ServerAppBase)
+local WebSocketConnectBase = class("WebSocketConnectBase", ConnectBase)
 
 local Constants = import(".Constants")
 
-function WebSocketServerBase:ctor(config)
-    WebSocketServerBase.super.ctor(self, config)
+function WebSocketConnectBase:ctor(config)
+    WebSocketConnectBase.super.ctor(self, config)
 
     self.config.websocketsTimeout       = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or Constants.WEBSOCKET_DEFAULT_MAX_PAYLOAD_LEN
@@ -52,7 +53,7 @@ function WebSocketServerBase:ctor(config)
     self._subscribeRetryCount = 0
 end
 
-function WebSocketServerBase:run()
+function WebSocketConnectBase:run()
     local ok, err = xpcall(function()
         self:_authConnect()
         self:runEventLoop()
@@ -67,7 +68,7 @@ function WebSocketServerBase:run()
     end)
 end
 
-function WebSocketServerBase:runEventLoop()
+function WebSocketConnectBase:runEventLoop()
     self:beforeConnectReady()
 
     local server = require("resty.websocket.server")
@@ -114,12 +115,15 @@ function WebSocketServerBase:runEventLoop()
         if err then
             if err == "again" then
                 framesPool[#framesPool + 1] = frame
-            elseif ftype == "close" then
-                break -- exit event loop
-            elseif ftype ~= nil then
-                printWarn("failed to receive frame, type \"%s\", %s", ftype, err)
+                goto recv_next_message
             end
-            goto recv_next_message
+
+            if string_sub(err, -7) == "timeout" then
+                goto recv_next_message
+            end
+
+            printWarn("failed to receive frame, type \"%s\", %s", ftype, err)
+            break
         end
 
         if #framesPool > 0 then
@@ -165,7 +169,7 @@ function WebSocketServerBase:runEventLoop()
     self:afterConnectClose()
 end
 
-function WebSocketServerBase:_processMessage(rawMessage, messageType)
+function WebSocketConnectBase:_processMessage(rawMessage, messageType)
     local message = self:_parseMessage(rawMessage, messageType)
     local msgid = message.__id
     local actionName = message.action
@@ -211,7 +215,7 @@ function WebSocketServerBase:_processMessage(rawMessage, messageType)
     return true
 end
 
-function WebSocketServerBase:_parseMessage(rawMessage, messageType)
+function WebSocketConnectBase:_parseMessage(rawMessage, messageType)
     -- TODO: support message type plugin
     if messageType ~= Constants.WEBSOCKET_TEXT_MESSAGE_TYPE then
         throw("not supported message type \"%s\"", messageType)
@@ -230,7 +234,7 @@ function WebSocketServerBase:_parseMessage(rawMessage, messageType)
     end
 end
 
-function WebSocketServerBase:_subscribeChannel()
+function WebSocketConnectBase:_subscribeChannel()
     if self._channelEnabled then
         printWarn("already subscribed broadcast channel \"%s\"", self._channel)
         return
@@ -290,12 +294,12 @@ function WebSocketServerBase:_subscribeChannel()
     ngx_thread_spawn(subscribe)
 end
 
-function WebSocketServerBase:_unsubscribeChannel()
+function WebSocketConnectBase:_unsubscribeChannel()
     local redis = self:_getRedis()
     redis:command("PUBLISH", self._channel, "QUIT")
 end
 
-function WebSocketServerBase:_authConnect()
+function WebSocketConnectBase:_authConnect()
     if ngx.headers_sent then
         throw("response header already sent")
     end
@@ -334,7 +338,7 @@ function WebSocketServerBase:_authConnect()
     self._channel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
 end
 
-function WebSocketServerBase:getConnectId()
+function WebSocketConnectBase:getConnectId()
     if not self._connectId then
         local redis = self:_getRedis()
         self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
@@ -342,7 +346,7 @@ function WebSocketServerBase:getConnectId()
     return self._connectId
 end
 
-function WebSocketServerBase:setConnectTag(tag)
+function WebSocketConnectBase:setConnectTag(tag)
     if not tag then
         throw("set connect tag with invalid tag \"%s\"", tostring(tag))
     else
@@ -360,7 +364,7 @@ function WebSocketServerBase:setConnectTag(tag)
     end
 end
 
-function WebSocketServerBase:getConnectTag()
+function WebSocketConnectBase:getConnectTag()
     if not self._connectTag then
         local connectId = self:getConnectId()
         local redis = self:_getRedis()
@@ -369,7 +373,7 @@ function WebSocketServerBase:getConnectTag()
     return self._connectTag
 end
 
-function WebSocketServerBase:removeConnectTag()
+function WebSocketConnectBase:removeConnectTag()
     if not self._connectId then return end
     local connectId = self:getConnectId()
     local tag = self:getConnectTag()
@@ -379,20 +383,20 @@ function WebSocketServerBase:removeConnectTag()
     pipe:commit()
 end
 
-function WebSocketServerBase:beforeConnectReady()
+function WebSocketConnectBase:beforeConnectReady()
 end
 
-function WebSocketServerBase:afterConnectReady()
+function WebSocketConnectBase:afterConnectReady()
 end
 
-function WebSocketServerBase:beforeConnectClose()
+function WebSocketConnectBase:beforeConnectClose()
 end
 
-function WebSocketServerBase:afterConnectClose()
+function WebSocketConnectBase:afterConnectClose()
 end
 
-function WebSocketServerBase:convertTokenToSessionId(token)
+function WebSocketConnectBase:convertTokenToSessionId(token)
     return token
 end
 
-return WebSocketServerBase
+return WebSocketConnectBase

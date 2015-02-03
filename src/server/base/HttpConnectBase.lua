@@ -37,14 +37,14 @@ local string_gsub = string.gsub
 local string_ltrim = string.ltrim
 local json_encode = json.encode
 
-local ServerAppBase = import(".ServerAppBase")
+local ConnectBase = import(".ConnectBase")
 
-local HttpServerBase = class("HttpServerBase", ServerAppBase)
+local HttpConnectBase = class("HttpConnectBase", ConnectBase)
 
 local Constants = import(".Constants")
 
-function HttpServerBase:ctor(config)
-    HttpServerBase.super.ctor(self, config)
+function HttpConnectBase:ctor(config)
+    HttpConnectBase.super.ctor(self, config)
 
     self._requestType = Constants.HTTP_REQUEST_TYPE
     self._requestMethod = req_get_method()
@@ -76,7 +76,7 @@ function HttpServerBase:ctor(config)
             if body then
                 local data, err = json.decode(body)
                 if err then
-                    printWarn("HttpServerBase:ctor() - invalid JSON content, %s", err)
+                    printWarn("HttpConnectBase:ctor() - invalid JSON content, %s", err)
                 else
                     table_merge(self._requestParameters, data)
                 end
@@ -87,7 +87,7 @@ function HttpServerBase:ctor(config)
     end
 end
 
-function HttpServerBase:run()
+function HttpConnectBase:run()
     local result, err = self:runEventLoop()
 
     local rtype = type(result)
@@ -115,7 +115,7 @@ function HttpServerBase:run()
 end
 
 -- actually it is not a loop, since it is based on HTTP.
-function HttpServerBase:runEventLoop()
+function HttpConnectBase:runEventLoop()
     local actionName = self._requestParameters.action or ""
     actionName = tostring(actionName)
     if DEBUG > 1 then
@@ -138,4 +138,4 @@ function HttpServerBase:runEventLoop()
     return result
 end
 
-return HttpServerBase
+return HttpConnectBase

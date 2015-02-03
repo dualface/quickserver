@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -43,14 +41,16 @@ local json_encode = json.encode
 local json_decode = json.decode
 local os_time = os.time
 
-local ServerAppBase = class("ServerAppBase")
+local ActionDispatcher = import(".ActionDispatcher")
+
+local ConnectBase = class("ConnectBase", ActionDispatcher)
 
 local Constants = import(".Constants")
 local SessionService = import(".SessionService")
 
 local RedisService = cc.load("redis").service
 
-function ServerAppBase:ctor(config)
+function ConnectBase:ctor(config)
     self.config = clone(checktable(config))
 
     self.config.appRootPath = self.config.appRootPath
@@ -61,94 +61,19 @@ function ServerAppBase:ctor(config)
     self._requestParameters = nil
 end
 
-function ServerAppBase:run()
-    throw("ServerAppBase:run() - must override in inherited class")
+function ConnectBase:run()
+    throw("ConnectBase:run() - must override in inherited class")
 end
 
-function ServerAppBase:runEventLoop()
-    throw("ServerAppBase:runEventLoop() - must override in inherited class")
+function ConnectBase:runEventLoop()
+    throw("ConnectBase:runEventLoop() - must override in inherited class")
 end
 
-function ServerAppBase:doRequest(actionName, data)
-    local actionPackage = self.config.actionPackage
-
-    -- parse actionName
-    local actionModuleName, actionMethodName = self:normalizeActionName(actionName)
-    actionMethodName = actionMethodName .. self.config.actionModuleSuffix
-
-    -- check registered action module before load module
-    local actionModule = self._actionModules[actionModuleName]
-    local actionModulePath
-    if not actionModule then
-        actionModulePath = string_format("%s.%s%s", Constants.ACTION_PACKAGE_NAME, actionModuleName, self.config.actionModuleSuffix)
-        local ok, _actionModule = pcall(require,  actionModulePath)
-        if ok then
-            actionModule = _actionModule
-        end
-    end
-
-    local t = type(actionModule)
-    if t ~= "table" and t ~= "userdata" then
-        throw("failed to load action module \"%s\"", actionModulePath or actionModuleName)
-    end
-
-    local action = actionModule.new(self)
-    local method = action[actionMethodName]
-    if type(method) ~= "function" then
-        throw("invalid action method \"%s:%s()\"", actionModuleName, actionMethodName)
-    end
-
-    if not data then
-        -- self._requestParameters can be set by HttpServerBase
-        data = self._requestParameters or {}
-    end
-
-    return method(action, data)
-end
-
-function ServerAppBase:registerActionModule(actionModuleName, actionModule)
-    if type(actionModuleName) ~= "string" then
-        throw("invalid action module name \"%s\"", actionModuleName)
-    end
-    if type(actionModule) ~= "table" or type(actionModule) ~= "userdata" then
-        throw("invalid action module \"%s\"", actionModuleName)
-    end
-
-    local action = actionModuleName .. ".index"
-    local actionModuleName, _ = self:normalizeActionName(actionName)
-    self._actionModules[actionModuleName] = actionModule
-end
-
-function ServerAppBase:normalizeActionName(actionName)
-    local actionName = actionName
-    if not actionName or actionName == "" then
-        actionName = "index.index"
-    end
-    actionName = string_lower(actionName)
-    actionName = string_gsub(actionName, "[^%a.]", "")
-    actionName = string_gsub(actionName, "^[.]+", "")
-    actionName = string_gsub(actionName, "[.]+$", "")
-
-    -- demo.hello.say --> {"demo", "hello", "say"]
-    local parts = string.split(actionName, ".")
-    local c = #parts
-    if c == 1 then
-        return string_ucfirst(parts[1]), "index"
-    end
-    -- method = "say"
-    method = parts[c]
-    table_remove(parts, c)
-    c = c - 1
-    -- mdoule = "demo.Hello"
-    parts[c] = string_ucfirst(parts[c])
-    return table_concat(parts, "."), method
-end
-
-function ServerAppBase:getSession()
+function ConnectBase:getSession()
     return self._session
 end
 
-function ServerAppBase:openSession(sid)
+function ConnectBase:openSession(sid)
     if self._session then
         throw("session \"%s\" already exists, disallow open an other session", self._session:getSid())
     end
@@ -159,7 +84,7 @@ function ServerAppBase:openSession(sid)
     return self._session
 end
 
-function ServerAppBase:newSession()
+function ConnectBase:newSession()
     if self._session then
         throw("session \"%s\" already exists, disallow start a new session", self._session:getSid())
     end
@@ -167,7 +92,7 @@ function ServerAppBase:newSession()
     return self._session
 end
 
-function ServerAppBase:destroySession(sid)
+function ConnectBase:destroySession(sid)
     local session = self._session
     if not session then
         session = self:_loadSession(sid)
@@ -176,7 +101,7 @@ function ServerAppBase:destroySession(sid)
     self._session = nil
 end
 
-function ServerAppBase:getConnectIdByTag(tag)
+function ConnectBase:getConnectIdByTag(tag)
     if not tag then
         throw("get connect id by invalid tag \"%s\"", tostring(tag))
     else
@@ -185,7 +110,7 @@ function ServerAppBase:getConnectIdByTag(tag)
     end
 end
 
-function ServerAppBase:getConnectTagById(connectId)
+function ConnectBase:getConnectTagById(connectId)
     if not connectId then
         throw("get connect tag by invalid id \"%s\"", tostring(connectId))
     else
@@ -194,14 +119,14 @@ function ServerAppBase:getConnectTagById(connectId)
     end
 end
 
-function ServerAppBase:closeConnectByTag(tag)
+function ConnectBase:closeConnectByTag(tag)
     local connectId = self:getConnectIdByTag(tag)
     if connectId then
         self:sendMessageToConnect(connectId, "QUIT")
     end
 end
 
-function ServerAppBase:sendMessageToConnect(connectId, message)
+function ConnectBase:sendMessageToConnect(connectId, message)
     if not connectId or not message then
         throw("send message to connect with invalid id \"%s\" or invalid message", tostring(connectId))
     else
@@ -211,7 +136,7 @@ function ServerAppBase:sendMessageToConnect(connectId, message)
     end
 end
 
-function ServerAppBase:_loadSession(sid)
+function ConnectBase:_loadSession(sid)
     local redis = self:_getRedis()
     local session = SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
     if session then
@@ -221,7 +146,7 @@ function ServerAppBase:_loadSession(sid)
     return session
 end
 
-function ServerAppBase:_genSession()
+function ConnectBase:_genSession()
     local addr = ngx.var.remote_addr
     local now = ngx_now()
     math.newrandomseed()
@@ -232,14 +157,14 @@ function ServerAppBase:_genSession()
     return SessionService:create(self:_getRedis(), sid, self.config.sessionExpiredTime, addr)
 end
 
-function ServerAppBase:_getRedis()
+function ConnectBase:_getRedis()
     if not self._redis then
         self._redis = self:_newRedis()
     end
     return self._redis
 end
 
-function ServerAppBase:_newRedis()
+function ConnectBase:_newRedis()
     local redis = RedisService:create(self.config.redis)
     local ok, err = redis:connect()
     if err then
@@ -248,7 +173,7 @@ function ServerAppBase:_newRedis()
     return redis
 end
 
-function ServerAppBase:_genOutput(result, err)
+function ConnectBase:_genOutput(result, err)
     local rtype = type(result)
     if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON then
         if err then
@@ -270,4 +195,4 @@ function ServerAppBase:_genOutput(result, err)
     end
 end
 
-return ServerAppBase
+return ConnectBase
