@@ -45,7 +45,7 @@ function WebSocketConnectBase:ctor(config)
     printInfo("new websocket instance")
     WebSocketConnectBase.super.ctor(self, config)
 
-    self.config.websocketsTimeout       = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
+    self.config.websocketsTimeout = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or Constants.WEBSOCKET_DEFAULT_MAX_PAYLOAD_LEN
     self.config.maxSubscribeRetryCount  = self.config.maxSubscribeRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_SUB_RETRY_COUNT
 
@@ -289,7 +289,6 @@ function WebSocketConnectBase:_authConnect()
     -- save connect id in session
     local connectId = self:getConnectId()
     session:setConnectId(connectId)
-    session:setKeepAlive()
     session:save()
     self._connectChannel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
 end
@@ -357,7 +356,7 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         return
     end
 
-    local function subscribe()
+    local function _subscribe()
         sub.enabled = true
         sub.running = true
 
@@ -371,13 +370,18 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         end
 
         for msg, abort in loop do
+            if not sub.running then
+                abort()
+                break
+            end
+
             if msg.kind == "subscribe" then
-                printInfo("subscribe channel \"%s\"", channel)
+                printInfo("channel \"%s\" subscribed", channel)
             elseif msg.kind == "message" then
                 local payload = msg.payload
-                printInfo("get msg from channel \"%s\", msg: %s", channel, payload)
+                printInfo("channel \"%s\" message \"%s\"", channel, payload)
                 if callback(payload) == false then
-                    if not _abort then abort() end
+                    abort()
                     sub.running = false
                     break
                 end
@@ -389,7 +393,7 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         sub.enabled = false
         redis:setKeepAlive()
         if not sub.running then
-            self._subscribeChannels[channelName] = nil
+            self._subscribeChannels[channel] = nil
             return
         end
 
@@ -397,14 +401,25 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         if sub.retryCount < self.config.maxSubscribeRetryCount then
             sub.retryCount = sub.retryCount + 1
             printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
-            self:subscribeChannel(channelName, callback)
+            self:subscribeChannel(channel, callback)
         else
             printWarn("subscribe channel \"%s\" loop ended, max try", channel)
-            self._subscribeChannels[channelName] = nil
+            self._subscribeChannels[channel] = nil
         end
     end
 
-    ngx_thread_spawn(subscribe)
+    local thread = ngx_thread_spawn(_subscribe)
+    printInfo("spawn subscribe thread \"%s\"", tostring(thread))
+end
+
+function WebSocketConnectBase:unsubscribeChannel(channelName)
+    local sub = self._subscribeChannels[channelName]
+    if not sub then
+        printInfo("not subscribe channel \"%s\"", channelName)
+    else
+        printInfo("unsubscribe channel \"%s\"", channelName)
+        sub.running = false
+    end
 end
 
 -- events
