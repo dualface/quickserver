@@ -27,9 +27,11 @@ local type = type
 local ipairs = ipairs
 local tostring = tostring
 local ngx_null = ngx.null
+local ngx_worker_exiting = ngx.worker.exiting
 local table_concat = table.concat
 local table_remove = table.remove
 local table_walk = table.walk
+local string_sub = string.sub
 local string_lower = string.lower
 local string_upper = string.upper
 local string_format = string.format
@@ -47,15 +49,24 @@ end
 
 function RestyRedisAdapter:connect()
     self._instance:set_timeout(self._config.timeout)
+    local ok, err
     if self._config.socket then
-        return self._instance:connect(self._config.socket)
+        ok, err = self._instance:connect(self._config.socket)
     else
-        return self._instance:connect(self._config.host, self._config.port)
+        ok, err = self._instance:connect(self._config.host, self._config.port)
     end
+    if err then
+        err = string_format("%s connect, %s", self:_instancename(), err)
+    end
+    return ok, err
 end
 
 function RestyRedisAdapter:close()
-    return self._instance:close()
+    local ok, err = self._instance:close()
+    if err then
+        err = string_format("%s close, %s", self:_instancename(), err)
+    end
+    return ok, err
 end
 
 function RestyRedisAdapter:setKeepAlive(timeout, size)
@@ -78,23 +89,29 @@ function RestyRedisAdapter:command(command, ...)
     command = string_lower(command)
     local method = self._instance[command]
     if type(method) ~= "function" then
-        local err = string_format("invalid redis command \"%s\"", string_upper(command))
-        printError("%s", err)
+        local err = string_format("%s invalid command \"%s\"", self:_instancename(), string_upper(command))
         return nil, err
     end
 
     if DEBUG > 1 then
-        printInfo("redis command: %s %s", string_upper(command), _formatCommand({...}))
+        printInfo("%s command \"%s\": %s", self:_instancename(), string_upper(command), _formatCommand({...}))
     end
 
     local res, err = method(self._instance, ...)
     if res == ngx_null then res = nil end
+
+    if err then
+        err = string_format("%s command \"%s\" failed, s", self:_instancename(), err)
+    elseif DEBUG > 1 then
+        printInfo("%s command \"%s\", result = %s", self:_instancename(), string_upper(command), tostring(res))
+    end
+
     return res, err
 end
 
 function RestyRedisAdapter:pubsub(subscriptions)
     if type(subscriptions) ~= "table" then
-        return nil, "invalid redis subscriptions argument"
+        return nil, string.format("%s invalid subscriptions argument", self:_instancename())
     end
 
     if type(subscriptions.subscribe) == "string" then
@@ -103,60 +120,64 @@ function RestyRedisAdapter:pubsub(subscriptions)
     if type(subscriptions.psubscribe) == "string" then
         subscriptions.psubscribe = {subscriptions.psubscribe}
     end
+    subscriptions.exit = false
 
     local subscribeMessages = {}
 
-    local function subscribe(f, channels)
+    local function _subscribe(f, channels)
         for _, channel in ipairs(channels) do
             local result, err = f(self._instance, channel)
             if result then
                 subscribeMessages[#subscribeMessages + 1] = result
+                printInfo("%s subscribe %s", self:_instancename(), channel)
             end
         end
     end
 
-    local function unsubscribe(f, channels)
+    local function _unsubscribe(f, channels)
         for _, channel in ipairs(channels) do
             f(self._instance, channel)
+            printInfo("%s ubsubscribe %s", self:_instancename(), channel)
         end
     end
 
     local aborting, subscriptionsCount = false, 0
-    local function abort()
-        if aborting then return end
+    local function _abort()
         if subscriptions.subscribe then
-            unsubscribe(self._instance.unsubscribe, subscriptions.subscribe)
+            _unsubscribe(self._instance.unsubscribe, subscriptions.subscribe)
         end
         if subscriptions.psubscribe then
-            unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe)
+            _unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe)
         end
         aborting = true
     end
 
     if subscriptions.subscribe then
-        subscribe(self._instance.subscribe, subscriptions.subscribe)
+        _subscribe(self._instance.subscribe, subscriptions.subscribe)
     end
     if subscriptions.psubscribe then
-        subscribe(self._instance.psubscribe, subscriptions.psubscribe)
+        _subscribe(self._instance.psubscribe, subscriptions.psubscribe)
     end
 
     return coroutine.wrap(function()
         while true do
+            if aborting or ngx_worker_exiting() then
+                _abort()
+                break
+            end
             local result, err
             if #subscribeMessages > 0 then
                 result = subscribeMessages[1]
                 table_remove(subscribeMessages, 1)
             else
                 result, err = self._instance:read_reply()
-            end
-
-            if not result then
-                if err ~= "timeout" then
-                    printWarn("RestyRedisAdapter, subscribe thread - redis read reply message failed: %s" , err)
-                    abort()
+                if err and err ~= "timeout" then
+                    _abort()
                     break
                 end
-            else
+            end
+
+            if result then
                 local message
                 if result[1] == "pmessage" then
                     message = {
@@ -180,10 +201,10 @@ function RestyRedisAdapter:pubsub(subscriptions)
                     subscriptionsCount = subscriptionsCount - 1
                 end
 
-                if aborting and subscriptionsCount == 0 then
+                if subscriptionsCount == 0 then
                     break
                 end
-                coroutine.yield(message, abort)
+                coroutine.yield(message, _abort)
             end
         end
     end)
@@ -195,6 +216,10 @@ function RestyRedisAdapter:commitPipeline(commands)
         self:command(arg[1], unpack(arg[2]))
     end
     return self._instance:commit_pipeline()
+end
+
+function RestyRedisAdapter:_instancename()
+    return "redis *" .. string_sub(tostring(self._instance), 10)
 end
 
 return RestyRedisAdapter

@@ -60,7 +60,7 @@ local RedisPipeline = import(".RedisPipeline")
 
 function RedisService:ctor(config)
     if type(config) ~= "table" then
-        throw("invalid redis config")
+        throw("redis init with invalid config")
     end
     self._config = clone(config)
     self._redis = RedisAdapter:create(self._config)
@@ -69,12 +69,16 @@ end
 function RedisService:connect()
     local ok, err = self._redis:connect()
     if err then
-        throw("connect to redis failed, %s", err)
+        throw("%s", err)
     end
 end
 
 function RedisService:close()
-    self._redis:close()
+    local ok, err = self._redis:close()
+    if err then
+        throw("%s", err)
+    end
+    return true
 end
 
 function RedisService:setKeepAlive(timeout, size)
@@ -89,7 +93,7 @@ function RedisService:command(command, ...)
     command = string_lower(command)
     local res, err = self._redis:command(command, ...)
     if err then
-        throw("redis command \"%s\" failed, %s", string_upper(command), err)
+        throw("%s", err)
     end
 
     -- converting result
@@ -104,12 +108,7 @@ end
 function RedisService:pubsub(subscriptions)
     local loop, err = self._redis:pubsub(subscriptions)
     if err then
-        local a = {"{"}
-        for k, v in pairs(subscriptions) do
-            a[#a + 1] = string.format("%s: %s", tostring(k), tostring(v))
-        end
-        a[#a + 1] = "}"
-        throw("redis pubsub failed, %s", table_concat(a, ","))
+        throw("%s", err)
     end
     return loop
 end
@@ -128,7 +127,6 @@ function RedisService:hashToArray(hash)
         arr[#arr + 1] = k
         arr[#arr + 1] = v
     end
-
     return arr
 end
 
@@ -138,7 +136,6 @@ function RedisService:arrayToHash(arr)
     for i = 1, c, 2 do
         hash[arr[i]] = arr[i + 1]
     end
-
     return hash
 end
 
