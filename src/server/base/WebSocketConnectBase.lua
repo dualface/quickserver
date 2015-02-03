@@ -42,6 +42,7 @@ local WebSocketConnectBase = class("WebSocketConnectBase", ConnectBase)
 local Constants = import(".Constants")
 
 function WebSocketConnectBase:ctor(config)
+    printInfo("new websocket instance")
     WebSocketConnectBase.super.ctor(self, config)
 
     self.config.websocketsTimeout       = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
@@ -69,6 +70,7 @@ function WebSocketConnectBase:run()
 end
 
 function WebSocketConnectBase:runEventLoop()
+    printInfo("websocket [beforeConnectReady]")
     self:beforeConnectReady()
 
     local server = require("resty.websocket.server")
@@ -88,6 +90,7 @@ function WebSocketConnectBase:runEventLoop()
 
     -- event callback
     self:afterConnectReady()
+    printInfo("websocket [afterConnectReady]")
 
     local retryCount = 0
     local framesPool = {}
@@ -157,9 +160,10 @@ function WebSocketConnectBase:runEventLoop()
 
     -- end the subscribe thread
     self:_unsubscribeChannel()
+    printInfo("websocket [beforeConnectClose]")
+    self:beforeConnectClose()
 
     -- cleanup tag
-    self:beforeConnectClose()
     self:removeConnectTag()
 
     -- close connect
@@ -167,6 +171,7 @@ function WebSocketConnectBase:runEventLoop()
     self._socket = nil
 
     self:afterConnectClose()
+    printInfo("websocket [afterConnectClose]")
 end
 
 function WebSocketConnectBase:_processMessage(rawMessage, messageType)
