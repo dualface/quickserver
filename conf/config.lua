@@ -68,6 +68,23 @@ local config = {
         },
     },
     --]]
+
+    -- worker process thredsholds
+    monitor = {
+        mem = {
+            warning = 50,
+            critical = 80,
+        },
+
+        cpu = {
+            warning = 70,
+            critical = 90,
+        },
+
+        interval = 10, 
+
+        criticalStateContinueTImes = 3, 
+    },
 }
 
 return config
