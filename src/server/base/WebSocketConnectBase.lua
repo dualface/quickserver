@@ -50,15 +50,16 @@ function WebSocketConnectBase:ctor(config)
     self.config.maxSubscribeRetryCount  = self.config.maxSubscribeRetryCount or Constants.WEBSOCKET_DEFAULT_MAX_SUB_RETRY_COUNT
 
     self._requestType = Constants.WEBSOCKET_REQUEST_TYPE
-    self._channelEnabled = false
-    self._subscribeRetryCount = 0
+    self._subscribeChannels = {}
 end
 
 function WebSocketConnectBase:run()
     local ok, err = xpcall(function()
         self:_authConnect()
         self:runEventLoop()
+        ngx.exit(ngx.OK)
     end, function(err)
+        err = tostring(err)
         if DEBUG > 1 then
             ngx_log(ngx.ERR, err .. debug.traceback("", 4))
         else
@@ -86,7 +87,17 @@ function WebSocketConnectBase:runEventLoop()
     self._socket = socket
 
     -- spawn a thread to subscribe redis channel for broadcast
-    self:_subscribeChannel()
+    self:subscribeChannel(self._connectChannel, function(payload)
+        if payload == "QUIT" then
+            -- ubsubscribe
+            if self._socket then
+                self._socket:send_close()
+            end
+            return false
+        end
+        -- forward message to connect
+        self._socket:send_text(payload)
+    end)
 
     -- event callback
     self:afterConnectReady()
@@ -239,69 +250,9 @@ function WebSocketConnectBase:_parseMessage(rawMessage, messageType)
     end
 end
 
-function WebSocketConnectBase:_subscribeChannel()
-    if self._channelEnabled then
-        printWarn("already subscribed broadcast channel \"%s\"", self._channel)
-        return
-    end
-
-    local function subscribe()
-        self._channelEnabled = true
-        local isRunning = true
-
-        -- pubsub thread need separated redis connect
-        local redis = self:_newRedis()
-
-        local channel = self._channel
-        local loop, err = redis:pubsub({subscribe = channel})
-        if not loop then
-            throw("subscribe channel \"%s\" failed, %s", channel, err)
-        end
-
-        for msg, abort in loop do
-            if msg.kind == "subscribe" then
-                printInfo("subscribe channel \"%s\"", channel)
-            elseif msg.kind == "message" then
-                local payload = msg.payload
-                printInfo("get msg from channel \"%s\", msg: %s", channel, payload)
-                if payload == "QUIT" then
-                    -- quit connect thread
-                    if self._socket then
-                        self._socket:send_close()
-                    end
-                    abort()
-                    isRunning = false
-                    break
-                end
-                -- forward message to client
-                self._socket:send_text(payload)
-            end
-        end
-
-        -- when error occured or exit normally,
-        -- connect will auto close, channel will be unsubscribed
-        self._channelEnabled = false
-        redis:setKeepAlive()
-
-        -- if recv "QUIT", exit thread
-        if not isRunning then return end
-
-        -- if an error leads to an exiting, retry to subscribe channel
-        if self._subscribeRetryCount < self.config.maxSubscribeRetryCount then
-            self._subscribeRetryCount = self._subscribeRetryCount + 1
-            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, self._subscribeRetryCount)
-            self:_subscribeChannel()
-        else
-            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
-        end
-    end
-
-    ngx_thread_spawn(subscribe)
-end
-
 function WebSocketConnectBase:_unsubscribeChannel()
     local redis = self:_getRedis()
-    redis:command("PUBLISH", self._channel, "QUIT")
+    redis:command("PUBLISH", self._connectChannel, "QUIT")
 end
 
 function WebSocketConnectBase:_authConnect()
@@ -340,7 +291,7 @@ function WebSocketConnectBase:_authConnect()
     session:setConnectId(connectId)
     session:setKeepAlive()
     session:save()
-    self._channel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
+    self._connectChannel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
 end
 
 function WebSocketConnectBase:getConnectId()
@@ -387,6 +338,76 @@ function WebSocketConnectBase:removeConnectTag()
     pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
     pipe:commit()
 end
+
+function WebSocketConnectBase:subscribeChannel(channelName, callback)
+    local sub = self._subscribeChannels[channelName]
+    if not sub then
+        sub = {
+            name = channelName,
+            enabled = false,
+            running = false,
+            retryCount = 0,
+            redis = nil,
+        }
+        self._subscribeChannels[channelName] = sub
+    end
+
+    if sub.enabled then
+        printWarn("already subscribed channel \"%s\"", sub.name)
+        return
+    end
+
+    local function subscribe()
+        sub.enabled = true
+        sub.running = true
+
+        -- pubsub thread need separated redis connect
+        local redis = self:_newRedis()
+        sub.redis = redis
+        local channel = sub.name
+        local loop, err = redis:pubsub({subscribe = channel})
+        if not loop then
+            throw("subscribe channel \"%s\" failed, %s", channel, err)
+        end
+
+        for msg, abort in loop do
+            if msg.kind == "subscribe" then
+                printInfo("subscribe channel \"%s\"", channel)
+            elseif msg.kind == "message" then
+                local payload = msg.payload
+                printInfo("get msg from channel \"%s\", msg: %s", channel, payload)
+                if callback(payload) == false then
+                    if not _abort then abort() end
+                    sub.running = false
+                    break
+                end
+            end
+        end
+
+        -- when error occured or exit normally,
+        -- connect will auto close, channel will be unsubscribed
+        sub.enabled = false
+        redis:setKeepAlive()
+        if not sub.running then
+            self._subscribeChannels[channelName] = nil
+            return
+        end
+
+        -- if an error leads to an exiting, retry to subscribe channel
+        if sub.retryCount < self.config.maxSubscribeRetryCount then
+            sub.retryCount = sub.retryCount + 1
+            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
+            self:subscribeChannel(channelName, callback)
+        else
+            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
+            self._subscribeChannels[channelName] = nil
+        end
+    end
+
+    ngx_thread_spawn(subscribe)
+end
+
+-- events
 
 function WebSocketConnectBase:beforeConnectReady()
 end

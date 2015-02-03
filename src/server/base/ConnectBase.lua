@@ -107,12 +107,20 @@ function ConnectBase:closeConnectByTag(tag)
 end
 
 function ConnectBase:sendMessageToConnect(connectId, message)
-    if not connectId or not message then
-        throw("send message to connect with invalid id \"%s\" or invalid message", tostring(connectId))
+    if not connectId then
+        throw("send message to connect with invalid id \"%s\"", tostring(connectId))
+    else
+        local channelName = Constants.CONNECT_CHANNEL_PREFIX .. tostring(connectId)
+        self:sendMessageToChannel(channelName, message)
+    end
+end
+
+function ConnectBase:sendMessageToChannel(channelName, message)
+    if not channelName or not message then
+        throw("send message to channel with invalid channel name \"%s\" or invalid message", tostring(channelName))
     else
         local redis = self:_getRedis()
-        local channel = Constants.CONNECT_CHANNEL_PREFIX .. tostring(connectId)
-        redis:command("PUBLISH", channel, tostring(message))
+        redis:command("PUBLISH", channelName, tostring(message))
     end
 end
 
