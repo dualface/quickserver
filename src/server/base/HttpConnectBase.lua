@@ -124,7 +124,7 @@ function HttpConnectBase:runEventLoop()
 
     local err = nil
     local ok, result = xpcall(function()
-        return self:doRequest(actionName, self._requestParameters)
+        return self:runAction(actionName, self._requestParameters)
     end, function(_err)
         err = _err
         if DEBUG > 1 then

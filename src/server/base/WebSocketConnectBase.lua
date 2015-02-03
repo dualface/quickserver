@@ -175,7 +175,7 @@ function WebSocketConnectBase:_processMessage(rawMessage, messageType)
     local actionName = message.action
     local err = nil
     local ok, result = xpcall(function()
-        return self:doRequest(actionName, message)
+        return self:runAction(actionName, message, true) -- true = persistent action instance
     end, function(_err)
         err = _err
         if DEBUG > 1 then

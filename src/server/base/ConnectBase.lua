@@ -24,41 +24,21 @@ THE SOFTWARE.
 
 local clone = clone
 local checktable = checktable
-local pcall = pcall
 local ngx = ngx
-local ngx_exit = ngx.exit
 local ngx_now = ngx.now
 local ngx_md5 = ngx.md5
-local table_remove = table.remove
-local table_concat = table.concat
-local string_sub = string.sub
-local string_len = string.len
-local string_format = string.format
-local string_gsub = string.gsub
-local string_lower = string.lower
-local string_ucfirst = string.ucfirst
 local json_encode = json.encode
-local json_decode = json.decode
-local os_time = os.time
-
-local ActionDispatcher = import(".ActionDispatcher")
-
-local ConnectBase = class("ConnectBase", ActionDispatcher)
 
 local Constants = import(".Constants")
 local SessionService = import(".SessionService")
-
 local RedisService = cc.load("redis").service
 
+local ActionDispatcher = import(".ActionDispatcher")
+local ConnectBase = class("ConnectBase", ActionDispatcher)
+
 function ConnectBase:ctor(config)
-    self.config = clone(checktable(config))
-
-    self.config.appRootPath = self.config.appRootPath
-    self.config.actionModuleSuffix = config.actionModuleSuffix or Constants.DEFAULT_ACTION_MODULE_SUFFIX
+    ConnectBase.super.ctor(self, config)
     self.config.messageFormat = self.config.messageFormat or Constants.DEFAULT_MESSAGE_FORMAT
-
-    self._actionModules = {}
-    self._requestParameters = nil
 end
 
 function ConnectBase:run()
