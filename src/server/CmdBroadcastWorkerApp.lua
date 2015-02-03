@@ -29,7 +29,7 @@ local string_format = string.format
 local json_encode = json.encode
 local os_date = os.date
 
-local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineServerBase)
+local CmdBroadcastWorker = class("CmdBroadcastWorker", cc.server.CommandLineBase)
 
 function CmdBroadcastWorker:ctor(config)
     CmdBroadcastWorker.super.ctor(self, config)
@@ -37,9 +37,9 @@ function CmdBroadcastWorker:ctor(config)
     self.config.actionModuleSuffix = "Worker"
 end
 
-function CmdBroadcastWorker:doRequest(actionName, data)
+function CmdBroadcastWorker:runAction(actionName, data)
     return pcall(function()
-        return CmdBroadcastWorker.super.doRequest(self, actionName, data)
+        return CmdBroadcastWorker.super.runAction(self, actionName, data)
     end, function(msg) return msg end)
 end
 
@@ -87,7 +87,7 @@ function CmdBroadcastWorker:runEventLoop()
             -- handle this job
             local execJob = data.job
             local actionName = execJob.action
-            local _, result = self:doRequest(actionName, execJob)
+            local _, result = self:runAction(actionName, execJob)
             printInfo("CmdBroadcastWorker:runEventLoop() - job [%s], run action %s finished.", job.id, data.bid, actionName)
 
             -- send message

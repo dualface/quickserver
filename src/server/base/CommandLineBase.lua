@@ -24,13 +24,14 @@ THE SOFTWARE.
 
 ]]
 
-local CommandLineServerBase = class("CommandLineServerBase", import(".ServerAppBase"))
+local ActionDispatcher = import(".ActionDispatcher")
+local CommandLineBase = class("CommandLineBase", ActionDispatcher)
 
-function CommandLineServerBase:ctor(config, arg)
-    CommandLineServerBase.super.ctor(self, config)
+function CommandLineBase:ctor(config, arg)
+    CommandLineBase.super.ctor(self, config)
 
     self._requestType = Constants.CLI_REQUEST_TYPE
     self._requestParameters = checktable(arg)
 end
 
-return CommandLineServerBase
+return CommandLineBase
