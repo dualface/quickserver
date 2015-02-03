@@ -47,14 +47,14 @@
  *
  */
 
-var glview = {"width": 480, "height": 854}
+var glview = {"width": 480, "height": 800}
 glview.cx = glview.width / 2;
 glview.cy = glview.height / 2;
 
 cc.game.onStart = function(){
     cc.view.adjustViewPort(true);
-    cc.view.setDesignResolutionSize(glview.width, glview.height, cc.ResolutionPolicy.FIXED_WIDTH);
-    cc.view.resizeWithBrowserSize(true);
+    cc.view.setDesignResolutionSize(glview.width, glview.height, cc.ResolutionPolicy.EXACT_FIT);
+    cc.view.resizeWithBrowserSize(false);
     //load resources
     cc.LoaderScene.preload(g_resources, function () {
         // init

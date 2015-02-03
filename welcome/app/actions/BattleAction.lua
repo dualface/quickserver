@@ -41,11 +41,6 @@ function BattleAction:moveAction(arg)
     if result then
         self:_boardcastEvent("move", result)
     end
-
-    if not self._firstMove then
-        self._app:unsubscribeBattleChannel()
-    end
-    self._firstMove = false
 end
 
 return BattleAction
