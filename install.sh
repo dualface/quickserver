@@ -129,9 +129,9 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -rf $CUR_DIR/src $DEST_DIR
     cp -rf $CUR_DIR/welcome $DEST_DIR
     cp -rf $CUR_DIR/tools $DEST_DIR
-    cd $CUR_DIR/shells/
 
     #deploy tool script
+    cd $CUR_DIR/shells/
     cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR
     ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
