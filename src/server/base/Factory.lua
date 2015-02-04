@@ -24,7 +24,7 @@ THE SOFTWARE.
 
 local Factory = class("Factory")
 
-function Factory.create(config, classNamePrefix)
+function Factory.create(config, classNamePrefix, ...)
     local classNameSuffix
     local rootPath
     if classNamePrefix == "Command" then
@@ -46,7 +46,7 @@ function Factory.create(config, classNamePrefix)
         tagretClass = require("server.base." .. className .. "Base")
     end
 
-    return tagretClass:create(config)
+    return tagretClass:create(config, ...)
 end
 
 return Factory

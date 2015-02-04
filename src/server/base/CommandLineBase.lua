@@ -34,4 +34,34 @@ function CommandLineBase:ctor(config, arg)
     self._requestParameters = checktable(arg)
 end
 
+function CommandLineBase:run()
+    local result, err = self:runEventLoop()
+
+    local rtype = type(result)
+    if not err then
+        if rtype == "nil" then
+            ngx.status = ngx.HTTP_OK
+            return
+        elseif rtype == "string" then
+            ngx.status = ngx.HTTP_OK
+            ngx_say(result)
+            return
+        end
+    end
+
+    local result, err = self:_genOutput(result, err)
+    if err then
+        -- return an error page with custom contents
+        ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
+        ngx_say(err)
+        ngx.exit(ngx.HTTP_OK)
+    else
+        ngx.status = ngx.HTTP_OK
+        if result then ngx_say(result) end
+    end
+end
+
+function CommandLineBase:runEventLoop()
+end
+
 return CommandLineBase
