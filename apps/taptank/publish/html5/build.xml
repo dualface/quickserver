@@ -5,7 +5,7 @@
              classpath="/Users/dualface/Downloads/cocos2d-js-v3.2/tools/cocos2d-console/plugins/project_compile/build_web/bin/compiler-1.6.jar"/>
 
     <target name="compile">
-        <jscomp compilationLevel="advanced" 
+        <jscomp compilationLevel="simple" 
                 warning="quiet"
                 debug="false" 
                 output="/Users/dualface/Works/quickserver/apps/taptank/publish/html5/game.min.js"
