@@ -106,7 +106,6 @@
 
             </sources>
             <sources dir="${basedir}">
-                <file name="src/zepto.min.js"/>
                 <file name="src/resource.js"/>
                 <file name="src/server.js"/>
                 <file name="src/app.js"/>

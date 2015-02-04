@@ -11,7 +11,6 @@
     "modules" : ["core", "labels", "text-input", "menus", "audio"],
 
     "jsList" : [
-        "src/zepto.min.js",
         "src/resource.js",
         "src/server.js",
         "src/app.js"

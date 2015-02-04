@@ -1,5 +1,59 @@
 
-var SERVER_ADD = document.location.host; // "192.168.1.110:8088"
+var SERVER_ADD = document.location.host;
+
+// modifies based on microajax
+// https://code.google.com/p/microajax/
+function getJSON(url, callback)
+{
+    this.bindFunction = function(caller, object) {
+        return function() {
+            return caller.apply(object, [object]);
+        };
+    };
+
+    this.stateChange = function (object) {
+        if (this.request.readyState == 4) {
+            var json = null;
+            try {
+                json = JSON.parse(this.request.responseText);
+            } catch (e) {
+                json = null;
+            }
+            this.callback(json);
+        }
+    };
+
+    this.getRequest = function() {
+        if (window.ActiveXObject)
+            return new ActiveXObject('Microsoft.XMLHTTP');
+        else if (window.XMLHttpRequest)
+            return new XMLHttpRequest();
+        return false;
+    };
+
+    var data = arguments[2];
+    var postbody = [];
+    if (data) {
+        for (var name in data) {
+            var value = encodeURIComponent(data[name]);
+            postbody.push(name + "=" + value);
+        }
+    }
+
+    this.postBody = postbody.join("&");
+    this.callback = callback;
+    this.url = url;
+    this.request = this.getRequest();
+
+    if(this.request) {
+        var req = this.request;
+        req.onreadystatechange = this.bindFunction(this.stateChange, this);
+        req.open("POST", url, true);
+        req.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        req.send(this.postBody);
+    }
+}
 
 var server = {
     _httpServerAddr: "http://" + SERVER_ADD + "/api",
@@ -43,14 +97,14 @@ var server = {
         server._username = "USER" + parseInt(Math.random() * 10000000).toString();
 
         var data = {"username": server._username}
-        server.sendHttpRequest("user.login", data, function(result) {
+        server.sendHttpRequest("user.login", function(result) {
             if (!server.validateResult(result, ["sid"])) {
                 return false;
             }
             server._sessionId = result["sid"].toString();
             cc.log("GET SESSION ID: " + server._sessionId);
             server.connect(callback);
-        });
+        }, data);
     },
 
     logout: function(callback) {
@@ -131,13 +185,8 @@ var server = {
         return false;
     },
 
-    sendHttpRequest: function(action, data, callback) {
-        if (typeof callback == "undefined") {
-            callback = data;
-            data = {};
-        }
-        data["action"] = action;
-        $.getJSON(server._httpServerAddr, data, callback);
+    sendHttpRequest: function(action, callback, data) {
+        getJSON(server._httpServerAddr + "?action=" + action, callback, data);
     },
 
     sendSocketMessage: function(action, message, callback) {
