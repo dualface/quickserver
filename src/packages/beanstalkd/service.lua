@@ -26,61 +26,48 @@ local type = type
 
 local BeanstalkdService = class("BeanstalkdService")
 
-local adapter
+local BeanstalkdAdapter
 if ngx then
-    adapter = import(".adapter.RestyBeanstalkdAdapter")
+    BeanstalkdAdapter = import(".adapter.RestyBeanstalkdAdapter")
 else
-    adapter = import(".adapter.BeanstalkdHaricotAdapter")
+    BeanstalkdAdapter = import(".adapter.BeanstalkdHaricotAdapter")
 end
 
 function BeanstalkdService:ctor(config)
-    if not config or type(config) ~= "table" then
-        return nil, "config is invalid."
+    if type(config) ~= "table" then
+        throw("invalid beanstalkd config")
     end
-
-    self.config = config
-
-    self.beans = adapter.new(config)
+    self._config = clone(config)
+    self._beans = BeanstalkdAdapter:create(self._config)
 end
 
 function BeanstalkdService:connect()
-    local beans = self.beans
-    if not beans then
-        return nil, "Package beanstalked is not initialized."
+    local ok, err = self._beans:connect()
+    if err then
+        throw("connect to beanstalkd failed, %s", err) 
     end
-
-    return beans:connect()
 end
 
 function BeanstalkdService:close()
-    local beans = self.beans
-    if not beans then
-        return nil, "Package beanstalked is not initialized."
-    end
-
-    return beans:close()
+    self._beans:close()
 end
 
 function BeanstalkdService:setKeepAlive(timeout, size)
     if not ngx then
-        return self:close()
+        self:close()
+        return
     end
-
-    local beans = self.beans
-    if not beans then
-        return nil, "Package beanstalked is not initialized."
-    end
-
-    return beans:setKeepAlive(timeout, size)
+    self._beans:setKeepAlive(timeout, size)
 end
 
 function BeanstalkdService:command(command, ...)
-    local beans = self.beans
-    if not beans then
-        return nil, "Package beanstalked is not initialized."
+    command = string_lower(command)
+    local res, err = self._beans:command(command, ...)
+    if err then
+        throw("beanstalkd command \"%s\" failed, %s", command, err)
     end
 
-    return beans:command(command, ...)
+    return res
 end
 
 return BeanstalkdService

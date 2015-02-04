@@ -32,38 +32,39 @@ local beanstalkd = require("resty.beanstalkd")
 local RestyBeanstalkdAdapter = class("RestyBeanstalkdAdapter")
 
 function RestyBeanstalkdAdapter:ctor(config)
-    self.config = config
-    self.instance, self.ctorErr = beanstalkd:new()
+    self._config = config
+    self._instance = beanstalkd:new()
 end
 
 function RestyBeanstalkdAdapter:connect()
-    if not self.instance then return nil, self.ctorErr end
+    self._instance:set_timeout(self._config.timeout)
 
-    local _, err = self.instance:connect(self.config.host, self.config.port)
-    if err then
-        return nil, err
-    end
-    self.instance:set_timeout(self.config.timeout)
-    return true
+    return self._instance:connect(self._config.host, self._config.port) 
 end
 
 function RestyBeanstalkdAdapter:close()
-    if not self.instance then return nil, self.ctorErr end
-
-    return self.instance:close()
+    return self._instance:close()
 end
 
 function RestyBeanstalkdAdapter:setKeepAlive(timeout, size)
-    if not self.instance then return nil, self.ctorErr end
-
-    return self.instance:set_keepalive(timeout, size)
+    if size then
+        return self._instance:set_keepalive(timeout, size)
+    elseif timeout then
+        return self._instance:set_keepalive(timeout)
+    else
+        return self._instance:set_keepalive()
+    end
 end
 
 function RestyBeanstalkdAdapter:command(command, ...)
-    if not self.instance then return nil, self.ctorErr end
-    local method = self.instance[command]
-    assert(type(method) == "function", string_format("RestyBeanstalkdAdapter:command() - invalid command %s", tostring(command)))
-    return method(self.instance, ...)
+    local method = self._instance[command]
+    if type(method) ~= "function" then
+        local err = string_format("invalid beanstalkd command \"%s\"", string_upper(command))
+        printError("%s", err)
+        return nil, err
+    end
+
+    return method(self._instance, ...)
 end
 
 return RestyBeanstalkdAdapter

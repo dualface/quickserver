@@ -32,8 +32,8 @@ local haricot = require("3rd.beanstalkd.haricot")
 local BeanstalkdHaricotAdapter = class("BeanstalkdHaricotAdapter")
 
 function BeanstalkdHaricotAdapter:ctor(config)
-    self.config = config
-    self.instance = haricot.new(self.config.host, self.config.port)
+    self._config = config
+    self._instance = haricot.new(self._config.host, self._config.port)
 end
 
 function BeanstalkdHaricotAdapter:connect()
@@ -41,15 +41,18 @@ function BeanstalkdHaricotAdapter:connect()
 end
 
 function BeanstalkdHaricotAdapter:close()
-    if not self.instance then return nil, self.ctorErr end
-    return self.instance:quit()
+    return self._instance:quit()
 end
 
 function BeanstalkdHaricotAdapter:command(command, ...)
-    if not self.instance then return nil, self.ctorErr end
-    local method = self.instance[command]
-    assert(type(method) == "function", string_format("BeanstalkdHaricotAdapter:command() - invalid command %s", tostring(command)))
-    local ok, result = method(self.instance, ...)
+    local method = self._instance[command]
+    if type(method) ~= "function" then
+        local err = string_format("invalid beanstalkd command \"%s\"", string_upper(command))
+        printError("%s", err)
+        return nil, err
+    end
+
+    local ok, result = method(self._instance, ...)
     if ok then return result end
     return nil, result
 end
