@@ -22,9 +22,9 @@ THE SOFTWARE.
 
 ]]
 
-local ConnectFactory = class("ConnectFactory")
+local Factory = class("Factory")
 
-function ConnectFactory.createConnect(config, classNamePrefix)
+function Factory.create(config, classNamePrefix)
     local classNameSuffix
     local rootPath
     if classNamePrefix == "Command" then
@@ -49,4 +49,4 @@ function ConnectFactory.createConnect(config, classNamePrefix)
     return tagretClass:create(config)
 end
 
-return ConnectFactory
+return Factory
