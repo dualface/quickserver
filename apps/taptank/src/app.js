@@ -25,8 +25,6 @@ var Tank = cc.Sprite.extend({
 
         this._uid = uid;
         this._state = "idle";
-        this._speed = 60;
-        this._rotationSpeed = 120;
     },
 
     start: function() {
@@ -48,7 +46,9 @@ var Tank = cc.Sprite.extend({
         this._dist = this._movelen = message.dist;
         this._destr = message.destr;
         this._dir = message.dir;
-        this._rotateoffset = message.rotateoffset;
+        this._speed = message.speed;
+        this._rotateSpeed = message.rotateSpeed;
+        this._rotateOffset = message.rotateOffset;
         this._state = "rotate";
 
         this.setPosition(message.x, message.y);
@@ -60,14 +60,14 @@ var Tank = cc.Sprite.extend({
 
         if (this._state == "rotate") {
             var rotation = this.getRotation();
-            var offset = this._rotationSpeed * dt;
+            var offset = this._rotateSpeed * dt;
             if (this._dir == "right") {
                 rotation += offset;
             } else {
                 rotation -= offset;
             }
-            this._rotateoffset -= offset;
-            if (this._rotateoffset <= 0) {
+            this._rotateOffset -= offset;
+            if (this._rotateOffset <= 0) {
                 rotation = this._destr;
                 this._state = "move";
             }

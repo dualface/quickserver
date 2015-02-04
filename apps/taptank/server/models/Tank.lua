@@ -21,6 +21,43 @@ local function _absDegrees(d)
     return d % 360
 end
 
+function Tank.simulateMove(message, current)
+    local begin = message.__time
+    local rotation = message.rotation
+    local rotateOffset = message.rotateOffset
+
+
+    var rotation = this.getRotation();
+            var offset = this._rotateSpeed * dt;
+            if (this._dir == "right") {
+                rotation += offset;
+            } else {
+                rotation -= offset;
+            }
+            this._rotateOffset -= offset;
+            if (this._rotateOffset <= 0) {
+                rotation = this._destr;
+                this._state = "move";
+            }
+            this.setRotation(rotation);
+
+    -- rotate
+
+
+    return {
+        move = true,
+        x = self._x,
+        y = self._y,
+        rotation = rotation,
+        destx = destx,
+        desty = desty,
+        destr = destr,
+        dist  = dist,
+        dir = dir,
+        rotateOffset = math_abs(rotateOffset)
+    }
+end
+
 function Tank:ctor(uid)
     self._uid = uid
     self._color = "Red"
@@ -29,7 +66,7 @@ function Tank:ctor(uid)
     self._rotation = 0
     self._lastMoveTime = 0
     self._speed = 60
-    self._rotationSpeed = 120
+    self._rotateSpeed = 120
 end
 
 function Tank:getUid()
@@ -77,11 +114,11 @@ function Tank:move(x, y, rotation, destx, desty)
         dir = "right"
     end
 
-    local rotateoffset1 = _absDegrees(destr - rotation)
-    local rotateoffset2 = _absDegrees(rotation - destr)
-    local rotateoffset = rotateoffset1
-    if rotateoffset1 > rotateoffset2 then
-        rotateoffset = rotateoffset2
+    local rotateOffset1 = _absDegrees(destr - rotation)
+    local rotateOffset2 = _absDegrees(rotation - destr)
+    local rotateOffset = rotateOffset1
+    if rotateOffset1 > rotateOffset2 then
+        rotateOffset = rotateOffset2
     end
     return {
         move = true,
@@ -93,7 +130,9 @@ function Tank:move(x, y, rotation, destx, desty)
         destr = destr,
         dist  = dist,
         dir = dir,
-        rotateoffset = math_abs(rotateoffset)
+        speed = self._speed,
+        rotateSpeed = self._rotateSpeed,
+        rotateOffset = math_abs(rotateOffset)
     }
 end
 

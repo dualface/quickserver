@@ -1,12 +1,15 @@
 
 local ngx_now = ngx.now
+local json_encode = json.encode
+local json_decode = json.decode
 
 local BattleService = class("BattleService")
 
 local RedisService = cc.load("redis").service
 
-local _BATTLE_CHANNEL = "_BATTLE"
-local _ONLINE_REDIS_KEY = '_ONLINE'
+local _BATTLE_CHANNEL      = "_BATTLE"
+local _ONLINE_REDIS_KEY    = "_ONLINE"
+local _BATTLE_MESSAGES_KEY = "_BATTLE_MESSAGES"
 
 function BattleService:ctor(connect, uid)
     self._connect = connect
@@ -20,11 +23,17 @@ function BattleService:ctor(connect, uid)
 end
 
 function BattleService:quit()
+    self:boardcastEvent(self._uid, "remove", nil, true)
     self._redis:command("SREM", _ONLINE_REDIS_KEY, self._uid)
-    self:boardcastEvent(self._uid, "remove", {})
+    self._redis:command("HDEL", _BATTLE_MESSAGES_KEY, self._uid)
 end
 
-function BattleService:addTankEvent(uid, event)
+function BattleService:getCurrentTankMessages()
+    local messages = self._redis:command("HGETALL", _BATTLE_MESSAGES_KEY)
+    for uid, message in pairs(messages) do
+        messages[uid] = json_decode(message)
+    end
+    return messages
 end
 
 function BattleService:addUser(uid)
@@ -50,14 +59,18 @@ function BattleService:getAllOtherUsers()
     return all
 end
 
-function BattleService:boardcastEvent(sender, event, message)
+function BattleService:boardcastEvent(sender, event, message, nosave)
+    message = message or {}
     message.__uid   = sender
     message.__event = event
     message.__time  = ngx_now()
 
-    local message = json.encode(message)
+    local message = json_encode(message)
     if message == json.null or not message then
-        throw("message can't encoding to json")
+        throw("boardcastEvent() - message can't encoding to json")
+    end
+    if not nosave then
+        self._redis:command("HSET", _BATTLE_MESSAGES_KEY, sender, message)
     end
     self._connect:sendMessageToChannel(_BATTLE_CHANNEL, message)
 end
