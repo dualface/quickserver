@@ -1,45 +1,32 @@
 
-local ngx_now = ngx.now
-
 local BattleAction = class("BattleAction")
 
 local Tank = import("..models.Tank")
-local Game = import("..models.Game")
 
-function BattleAction:ctor(app)
+function BattleAction:ctor(connect)
     printInfo("new BattleAction instance")
-    self._app = app
-    self._firstMove = true
-end
-
-function BattleAction:_boardcastEvent(event, message)
-    local app = self._app
-    message.__sid = app:getSession():getSid()
-    message.__event = event
-    message.__time = ngx_now()
-
-    local message = json.encode(message)
-    if message == json.null or not message then
-        throw("message can't encoding to json")
-    end
-    self._app:sendMessageToBattleChannel(message)
+    self.connect = connect
+    self.battle = connect.battle
 end
 
 function BattleAction:enterAction(arg)
-    self._app:subscribeBattleChannel()
-    local tank = Tank:create()
-    self._app.tank = tank
-    tank:setRandomPosition()
-    local result = {x = tank.x, y = tank.y, rotation = tank.rotation}
-    self:_boardcastEvent("enter", result)
-    return result
+    local uid = self.connect:getSession():get("uid")
+    local tank = Tank:create(uid)
+    local message = tank:enter()
+    if message then
+        self.connect.tank = tank
+        self.battle:addTankEvent(uid, "enter", message)
+        self.battle:boardcastEvent(uid, "enter", message)
+    end
 end
 
 function BattleAction:moveAction(arg)
-    local tank = self._app.tank
-    local result = tank:move(arg.cx, arg.cy, arg.cr, arg.x, arg.y)
-    if result then
-        self:_boardcastEvent("move", result)
+    local tank = self.connect.tank
+    local message = tank:move(arg.x, arg.y, arg.rotation, arg.destx, arg.desty)
+    if message then
+        local uid = tank:getUid()
+        self.battle:addTankEvent(uid, "move", message)
+        self.battle:boardcastEvent(uid, "move", message)
     end
 end
 

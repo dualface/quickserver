@@ -7,44 +7,69 @@ local math2d_dist = math2d.dist
 local math2d_degrees = math2d.degrees
 local math2d_angleBetweenPoints = math2d.angleBetweenPoints
 
-local Game = import(".Game")
+local GameConfig = import("..GameConfig")
 
 -- Tank class
 local Tank = class("Tank")
 
-Tank.ACTION_COLDDOWN_TIME = 0.5
+local _BORDER_SIZE = 20
+local _ACTION_COLDDOWN_TIME = 0.5
+local _COLORS = {"Red", "Blue", "Green", "Yellow"}
 
 local function _absDegrees(d)
     while d < 0 do d = d + 360 end
     return d % 360
 end
 
-function Tank:ctor()
-    self.x = 0
-    self.y = 0
-    self.rotation = 0
-    self.lastMoveTime = 0
+function Tank:ctor(uid)
+    self._uid = uid
+    self._color = "Red"
+    self._x = 0
+    self._y = 0
+    self._rotation = 0
+    self._lastMoveTime = 0
+    self._speed = 60
+    self._rotationSpeed = 120
 end
 
-function Tank:setRandomPosition()
+function Tank:getUid()
+    return self._uid
+end
+
+function Tank:getPosition()
+    return {x = self._x, y = self._y}
+end
+
+function Tank:getRotation()
+    return self._rotation
+end
+
+function Tank:enter()
     math.randomseed(ngx_now() * 10000)
-    self.x = math.random(0, Game.BATTLE_ZONE_SIZE.width)
-    self.y = math.random(0, Game.BATTLE_ZONE_SIZE.height)
-    self.rotation = math.round(math.random(0, 360) / 90) * 90
+    self._x = math.random(_BORDER_SIZE, GameConfig.BATTLE_ZONE_SIZE.width - _BORDER_SIZE * 2)
+    self._y = math.random(_BORDER_SIZE, GameConfig.BATTLE_ZONE_SIZE.height - _BORDER_SIZE * 2)
+    self._rotation = math.round(math.random(0, 360) / 90) * 90
+    self._color = _COLORS[math.random(1, #_COLORS)]
+    return {
+        color = self._color,
+        x = self._x,
+        y = self._y,
+        rotation = self._rotation
+    }
 end
 
-function Tank:move(cx, cy, rotation, dx, dy)
+function Tank:move(x, y, rotation, destx, desty)
     local now = ngx_now()
-    if now - self.lastMoveTime < Tank.ACTION_COLDDOWN_TIME then
+    if now - self._lastMoveTime < _ACTION_COLDDOWN_TIME then
         return
     end
 
-    self.lastMoveTime = now
-    self.x, self.y = cx, cy
-    local dist = math2d_dist(cx, cy, dx, dy)
-    local destr = _absDegrees(math2d_degrees(math2d_angleBetweenPoints(cx, cy, dx, dy)))
+    self._lastMoveTime = now
+    self._x, self._y = x, y
+    local dist = math2d_dist(x, y, destx, desty)
+    local destr = _absDegrees(math2d_degrees(math2d_angleBetweenPoints(x, y, destx, desty)))
     rotation = _absDegrees(rotation)
-    self.rotation = rotation
+    self._rotation = rotation
 
     local offset = rotation - destr
     local dir = "left"
@@ -60,11 +85,13 @@ function Tank:move(cx, cy, rotation, dx, dy)
     end
     return {
         move = true,
-        x = dx,
-        y = dy,
-        dist = dist,
-        destr = destr,
+        x = self._x,
+        y = self._y,
         rotation = rotation,
+        destx = destx,
+        desty = desty,
+        destr = destr,
+        dist  = dist,
         dir = dir,
         rotateoffset = math_abs(rotateoffset)
     }

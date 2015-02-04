@@ -61,12 +61,13 @@ var server = {
 
     _username: null,
     _sessionId: null,
+    _uid: null,
     _socket: null,
     _msgId: 0,
     _callbacks: {},
 
-    getSessionId: function() {
-        return server._sessionId;
+    getUid: function() {
+        return server._uid;
     },
 
     validateResult: function(result, fields) {
@@ -102,6 +103,7 @@ var server = {
                 return false;
             }
             server._sessionId = result["sid"].toString();
+            server._uid = result["uid"].toString();
             cc.log("GET SESSION ID: " + server._sessionId);
             server.connect(callback);
         }, data);

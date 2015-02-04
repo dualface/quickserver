@@ -14,7 +14,7 @@ cc.pointAtCircle = function(origin, radius, angle) {
 }
 
 var Tank = cc.Sprite.extend({
-    ctor: function(color, id) {
+    ctor: function(color, uid) {
         this._super();
 
         var animationName = "Tank" + color;
@@ -23,19 +23,10 @@ var Tank = cc.Sprite.extend({
 
         this._animation = cc.animate(cc.animationCache.getAnimation(animationName));
 
-        this._id = id;
-        this._speed = 60;
-        this._roationSpeed = 120;
-        this._begin = null;
-        this._dest = null;
-        this._dist = null;
-        this._movelen = null;
-        this._destr = null;
-        this._dir = null;
-        this._rotateoffset = null;
-
+        this._uid = uid;
         this._state = "idle";
-        this._waitMessage = false;
+        this._speed = 60;
+        this._rotationSpeed = 120;
     },
 
     start: function() {
@@ -50,42 +41,26 @@ var Tank = cc.Sprite.extend({
         }
     },
 
-    trymove: function(dest) {
-        if (!this.isVisible()) {
-            return false;
-        }
-
-        var pos = this.getPosition();
-        var data = {
-            cx: pos.x,
-            cy: pos.y,
-            cr: this.getRotation(),
-            x: dest.x,
-            y: dest.y
-        };
-        var tank = this;
-        server.sendSocketMessage("battle.move", data);
-    },
-
-    _move: function(arg) {
+    move: function(message) {
         this.start();
-        this._begin = this.getPosition();
-        this._dest = cc.p(arg.x, arg.y);
-        this._dist = arg.dist;
-        this._movelen = arg.dist;
-        this._destr = arg.destr;
-        this._dir = arg.dir;
-        this._rotateoffset = arg.rotateoffset;
+        this._begin = cc.p(message.x, message.y);
+        this._dest = cc.p(message.destx, message.desty);
+        this._dist = this._movelen = message.dist;
+        this._destr = message.destr;
+        this._dir = message.dir;
+        this._rotateoffset = message.rotateoffset;
         this._state = "rotate";
-        this.setRotation(arg.rotation);
+
+        this.setPosition(message.x, message.y);
+        this.setRotation(message.rotation);
     },
 
-    _step: function(dt) {
+    step: function(dt) {
         if (this._state == "idle") return;
 
         if (this._state == "rotate") {
             var rotation = this.getRotation();
-            var offset = this._roationSpeed * dt;
+            var offset = this._rotationSpeed * dt;
             if (this._dir == "right") {
                 rotation += offset;
             } else {
@@ -122,36 +97,44 @@ var BattleLayer = cc.Layer.extend({
         var bg = new cc.LayerColor(cc.color(0x53, 0x47, 0x41, 255));
         this.addChild(bg);
 
-        var sid = server.getSessionId();
-        var tank = new Tank("Red", sid);
-        tank.setVisible(false);
-        this.addChild(tank);
-        this._tank = tank;
-
         this._tanks = {};
-        this._tanks[sid] = tank;
 
         var self = this;
+        var currentUid = server.getUid();
 
-        server.onenter = function(evt) {
-            var sid = evt.__sid;
-            var tank = self._tanks[sid];
+        server.onenter = function(message) {
+            var uid = message.__uid;
+            var tank = self._tanks[uid];
             if (typeof tank === "undefined") {
-                tank = new Tank("Red");
+                tank = new Tank(message.color, uid);
                 self.addChild(tank);
+                if (currentUid == uid) {
+                    cc.log("your tank %s enter battle", uid);
+                    self._tank = tank;
+                } else {
+                    cc.log("tank %s enter battle", uid);
+                }
             }
             tank.setVisible(true);
-            tank.setPosition(evt.x, evt.y);
-            tank.setRotation(evt.rotation);
-            self._tanks[sid] = tank;
-
-            // send message to server, notifies others
+            tank.setPosition(message.x, message.y);
+            tank.setRotation(message.rotation);
+            self._tanks[uid] = tank;
         };
 
-        server.onmove = function(evt) {
-            var tank = self._tanks[evt.__sid];
+        server.onmove = function(message) {
+            var uid = message.__uid;
+            var tank = self._tanks[uid];
             if (typeof tank !== "undefined") {
-                tank._move(evt);
+                tank.move(message);
+            }
+        }
+
+        server.onremove = function(message) {
+            var uid = message.__uid;
+            var tank = self._tanks[uid];
+            if (typeof tank !== "undefined") {
+                tank.removeFromParent();
+                self._tanks[uid] = null;
             }
         }
 
@@ -161,7 +144,7 @@ var BattleLayer = cc.Layer.extend({
             event: cc.EventListener.TOUCH_ONE_BY_ONE,
             swallowTouches: true,
             onTouchBegan: function (touch, event) {
-                self._tank.trymove(touch.getLocation());
+                self.move(touch.getLocation());
                 return false;
             }
         });
@@ -170,9 +153,28 @@ var BattleLayer = cc.Layer.extend({
         this.scheduleUpdate();
     },
 
+    move: function(dest) {
+        var tank = this._tank;
+        if (tank && tank.isVisible()) {
+            var pos = tank.getPosition();
+            var data = {
+                x: pos.x,
+                y: pos.y,
+                rotation: tank.getRotation(),
+                destx: dest.x,
+                desty: dest.y
+            };
+            server.sendSocketMessage("battle.move", data);
+        }
+    },
+
     update: function(dt) {
-        for (key in this._tanks) {
-            this._tanks[key]._step(dt);
+        var tanks = this._tanks;
+        for (uid in tanks) {
+            var tank = tanks[uid];
+            if (tank && tank.step) {
+                tank.step(dt);
+            }
         }
     }
 });
