@@ -31,6 +31,7 @@ DEBUG = _DBG_DEBUG
 
 local config = {
     appRootPath = "_QUICK_SERVER_ROOT_/welcome/app",
+    cmdRootPath = "_QUICK_SERVER_ROOT_/tools",
 
     sessionExpiredTime = 60 * 10, -- 10m
 
@@ -71,9 +72,15 @@ local config = {
 
     -- worker process thredsholds
     monitor = {
+        process = {
+            "nginx",
+            "redis",
+            "beanstalkd",
+        },
+
         mem = {
-            warning = 50,
-            critical = 80,
+            warning = 70,
+            critical = 90,
         },
 
         cpu = {
@@ -83,7 +90,7 @@ local config = {
 
         interval = 10, 
 
-        criticalStateContinueTImes = 3, 
+        criticalStatePersistentTImes = 3, 
     },
 }
 

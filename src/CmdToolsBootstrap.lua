@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,9 +22,10 @@ THE SOFTWARE.
 
 ]]
 
-require("framework.init")
-local config = require("server.config")
+local factory = require("server.base.Factory")
+
 local args = {...}
 
-local app = require("server.CmdToolsApp").new(config, args)
+-- SERVER_CONFIG from init_by_lua, see nginx.conf
+local app = factory.create(SERVER_CONFIG, "Command", args)
 app:run()
