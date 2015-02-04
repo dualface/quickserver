@@ -18,13 +18,11 @@
             -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
         }
 
-        @media screen {
-            #gameCanvasWrap {
-                margin-left: auto;
-                margin-right: auto;
-                width: 480px;
-                height: 800px;
-            }
+        .desktop {
+            margin-left: auto;
+            margin-right: auto;
+            width: 480px;
+            height: 800px;
         }
     </style>
 </head>
@@ -34,5 +32,10 @@
 </div>
 <script src="frameworks/cocos2d-html5/CCBoot.js"></script>
 <script src="main.js"></script>
+<script type="text/javascript">
+    if (!(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))) {
+        document.getElementById("gameCanvasWrap").className = "desktop";
+    }
+</script>
 </body>
 </html>
