@@ -185,6 +185,159 @@ function WebSocketConnectBase:runEventLoop()
     printInfo("websocket [afterConnectClose]")
 end
 
+function WebSocketConnectBase:getConnectId()
+    if not self._connectId then
+        local redis = self:_getRedis()
+        self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
+    end
+    return self._connectId
+end
+
+function WebSocketConnectBase:setConnectTag(tag)
+    if not tag then
+        throw("set connect tag with invalid tag \"%s\"", tostring(tag))
+    else
+        if self._connectTag then
+            self:removeConnectTag()
+        end
+
+        local connectId = self:getConnectId()
+        tag = tostring(tag)
+        local pipe = self:_getRedis():newPipeline()
+        pipe:command("HMSET", Constants.CONNECTS_ID_DICT_KEY, connectId, tag)
+        pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag, connectId)
+        pipe:commit()
+        self._connectTag = tag
+    end
+end
+
+function WebSocketConnectBase:getConnectTag()
+    if not self._connectTag then
+        local connectId = self:getConnectId()
+        local redis = self:_getRedis()
+        self._connectTag = redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, connectId)
+    end
+    return self._connectTag
+end
+
+function WebSocketConnectBase:removeConnectTag()
+    if not self._connectId then return end
+    local connectId = self:getConnectId()
+    local tag = self:getConnectTag()
+    local pipe = self:_getRedis():newPipeline()
+    pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
+    pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
+    pipe:commit()
+end
+
+function WebSocketConnectBase:sendMessageToSelf(message)
+    self._socket:send_text(message)
+end
+
+function WebSocketConnectBase:subscribeChannel(channelName, callback)
+    local sub = self._subscribeChannels[channelName]
+    if not sub then
+        sub = {
+            name = channelName,
+            enabled = false,
+            running = false,
+            retryCount = 0,
+            redis = nil,
+        }
+        self._subscribeChannels[channelName] = sub
+    end
+
+    if sub.enabled then
+        printWarn("already subscribed channel \"%s\"", sub.name)
+        return
+    end
+
+    local function _subscribe()
+        sub.enabled = true
+        sub.running = true
+
+        -- pubsub thread need separated redis connect
+        local redis = self:_newRedis()
+        sub.redis = redis
+        local channel = sub.name
+        local loop, err = redis:pubsub({subscribe = channel})
+        if not loop then
+            throw("subscribe channel \"%s\" failed, %s", channel, err)
+        end
+
+        for msg, abort in loop do
+            if not sub.running then
+                abort()
+                break
+            end
+
+            if msg.kind == "subscribe" then
+                printInfo("channel \"%s\" subscribed", channel)
+            elseif msg.kind == "message" then
+                local payload = msg.payload
+                printInfo("channel \"%s\" message \"%s\"", channel, payload)
+                if callback(payload) == false then
+                    abort()
+                    sub.running = false
+                    break
+                end
+            end
+        end
+
+        -- when error occured or exit normally,
+        -- connect will auto close, channel will be unsubscribed
+        sub.enabled = false
+        redis:setKeepAlive()
+        if not sub.running then
+            self._subscribeChannels[channel] = nil
+            return
+        end
+
+        -- if an error leads to an exiting, retry to subscribe channel
+        if sub.retryCount < self.config.maxSubscribeRetryCount then
+            sub.retryCount = sub.retryCount + 1
+            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
+            self:subscribeChannel(channel, callback)
+        else
+            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
+            self._subscribeChannels[channel] = nil
+        end
+    end
+
+    local thread = ngx_thread_spawn(_subscribe)
+    printInfo("spawn subscribe thread \"%s\"", tostring(thread))
+end
+
+function WebSocketConnectBase:unsubscribeChannel(channelName)
+    local sub = self._subscribeChannels[channelName]
+    if not sub then
+        printInfo("not subscribe channel \"%s\"", channelName)
+    else
+        printInfo("unsubscribe channel \"%s\"", channelName)
+        sub.running = false
+    end
+end
+
+-- events
+
+function WebSocketConnectBase:beforeConnectReady()
+end
+
+function WebSocketConnectBase:afterConnectReady()
+end
+
+function WebSocketConnectBase:beforeConnectClose()
+end
+
+function WebSocketConnectBase:afterConnectClose()
+end
+
+function WebSocketConnectBase:convertTokenToSessionId(token)
+    return token
+end
+
+-- private methods
+
 function WebSocketConnectBase:_processMessage(rawMessage, messageType)
     local message = self:_parseMessage(rawMessage, messageType)
     local msgid = message.__id
@@ -291,153 +444,6 @@ function WebSocketConnectBase:_authConnect()
     session:setConnectId(connectId)
     session:save()
     self._connectChannel = Constants.CONNECT_CHANNEL_PREFIX .. connectId
-end
-
-function WebSocketConnectBase:getConnectId()
-    if not self._connectId then
-        local redis = self:_getRedis()
-        self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
-    end
-    return self._connectId
-end
-
-function WebSocketConnectBase:setConnectTag(tag)
-    if not tag then
-        throw("set connect tag with invalid tag \"%s\"", tostring(tag))
-    else
-        if self._connectTag then
-            self:removeConnectTag()
-        end
-
-        local connectId = self:getConnectId()
-        tag = tostring(tag)
-        local pipe = self:_getRedis():newPipeline()
-        pipe:command("HMSET", Constants.CONNECTS_ID_DICT_KEY, connectId, tag)
-        pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag, connectId)
-        pipe:commit()
-        self._connectTag = tag
-    end
-end
-
-function WebSocketConnectBase:getConnectTag()
-    if not self._connectTag then
-        local connectId = self:getConnectId()
-        local redis = self:_getRedis()
-        self._connectTag = redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, connectId)
-    end
-    return self._connectTag
-end
-
-function WebSocketConnectBase:removeConnectTag()
-    if not self._connectId then return end
-    local connectId = self:getConnectId()
-    local tag = self:getConnectTag()
-    local pipe = self:_getRedis():newPipeline()
-    pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
-    pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
-    pipe:commit()
-end
-
-function WebSocketConnectBase:subscribeChannel(channelName, callback)
-    local sub = self._subscribeChannels[channelName]
-    if not sub then
-        sub = {
-            name = channelName,
-            enabled = false,
-            running = false,
-            retryCount = 0,
-            redis = nil,
-        }
-        self._subscribeChannels[channelName] = sub
-    end
-
-    if sub.enabled then
-        printWarn("already subscribed channel \"%s\"", sub.name)
-        return
-    end
-
-    local function _subscribe()
-        sub.enabled = true
-        sub.running = true
-
-        -- pubsub thread need separated redis connect
-        local redis = self:_newRedis()
-        sub.redis = redis
-        local channel = sub.name
-        local loop, err = redis:pubsub({subscribe = channel})
-        if not loop then
-            throw("subscribe channel \"%s\" failed, %s", channel, err)
-        end
-
-        for msg, abort in loop do
-            if not sub.running then
-                abort()
-                break
-            end
-
-            if msg.kind == "subscribe" then
-                printInfo("channel \"%s\" subscribed", channel)
-            elseif msg.kind == "message" then
-                local payload = msg.payload
-                printInfo("channel \"%s\" message \"%s\"", channel, payload)
-                if callback(payload) == false then
-                    abort()
-                    sub.running = false
-                    break
-                end
-            end
-        end
-
-        -- when error occured or exit normally,
-        -- connect will auto close, channel will be unsubscribed
-        sub.enabled = false
-        redis:setKeepAlive()
-        if not sub.running then
-            self._subscribeChannels[channel] = nil
-            return
-        end
-
-        -- if an error leads to an exiting, retry to subscribe channel
-        if sub.retryCount < self.config.maxSubscribeRetryCount then
-            sub.retryCount = sub.retryCount + 1
-            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
-            self:subscribeChannel(channel, callback)
-        else
-            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
-            self._subscribeChannels[channel] = nil
-        end
-    end
-
-    local thread = ngx_thread_spawn(_subscribe)
-    printInfo("spawn subscribe thread \"%s\"", tostring(thread))
-end
-
-function WebSocketConnectBase:unsubscribeChannel(channelName)
-    local sub = self._subscribeChannels[channelName]
-    if not sub then
-        printInfo("not subscribe channel \"%s\"", channelName)
-    else
-        printInfo("unsubscribe channel \"%s\"", channelName)
-        sub.running = false
-    end
-end
-
--- events
-
-function WebSocketConnectBase:beforeConnectReady()
-end
-
-function WebSocketConnectBase:afterConnectReady()
-end
-
-function WebSocketConnectBase:beforeConnectClose()
-end
-
-function WebSocketConnectBase:afterConnectClose()
-end
-
-function WebSocketConnectBase:convertTokenToSessionId(token)
-    return token
 end
 
 return WebSocketConnectBase

@@ -63,6 +63,8 @@ function ActionDispatcher:runAction(actionName, data, isPersistentActionInstance
             local ok, _actionModule = pcall(require,  actionModulePath)
             if ok then
                 actionModule = _actionModule
+            else
+                throw("failed to load action module \"%s\", %s", actionModulePath, _actionModule)
             end
         end
 
