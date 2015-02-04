@@ -9,6 +9,12 @@ function ConnectFactory.createConnect(config, classNamePrefix)
         local ok, _serverAppClass = pcall(require, className)
         if ok then
             serverAppClass = _serverAppClass
+        else
+            local check = string.format("module '%s' not found:", className)
+            local err = _serverAppClass
+            if string.find(err, check) == nil then
+                printWarn("faile to load module \"%s\", %s", className, err)
+            end
         end
     end
 
