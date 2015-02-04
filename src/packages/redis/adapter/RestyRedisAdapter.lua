@@ -161,7 +161,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
 
     return coroutine.wrap(function()
         while true do
-            if aborting or ngx_worker_exiting() then
+            if ngx_worker_exiting() then
                 _abort()
                 break
             end
