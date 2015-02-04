@@ -4,8 +4,10 @@ local math_abs = math.abs
 
 local math2d = cc.load("math2d")
 local math2d_dist = math2d.dist
+local math2d_angle = math2d.angle
 local math2d_degrees = math2d.degrees
 local math2d_angleBetweenPoints = math2d.angleBetweenPoints
+local math2d_pointAtCircle = math2d.pointAtCircle
 
 local GameConfig = import("..GameConfig")
 
@@ -22,40 +24,52 @@ local function _absDegrees(d)
 end
 
 function Tank.simulateMove(message, current)
-    local begin = message.__time
-    local rotation = message.rotation
+    local beginTime = message.__time
+    local rotateSpeed = message.rotateSpeed
     local rotateOffset = message.rotateOffset
 
+    local delta = current - beginTime
+    local rotateTimeLen = rotateOffset / rotateSpeed
+    if delta < rotateTimeLen then
+        -- rotate is not complete
+        local offset = rotateSpeed * delta
+        if rotation.dir == "right" then
+            message.rotation = message.rotation + offset
+        else
+            message.rotation = message.rotation - offset
+        end
+        message.rotateOffset = rotateOffset - offset
+        return message
+    end
 
-    var rotation = this.getRotation();
-            var offset = this._rotateSpeed * dt;
-            if (this._dir == "right") {
-                rotation += offset;
-            } else {
-                rotation -= offset;
-            }
-            this._rotateOffset -= offset;
-            if (this._rotateOffset <= 0) {
-                rotation = this._destr;
-                this._state = "move";
-            }
-            this.setRotation(rotation);
+    -- rotate is completed
+    message.rotateOffset = 0
+    message.rotation = message.destr
+    delta = delta - rotateTimeLen
 
-    -- rotate
-
-
-    return {
-        move = true,
-        x = self._x,
-        y = self._y,
-        rotation = rotation,
-        destx = destx,
-        desty = desty,
-        destr = destr,
-        dist  = dist,
-        dir = dir,
-        rotateOffset = math_abs(rotateOffset)
-    }
+    local speed = message.speed
+    local movingTimeLen = message.dist / speed
+    if delta < movingTimeLen then
+        -- moving is not complete
+        local movingLen = delta * speed
+        local x, y = message.x, message.y
+        x, y = math2d_pointAtCircle(x, y, math2d_angle(message.rotation), movingLen)
+        message.x = x
+        message.y = y
+        message.dist = message.dist - movingLen
+        return message
+    else
+        -- moving is completed
+        return {
+            __time   = current,
+            __uid    = message.__uid,
+            __event  = "idle",
+            color    = message.color,
+            x        = message.destx,
+            y        = message.desty,
+            rotation = message.destr,
+        }
+    end
 end
 
 function Tank:ctor(uid)
@@ -88,9 +102,9 @@ function Tank:enter()
     self._rotation = math.round(math.random(0, 360) / 90) * 90
     self._color = _COLORS[math.random(1, #_COLORS)]
     return {
-        color = self._color,
-        x = self._x,
-        y = self._y,
+        color    = self._color,
+        x        = self._x,
+        y        = self._y,
         rotation = self._rotation
     }
 end
@@ -121,17 +135,18 @@ function Tank:move(x, y, rotation, destx, desty)
         rotateOffset = rotateOffset2
     end
     return {
-        move = true,
-        x = self._x,
-        y = self._y,
-        rotation = rotation,
-        destx = destx,
-        desty = desty,
-        destr = destr,
-        dist  = dist,
-        dir = dir,
-        speed = self._speed,
-        rotateSpeed = self._rotateSpeed,
+        move         = true,
+        color        = self._color,
+        x            = self._x,
+        y            = self._y,
+        rotation     = rotation,
+        destx        = destx,
+        desty        = desty,
+        destr        = destr,
+        dist         = dist,
+        dir          = dir,
+        speed        = self._speed,
+        rotateSpeed  = self._rotateSpeed,
         rotateOffset = math_abs(rotateOffset)
     }
 end

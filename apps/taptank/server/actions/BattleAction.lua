@@ -26,6 +26,7 @@ function BattleAction:enterAction(arg)
 
     local messages = battle:getCurrentTankMessages()
     messages[uid] = nil
+    local current = ngx_now()
     for _, message in pairs(messages) do
         local uid = message.__uid
         local event = message.__event
@@ -33,7 +34,7 @@ function BattleAction:enterAction(arg)
         if event == "enter" then
             -- forward to current connect
         elseif event == "move" then
-            message = Tank.simulateMove(message, ngx_now)
+            message = Tank.simulateMove(message, current)
         else
             -- skip unknown message
             message = nil

@@ -27,6 +27,10 @@ var Tank = cc.Sprite.extend({
         this._state = "idle";
     },
 
+    getUid: function() {
+        return this._uid;
+    },
+
     start: function() {
         this.stop();
         this._movingAction = this.runAction(new cc.RepeatForever(this._animation));
@@ -49,7 +53,7 @@ var Tank = cc.Sprite.extend({
         this._speed = message.speed;
         this._rotateSpeed = message.rotateSpeed;
         this._rotateOffset = message.rotateOffset;
-        this._state = "rotate";
+        this._state = this._rotateOffset > 0 ? "rotate" : "move";
 
         this.setPosition(message.x, message.y);
         this.setRotation(message.rotation);
@@ -100,41 +104,30 @@ var BattleLayer = cc.Layer.extend({
         this._tanks = {};
 
         var self = this;
-        var currentUid = server.getUid();
 
         server.onenter = function(message) {
-            var uid = message.__uid;
-            var tank = self._tanks[uid];
-            if (typeof tank === "undefined") {
-                tank = new Tank(message.color, uid);
-                self.addChild(tank);
-                if (currentUid == uid) {
-                    cc.log("your tank %s enter battle", uid);
-                    self._tank = tank;
-                } else {
-                    cc.log("tank %s enter battle", uid);
-                }
-            }
+            server.onidle(message);
+        };
+
+        server.onidle = function(message) {
+            var tank = self.checktank(message);
             tank.setVisible(true);
             tank.setPosition(message.x, message.y);
             tank.setRotation(message.rotation);
-            self._tanks[uid] = tank;
         };
 
         server.onmove = function(message) {
-            var uid = message.__uid;
-            var tank = self._tanks[uid];
+            var tank = self.checktank(message);
             if (typeof tank !== "undefined") {
                 tank.move(message);
             }
         }
 
         server.onremove = function(message) {
-            var uid = message.__uid;
-            var tank = self._tanks[uid];
+            var tank = self.checktank(message);
             if (typeof tank !== "undefined") {
                 tank.removeFromParent();
-                self._tanks[uid] = null;
+                self._tanks[tank.getUid()] = null;
             }
         }
 
@@ -151,6 +144,24 @@ var BattleLayer = cc.Layer.extend({
 
         cc.eventManager.addListener(listener, this);
         this.scheduleUpdate();
+    },
+
+    checktank: function(message) {
+        var currentUid = server.getUid();
+        var uid = message.__uid;
+        var tank = this._tanks[uid];
+        if (typeof tank === "undefined") {
+            tank = new Tank(message.color, uid);
+            this.addChild(tank);
+            if (currentUid == uid) {
+                cc.log("your tank %s enter battle", uid);
+                this._tank = tank;
+            } else {
+                cc.log("tank %s enter battle", uid);
+            }
+        }
+        this._tanks[uid] = tank;
+        return tank;
     },
 
     move: function(dest) {
