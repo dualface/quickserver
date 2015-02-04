@@ -43,7 +43,7 @@ function SessionService.load(redis, sid, expired, remoteAddr)
 
     data = json_decode(data)
     if type(data) == "table" then
-        if sid ~= data.__id or remoteAddr ~= data.__addr then
+        if sid ~= data.__id then -- or remoteAddr ~= data.__addr
             throw("load session with invalid sid \"%s\"", sid)
         end
         data.__id = nil
