@@ -271,15 +271,17 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
                 break
             end
 
-            if msg.kind == "subscribe" then
-                printInfo("channel \"%s\" subscribed", channel)
-            elseif msg.kind == "message" then
-                local payload = msg.payload
-                printInfo("channel \"%s\" message \"%s\"", channel, payload)
-                if callback(payload) == false then
-                    abort()
-                    sub.running = false
-                    break
+            if msg then
+                if msg.kind == "subscribe" then
+                    printInfo("channel \"%s\" subscribed", channel)
+                elseif msg.kind == "message" then
+                    local payload = msg.payload
+                    printInfo("channel \"%s\" message \"%s\"", channel, payload)
+                    if callback(payload) == false then
+                        sub.running = false
+                        abort()
+                        break
+                    end
                 end
             end
         end
@@ -290,17 +292,16 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         redis:setKeepAlive()
         if not sub.running then
             self._subscribeChannels[channel] = nil
-            return
-        end
-
-        -- if an error leads to an exiting, retry to subscribe channel
-        if sub.retryCount < self.config.maxSubscribeRetryCount then
-            sub.retryCount = sub.retryCount + 1
-            printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
-            self:subscribeChannel(channel, callback)
         else
-            printWarn("subscribe channel \"%s\" loop ended, max try", channel)
-            self._subscribeChannels[channel] = nil
+            -- if an error leads to an exiting, retry to subscribe channel
+            if sub.retryCount < self.config.maxSubscribeRetryCount then
+                sub.retryCount = sub.retryCount + 1
+                printWarn("subscribe channel \"%s\" loop ended, try [%d]", channel, sub.retryCount)
+                self:subscribeChannel(channel, callback)
+            else
+                printWarn("subscribe channel \"%s\" loop ended, max try", channel)
+                self._subscribeChannels[channel] = nil
+            end
         end
     end
 

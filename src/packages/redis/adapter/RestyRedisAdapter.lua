@@ -141,7 +141,7 @@ function RestyRedisAdapter:pubsub(subscriptions)
         end
     end
 
-    local aborting, subscriptionsCount = false, 0
+    local subscriptionsCount = 0
     local function _abort()
         if subscriptions.subscribe then
             _unsubscribe(self._instance.unsubscribe, subscriptions.subscribe)
@@ -149,7 +149,6 @@ function RestyRedisAdapter:pubsub(subscriptions)
         if subscriptions.psubscribe then
             _unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe)
         end
-        aborting = true
     end
 
     if subscriptions.subscribe then
@@ -177,8 +176,8 @@ function RestyRedisAdapter:pubsub(subscriptions)
                 end
             end
 
+            local message
             if result then
-                local message
                 if result[1] == "pmessage" then
                     message = {
                         kind = result[1],
@@ -204,8 +203,8 @@ function RestyRedisAdapter:pubsub(subscriptions)
                 if subscriptionsCount == 0 then
                     break
                 end
-                coroutine.yield(message, _abort)
             end
+            coroutine.yield(message, _abort)
         end
     end)
 end
