@@ -2,8 +2,6 @@
 
 Copyright (c) 2011-2015 chukong-inc.com
 
-https://github.com/dualface/quickserver
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -24,38 +22,32 @@ THE SOFTWARE.
 
 ]]
 
-local ActionDispatcher = import(".ActionDispatcher")
-local CommandLineBase = class("CommandLineBase", ActionDispatcher)
+local string_format = string.format
+local io
 
-function CommandLineBase:ctor(config, arg)
-    CommandLineBase.super.ctor(self, config)
+local MaintainAction = class("Maintain") 
 
-    self._requestType = Constants.CLI_REQUEST_TYPE
-    self._requestParameters = checktable(arg)
+function MaintainAction:ctor(app)
+    self._app = app 
+    self.config.process = self.config.monitor.process
+
+    self._pid = {}
+    self._data = {}
 end
 
-function CommandLineBase:run()
-    local ok, err = xpcall(function()
-        self:runEventLoop()
-    end, function(err)
-        err = tostring(err)
-        printlog(ERR, err)
-    end)
+function MaintainAction:monitorAction(arg)
+    _getPid()
+    
 end
 
-function CommandLineBase:runEventLoop()
-    local actionName = self._requestParameters[1]
-    if actionName == "help" then
-        self:_showHelp()
-        return
+function MaintainAction:_getPid(process)
+    for _, procName in ipairs(process) do
+        local cmd = string_format("pgrep %s", procName)
+        local fout = io_popen(cmd)
+        local res = fout:read("*a")
+        fout:close()
+        self._pid[procName] = string_split(res, "\n")
     end
-
-    local resutl = self:runAction(actionName, self._requestParameters)
-    printInfo("DONE")
 end
 
-function CommandLineBase:_showHelp()
-    printf("usage: tools [ActionModule.Action] [args]")
-end
-
-return CommandLineBase
+return MaintainAction
