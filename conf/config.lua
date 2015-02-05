@@ -22,28 +22,36 @@ THE SOFTWARE.
 
 ]]
 
-local _DBG_ERROR = 0
-local _DBG_WARN  = 1
-local _DBG_INFO  = 2
-local _DBG_DEBUG = 3
-
-DEBUG = _DBG_DEBUG
+_DBG_ERROR = 0
+_DBG_WARN  = 1
+_DBG_INFO  = 2
+_DBG_DEBUG = 3
 
 local config = {
-    appRootPath = "_QUICK_SERVER_ROOT_/welcome/app",
-    cmdRootPath = "_QUICK_SERVER_ROOT_/tools",
+    -- user app
+    appRootPath = "_QUICK_SERVER_ROOT_/<USER_APP_ROOT>",
 
-    sessionExpiredTime = 60 * 10, -- 10m
+    appWorkersEnabled = true,
+    appWorkers = {
+        instances = 4,
+    },
 
-    websocketsTimeout       = 60 * 1000, -- 60s
+    appHttpMessageFormat = "json",
+    appSocketMessageFormat = "json",
+    appSessionExpiredTime = 60 * 10, -- 10m
+
+    -- quick server
+    quickserverRootPath = "_QUICK_SERVER_ROOT_",
+    port = 8088,
+    welcomeEnabled = true,
+    adminEnabled = true,
+    websocketsTimeout = 60 * 1000, -- 60s
     websocketsMaxPayloadLen = 16 * 1024, -- 16KB
-    websocketsMessageFormat = "json",
-
     maxSubscribeRetryCount = 10,
 
-    jobMessageFormat = "json",
-    broadcastJobTube = "jobTube",
-
+    -- internal memory database
+    -- --no-redis
+    redisEnabled = true,
     redis = {
         socket     = "unix:_QUICK_SERVER_ROOT_/tmp/redis.sock",
         -- host       = "127.0.0.1",
@@ -51,26 +59,17 @@ local config = {
         timeout    = 10 * 1000, -- 10 seconds
     },
 
+    -- background job server
+    -- --no-beanstalkd
+    beanstalkdEnabled = true,
     beanstalkd = {
         host       = "127.0.0.1",
         port       = 11300,
     },
 
-    -- external servers used by user
-    --[[
-    externalServers = {
-        mysql = {
-            host       = "127.0.0.1",
-            port       = 3306,
-            database   = "testdb",
-            user       = "test",
-            password   = "123456",
-            timeout    = 10 * 1000,
-        },
-    },
-    --]]
-
-    -- worker process thredsholds
+    -- internal monitor
+    -- --no-workers
+    monitorEnabled = true,
     monitor = {
         process = {
             "nginx",
@@ -88,9 +87,9 @@ local config = {
             critical = 90,
         },
 
-        interval = 10, 
+        interval = 10,
 
-        criticalStatePersistentTImes = 3, 
+        criticalStatePersistentTImes = 3,
     },
 }
 
