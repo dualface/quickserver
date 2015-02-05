@@ -266,10 +266,10 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
         end
 
         for msg, abort in loop do
-            --[[if not sub.running then
+            if not sub.running then
                 abort()
                 break
-                end]]
+            end
 
             if msg.kind == "subscribe" then
                 printInfo("channel \"%s\" subscribed", channel)
