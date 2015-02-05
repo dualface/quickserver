@@ -630,7 +630,9 @@ function string.split(input, delimiter)
         table_insert(arr, string_sub(input, pos, st - 1))
         pos = sp + 1
     end
-    table_insert(arr, string_sub(input, pos))
+    if pos <= string_len(input) then
+        table_insert(arr, string_sub(input, pos))
+    end
     return arr
 end
 
