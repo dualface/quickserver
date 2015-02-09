@@ -25,5 +25,5 @@ THE SOFTWARE.
 local factory = require("server.base.Factory")
 
 -- SERVER_CONFIG from init_by_lua, see nginx.conf
-local app = factory.create(SERVER_CONFIG, "Http")
+local app = factory.create(SERVER_CONFIG, "HttpConnect")
 app:run()

@@ -25,25 +25,16 @@ THE SOFTWARE.
 local Factory = class("Factory")
 
 function Factory.create(config, classNamePrefix, ...)
-    local classNameSuffix
-    local rootPath
-    if classNamePrefix == "Command" then
-        classNameSuffix = "Line" 
-        package.path = config.cmdRootPath .. "/?.lua;" .. package.path
-    else 
-        classNameSuffix = "Connect"
-        package.path = config.appRootPath .. "/?.lua;" .. package.path
-    end
+    package.path = config.appRootPath .. "/?.lua;" .. package.path
 
     local tagretClass
-    local className = classNamePrefix .. classNameSuffix
-    local ok, _tagretClass = pcall(require, className)
+    local ok, _tagretClass = pcall(require, classNamePrefix)
     if ok then
         tagretClass = _tagretClass
     end
         
     if not tagretClass then
-        tagretClass = require("server.base." .. className .. "Base")
+        tagretClass = require("server.base." .. classNamePrefix .. "Base")
     end
 
     return tagretClass:create(config, ...)
