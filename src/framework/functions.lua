@@ -625,9 +625,12 @@ function string.split(input, delimiter)
     input = tostring(input)
     delimiter = tostring(delimiter)
     if (delimiter=='') then return false end
-    local pos,arr = 0, {}
+    local pos,arr = 1, {}
     for st,sp in function() return string_find(input, delimiter, pos, true) end do
-        table_insert(arr, string_sub(input, pos, st - 1))
+        local str = string_sub(input, pos, st - 1) 
+        if str ~= "" then
+            table_insert(arr, str)
+        end
         pos = sp + 1
     end
     if pos <= string_len(input) then
