@@ -25,16 +25,16 @@ THE SOFTWARE.
 ]]
 
 local ActionDispatcher = import(".ActionDispatcher")
-local CommandLineBase = class("CommandLineBase", ActionDispatcher)
+local CLIBase = class("CLIBase", ActionDispatcher)
 
-function CommandLineBase:ctor(config, arg)
-    CommandLineBase.super.ctor(self, config)
+function CLIBase:ctor(config, arg)
+    CLIBase.super.ctor(self, config)
 
     self._requestType = Constants.CLI_REQUEST_TYPE
     self._requestParameters = checktable(arg)
 end
 
-function CommandLineBase:run()
+function CLIBase:run()
     local ok, err = xpcall(function()
         self:runEventLoop()
     end, function(err)
@@ -43,7 +43,7 @@ function CommandLineBase:run()
     end)
 end
 
-function CommandLineBase:runEventLoop()
+function CLIBase:runEventLoop()
     local actionName = self._requestParameters[1]
     if actionName == "help" then
         self:_showHelp()
@@ -54,8 +54,8 @@ function CommandLineBase:runEventLoop()
     printInfo("DONE")
 end
 
-function CommandLineBase:_showHelp()
+function CLIBase:_showHelp()
     printf("usage: tools [ActionModule.Action] [args]")
 end
 
-return CommandLineBase
+return CLIBase
