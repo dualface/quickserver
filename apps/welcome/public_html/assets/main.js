@@ -63,9 +63,9 @@ var isFunction = function(functionToCheck)
 
 var test = {
     server_addr: null,
-    http_entry: "api",
+    http_entry: "welcome_api",
     http_server_addr: null,
-    websocket_entry: "socket",
+    websocket_entry: "welcome_socket",
     websocket_server_addr: null,
 
     username: null,
