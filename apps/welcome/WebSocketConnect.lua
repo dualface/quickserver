@@ -8,9 +8,13 @@ function WebSocketConnect:ctor(config)
 end
 
 function WebSocketConnect:afterConnectReady()
-    -- init
-    local tag = self:getSession():get("tag")
-    self:setConnectTag(tag)
+    -- send connect id to client
+    local message = {connectId = self:getConnectId()}
+    self:sendMessageToSelf(message)
+
+    -- add connect id to online users list
+
+    return tag
 end
 
 function WebSocketConnect:beforeConnectClose()

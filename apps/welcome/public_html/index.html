@@ -25,15 +25,19 @@
                 <th>Username / Password :</th>
                 <td>
                     <input type="text" id="input_username" class="small" />
-                    <input type="password" id="input_password" class="small" />
                     <input type="button" value="Login" id="button_login" />
-                    <input type="button" value="Register" id="button_register" onclick="return test.register();" class="register" />
                 </td>
             </tr>
             <tr>
-                <th>Session ID / Tag :</th>
+                <th>Session ID :</th>
                 <td>
-                    <span id="session_id">none</span>/<span id="connect_tag">none</span>
+                    <span id="session_id">none</span>
+                </td>
+            </tr>
+            <tr>
+                <th>Connect ID :</th>
+                <td>
+                    <span id="connect_id">none</span>
                 </td>
             </tr>
             <tr>
@@ -52,13 +56,13 @@
             </tr>
             <tr>
                 <th>Connect Tag :</th>
-                <td><input type="text" id="dest_connect_tag" /></td>
+                <td><input type="text" id="dest_connect_id" /></td>
             </tr>
             <tr>
                 <th>Message :</th>
                 <td>
                     <input type="text" id="send_message" />
-                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_tag').val(), $('#send_message').val());" />
+                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_id').val(), $('#send_message').val());" />
                 </td>
             </tr>
         </table>

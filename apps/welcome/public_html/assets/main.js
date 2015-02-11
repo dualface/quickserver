@@ -1,17 +1,14 @@
 
-$(document).ready(function()
-{
+$(document).ready(function() {
     var l = document.location;
     $("#server_addr").val(l.host);
-    $("#dest_connect_tag").val("");
+    $("#dest_connect_id").val("");
     test.set_inputs_disabled(false);
 });
 
-var f2num = function(n, l)
-{
+var f2num = function(n, l) {
     if (typeof l == "undefined") l = 2;
-    while (n.length < l)
-    {
+    while (n.length < l) {
         n = "0" + n;
     }
     return n;
@@ -20,18 +17,18 @@ var f2num = function(n, l)
 var log = {
     _lasttime: 0,
 
-    add: function(message)
-    {
+    add: function(message) {
         var _log = $("#log");
         var now = new Date();
         var nowtime = now.getTime();
-        if (log._lasttime > 0 && nowtime - log._lasttime > 10000) // 10s
-        {
+        if (log._lasttime > 0 && nowtime - log._lasttime > 10000) { // 10s
             $("#log").append("-------------------------\n");
         }
         log._lasttime = nowtime;
 
-        var time = f2num(now.getHours().toString()) + ":" + f2num(now.getMinutes().toString()) + ":" + f2num(now.getSeconds().toString());
+        var time = f2num(now.getHours().toString())
+                 + ":" + f2num(now.getMinutes().toString())
+                 + ":" + f2num(now.getSeconds().toString());
         message = $("<div/>").text(message).html();
         message = message.replace("\n", "<br />\n");
         _log.append("[<strong>" + time + "</strong>] " + message + "\n");
@@ -40,23 +37,20 @@ var log = {
         return false;
     },
 
-    add_mark: function()
-    {
+    add_mark: function() {
         var _log = $("#log");
         _log.append("<strong>--------<strong>\n");
         _log.scrollTop(_log.prop("scrollHeight"));
         return false;
     },
 
-    clear: function()
-    {
+    clear: function() {
         $('#log').empty();
         return false;
     }
 }
 
-var isFunction = function(functionToCheck)
-{
+var isFunction = function(functionToCheck) {
     var getType = {};
     return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
 }
@@ -76,54 +70,44 @@ var test = {
     callbacks: {}
 };
 
-test.set_inputs_disabled = function(disabled)
-{
+test.set_inputs_disabled = function(disabled) {
     $("#server_addr").prop("disabled", disabled);
     $("#input_username").prop("disabled", disabled);
-    $("#input_password").prop("disabled", disabled);
 
     $("#button_login").val(disabled ? "Logout" : "Login")
         .unbind("click")
-        .click(disabled ? function() { return test.logout(); } : function() { return test.login(); });
-
-    $("#button_register").prop("disabled", disabled);
+        .click(function() {
+            return disabled ? test.logout() : test.login();
+        });
 }
 
-test.validate_res = function(res, fields)
-{
+test.validate_res = function(res, fields) {
     var err = res["err"];
-    if (typeof err !== "undefined")
-    {
+    if (typeof err !== "undefined") {
         test.set_inputs_disabled(false);
         log.add("ERR: " + err.toString());
         return false;
     }
 
-    for (var i = 0; i < fields.length; i++)
-    {
+    for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         var v = res[field];
-        if (typeof v === "undefined")
-        {
+        if (typeof v === "undefined") {
             log.add("ERR: not found field \"" + field + "\" in result");
             return false;
         }
     }
-
     return true;
 }
 
-test.login = function()
-{
-    if (test.session_id)
-    {
+test.login = function() {
+    if (test.session_id) {
         log.add("ALREADY LOGIN");
         return false;
     }
 
     var username = $("#input_username").val();
-    if (username === "")
-    {
+    if (username === "") {
         log.add("PLEASE ENTER username");
         return false;
     }
@@ -137,8 +121,7 @@ test.login = function()
 
     var data = {"username": username}
     test.http_request("user.login", data, function(res) {
-        if (!test.validate_res(res, ["sid", "count"]))
-        {
+        if (!test.validate_res(res, ["sid", "count"])) {
             test.set_inputs_disabled(false);
             return;
         }
@@ -146,17 +129,14 @@ test.login = function()
         log.add("GET SESSION ID: " + test.session_id);
         log.add("count = " + res["count"].toString());
         $("#session_id").text(test.session_id);
-        $("#connect_tag").text(res["tag"]);
         $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
 
         test.connect();
     });
 }
 
-test.logout = function()
-{
-    if (test.session_id === null)
-    {
+test.logout = function() {
+    if (test.session_id === null) {
         log.add("ALREADY LOGOUT");
         return false;
     }
@@ -164,18 +144,15 @@ test.logout = function()
     test.http_request("user.logout", {"sid": test.session_id}, function(res) {
         test.session_id = null;
         log.add("LOGOUTED");
-        log.add_mark();
         $("#session_id").text("none");
-        $("#connect_tag").text("none");
+        $("#connect_id").text("none");
         $("#count_value").text("[COUNT = *]");
         test.set_inputs_disabled(false);
     });
 }
 
-test.count = function()
-{
-    if (test.session_id === null)
-    {
+test.count = function() {
+    if (test.session_id === null) {
         log.add("PLEASE LOGIN");
         return false;
     }
@@ -187,15 +164,12 @@ test.count = function()
     });
 }
 
-test.connect = function()
-{
-    if (test.socket !== null)
-    {
+test.connect = function() {
+    if (test.socket !== null) {
         return log.add("ALREADY CONNECTED");
     }
 
-    if (test.session_id === null)
-    {
+    if (test.session_id === null) {
         return log.add("LOGIN FIRST");
     }
 
@@ -203,38 +177,34 @@ test.connect = function()
     log.add("CONNECT WEBSOCKET with PROTOCOL: " + protocol.toString());
 
     var socket = new WebSocket(test.websocket_server_addr, protocol);
-    socket.onopen = function()
-    {
+    socket.onopen = function() {
         log.add("WEBSOCKET CONNECTED");
     };
-    socket.onerror = function(error)
-    {
-        if (error instanceof Event)
-        {
+    socket.onerror = function(error) {
+        if (error instanceof Event) {
             log.add("ERR: CONNECT FAILED");
-        }
-        else
-        {
+        } else {
             log.add("ERR: " + error.toString());
         }
     };
-    socket.onmessage = function(event)
-    {
+    socket.onmessage = function(event) {
         log.add("SOCKET RECV: " + event.data.toString());
         var data = JSON.parse(event.data);
-        if (data["_msgid"])
-        {
-            var msgid = data["_msgid"].toString();
-            if (typeof test.callbacks[msgid] !== "undefined")
-            {
+        if (data["__id"]) {
+            var msgid = data["__id"].toString();
+            if (typeof test.callbacks[msgid] !== "undefined") {
                 var callback = test.callbacks[msgid];
                 test.callbacks[msgid] = null;
                 callback(data);
             }
+        } else {
+            var connectId = data["connectId"];
+            if (typeof connectId !== "undefined") {
+                $("#connect_id").text(connectId);
+            }
         }
     };
-    socket.onclose = function()
-    {
+    socket.onclose = function() {
         log.add("WEBSOCKET DISCONNECTED");
         test.socket = null;
     };
@@ -243,14 +213,10 @@ test.connect = function()
     return false;
 }
 
-test.disconnect = function()
-{
-    if (test.socket === null)
-    {
+test.disconnect = function() {
+    if (test.socket === null) {
         log.add("NOT CONNECTED");
-    }
-    else
-    {
+    } else {
         test.socket.close();
         test.socket = null;
         test.callbacks = {};
@@ -258,24 +224,20 @@ test.disconnect = function()
     return false;
 }
 
-test.http_request = function(action, data, callback)
-{
+test.http_request = function(action, data, callback) {
     var url = test.http_server_addr + "?action=" + action;
     $.post(url, data, callback, "json");
 }
 
-test.send_message = function(dest, message)
-{
+test.send_message = function(dest, message) {
     dest = dest.toString();
-    if (dest === "")
-    {
+    if (dest === "") {
         log.add("PLEASE ENTER destination Connect Tag");
         return false;
     }
 
     message = message.toString();
-    if (message === "")
-    {
+    if (message === "") {
         log.add("PLEASE ENTER message");
         return false;
     }
@@ -290,10 +252,8 @@ test.send_message = function(dest, message)
     test.send_data(data);
 }
 
-test.send_data = function(data, callback)
-{
-    if (test.socket === null)
-    {
+test.send_data = function(data, callback) {
+    if (test.socket === null) {
         log.add("NOT CONNECTED");
         return false;
     }
@@ -302,8 +262,7 @@ test.send_data = function(data, callback)
     data["__id"] = test.msg_id;
     var json_str = JSON.stringify(data);
 
-    if (isFunction(callback))
-    {
+    if (isFunction(callback)) {
         test.callbacks[test.msg_id.toString()] = callback;
     }
 
