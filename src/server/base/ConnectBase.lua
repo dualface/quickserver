@@ -101,12 +101,12 @@ function ConnectBase:sendMessageToChannel(channelName, message)
     if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON and type(message) == "table" then
         message = json_encode(message)
     end
-    local redis = self:_getRedis()
+    local redis = self:getRedis()
     redis:command("PUBLISH", channelName, tostring(message))
 end
 
 function ConnectBase:_loadSession(sid)
-    local redis = self:_getRedis()
+    local redis = self:getRedis()
     local session = SessionService.load(redis, sid, self.config.appSessionExpiredTime, ngx.var.remote_addr)
     if session then
         session:setKeepAlive()
@@ -123,10 +123,10 @@ function ConnectBase:_genSession()
     local mask = string.format("%0.5f|%0.10f|%s", now, random, self._secret)
     local origin = string.format("%s|%s", addr, ngx_md5(mask))
     local sid = ngx_md5(origin)
-    return SessionService:create(self:_getRedis(), sid, self.config.appSessionExpiredTime, addr)
+    return SessionService:create(self:getRedis(), sid, self.config.appSessionExpiredTime, addr)
 end
 
-function ConnectBase:_getRedis()
+function ConnectBase:getRedis()
     if not self._redis then
         self._redis = self:_newRedis()
     end

@@ -189,7 +189,7 @@ end
 
 function WebSocketConnectBase:getConnectId()
     if not self._connectId then
-        local redis = self:_getRedis()
+        local redis = self:getRedis()
         self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
     end
     return self._connectId
@@ -373,7 +373,7 @@ function WebSocketConnectBase:_parseMessage(rawMessage, messageType)
 end
 
 function WebSocketConnectBase:_unsubscribeChannel()
-    local redis = self:_getRedis()
+    local redis = self:getRedis()
     redis:command("PUBLISH", self._connectChannel, "QUIT")
 end
 
