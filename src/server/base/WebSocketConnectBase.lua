@@ -28,12 +28,14 @@ local tostring = tostring
 local ngx = ngx
 local ngx_log = ngx.log
 local ngx_thread_spawn = ngx.thread.spawn
+local ngx_md5 = ngx.md5
 local req_read_body = ngx.req.read_body
 local req_get_headers = ngx.req.get_headers
 local table_insert = table.insert
 local table_concat = table.concat
 local string_format = string.format
 local string_sub = string.sub
+local json_encode = json.encode
 
 local ConnectBase = import(".ConnectBase")
 
@@ -104,11 +106,11 @@ function WebSocketConnectBase:runEventLoop()
 
     -- event callback
     self:afterConnectReady()
-    printInfo("websocket [afterConnectReady]")
+    printInfo("websocket [afterConnectReady], connect id: %s", tostring(self._connectId))
 
+    -- event loop
     local retryCount = 0
     local framesPool = {}
-    -- event loop
     while true do
         --[[
         Receives a WebSocket frame from the wire.
@@ -177,7 +179,7 @@ function WebSocketConnectBase:runEventLoop()
     printInfo("websocket [beforeConnectClose]")
     self:beforeConnectClose()
 
-    -- cleanup tag
+    -- remove connect tag, if exists
     self:removeConnectTag()
 
     -- close connect
@@ -227,14 +229,19 @@ function WebSocketConnectBase:removeConnectTag()
     if not self._connectId then return end
     local connectId = self:getConnectId()
     local tag = self:getConnectTag()
-    local pipe = self:_getRedis():newPipeline()
-    pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
-    pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
-    pipe:commit()
+    if tag then
+        local pipe = self:_getRedis():newPipeline()
+        pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
+        pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
+        pipe:commit()
+    end
 end
 
 function WebSocketConnectBase:sendMessageToSelf(message)
-    self._socket:send_text(message)
+    if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON and type(message) == "table" then
+        message = json_encode(message)
+    end
+    self._socket:send_text(tostring(message))
 end
 
 function WebSocketConnectBase:subscribeChannel(channelName, callback)

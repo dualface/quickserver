@@ -72,13 +72,11 @@ function ConnectBase:newSession()
     return self._session
 end
 
-function ConnectBase:destroySession(sid)
-    local session = self._session
-    if not session then
-        session = self:_loadSession(sid)
+function ConnectBase:destroySession()
+    if self._session then
+        self._session:destroy()
+        self._session = nil
     end
-    if session then session:destroy() end
-    self._session = nil
 end
 
 function ConnectBase:getConnectIdByTag(tag)
@@ -99,12 +97,11 @@ function ConnectBase:getConnectTagById(connectId)
     end
 end
 
-function ConnectBase:closeConnectByTag(tag)
-    local connectId = self:getConnectIdByTag(tag)
-    if connectId then
-        self:sendMessageToConnect(connectId, "QUIT")
+function ConnectBase:closeConnect(connectId)
+    if not connectId then
+        throw("invalid connect id \"%s\"", tostring(connectId))
     else
-        printInfo("not found connect id by tag \"%s\"", tostring(tag))
+        self:sendMessageToConnect(connectId, "QUIT")
     end
 end
 
@@ -120,10 +117,13 @@ end
 function ConnectBase:sendMessageToChannel(channelName, message)
     if not channelName or not message then
         throw("send message to channel with invalid channel name \"%s\" or invalid message", tostring(channelName))
-    else
-        local redis = self:_getRedis()
-        redis:command("PUBLISH", channelName, tostring(message))
     end
+
+    if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON and type(message) == "table" then
+        message = json_encode(message)
+    end
+    local redis = self:_getRedis()
+    redis:command("PUBLISH", channelName, tostring(message))
 end
 
 function ConnectBase:_loadSession(sid)
