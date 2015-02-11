@@ -42,8 +42,11 @@ local WebSocketConnectBase = class("WebSocketConnectBase", ConnectBase)
 local Constants = import(".Constants")
 
 function WebSocketConnectBase:ctor(config)
-    printInfo("new websocket instance")
     WebSocketConnectBase.super.ctor(self, config)
+
+    if config.appSocketMessageFormat then
+        self.config.messageFormat = config.appSocketMessageFormat
+    end
 
     self.config.websocketsTimeout = self.config.websocketsTimeout or Constants.WEBSOCKET_DEFAULT_TIME_OUT
     self.config.websocketsMaxPayloadLen = self.config.websocketsMaxPayloadLen or Constants.WEBSOCKET_DEFAULT_MAX_PAYLOAD_LEN
@@ -392,7 +395,7 @@ function WebSocketConnectBase:_parseMessage(rawMessage, messageType)
     end
 
     -- TODO: support message format plugin
-    if self.config.websocketsMessageFormat == "json" then
+    if self.config.appSocketMessageFormat == "json" then
         local message = json.decode(rawMessage)
         if type(message) == "table" then
             return message
@@ -400,7 +403,7 @@ function WebSocketConnectBase:_parseMessage(rawMessage, messageType)
             throw("not supported message format \"%s\"", type(message))
         end
     else
-        throw("not support message format \"%s\"", tostring(self.config.websocketsMessageFormat))
+        throw("not support message format \"%s\"", tostring(self.config.appSocketMessageFormat))
     end
 end
 

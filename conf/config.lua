@@ -36,9 +36,10 @@ local config = {
         instances = 4,
     },
 
-    appHttpMessageFormat = "json",
+    appHttpMessageFormat   = "json",
     appSocketMessageFormat = "json",
-    appSessionExpiredTime = 60 * 10, -- 10m
+    appJobMessageFormat    = "json",
+    appSessionExpiredTime  = 60 * 10, -- 10m
 
     -- quick server
     quickserverRootPath = "_QUICK_SERVER_ROOT_",

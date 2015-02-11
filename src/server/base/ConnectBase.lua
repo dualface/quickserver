@@ -103,6 +103,8 @@ function ConnectBase:closeConnectByTag(tag)
     local connectId = self:getConnectIdByTag(tag)
     if connectId then
         self:sendMessageToConnect(connectId, "QUIT")
+    else
+        printInfo("not found connect id by tag \"%s\"", tostring(tag))
     end
 end
 
@@ -126,7 +128,7 @@ end
 
 function ConnectBase:_loadSession(sid)
     local redis = self:_getRedis()
-    local session = SessionService.load(redis, sid, self.config.sessionExpiredTime, ngx.var.remote_addr)
+    local session = SessionService.load(redis, sid, self.config.appSessionExpiredTime, ngx.var.remote_addr)
     if session then
         session:setKeepAlive()
         printInfo("load session \"%s\"", sid)
@@ -142,7 +144,7 @@ function ConnectBase:_genSession()
     local mask = string.format("%0.5f|%0.10f|%s", now, random, self._secret)
     local origin = string.format("%s|%s", addr, ngx_md5(mask))
     local sid = ngx_md5(origin)
-    return SessionService:create(self:_getRedis(), sid, self.config.sessionExpiredTime, addr)
+    return SessionService:create(self:_getRedis(), sid, self.config.appSessionExpiredTime, addr)
 end
 
 function ConnectBase:_getRedis()

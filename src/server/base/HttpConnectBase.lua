@@ -46,6 +46,10 @@ local Constants = import(".Constants")
 function HttpConnectBase:ctor(config)
     HttpConnectBase.super.ctor(self, config)
 
+    if config.appHttpMessageFormat then
+        self.config.messageFormat = config.appHttpMessageFormat
+    end
+
     self._requestType = Constants.HTTP_REQUEST_TYPE
     self._requestMethod = req_get_method()
     self._requestParameters = req_get_uri_args()
