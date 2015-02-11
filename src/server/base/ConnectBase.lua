@@ -163,26 +163,4 @@ function ConnectBase:_newRedis()
     return redis
 end
 
-function ConnectBase:_genOutput(result, err)
-    local rtype = type(result)
-    if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON then
-        if err then
-            result = {err = err}
-        elseif rtype == "nil" then
-            result = {}
-        elseif rtype ~= "table" then
-            result = {result = tostring(result)}
-        end
-        return json_encode(result)
-    elseif self.config.messageFormat == Constants.MESSAGE_FORMAT_TEXT then
-        if err then
-            return nil, err
-        elseif rtype == "nil" then
-            return ""
-        else
-            return tostring(result)
-        end
-    end
-end
-
 return ConnectBase
