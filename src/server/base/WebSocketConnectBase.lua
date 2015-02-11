@@ -179,9 +179,6 @@ function WebSocketConnectBase:runEventLoop()
     printInfo("websocket [beforeConnectClose]")
     self:beforeConnectClose()
 
-    -- remove connect tag, if exists
-    self:removeConnectTag()
-
     -- close connect
     self._socket:send_close()
     self._socket = nil
@@ -196,45 +193,6 @@ function WebSocketConnectBase:getConnectId()
         self._connectId = tostring(redis:command("INCR", Constants.NEXT_CONNECT_ID_KEY))
     end
     return self._connectId
-end
-
-function WebSocketConnectBase:setConnectTag(tag)
-    if not tag then
-        throw("set connect tag with invalid tag \"%s\"", tostring(tag))
-    else
-        if self._connectTag then
-            self:removeConnectTag()
-        end
-
-        local connectId = self:getConnectId()
-        tag = tostring(tag)
-        local pipe = self:_getRedis():newPipeline()
-        pipe:command("HMSET", Constants.CONNECTS_ID_DICT_KEY, connectId, tag)
-        pipe:command("HMSET", Constants.CONNECTS_TAG_DICT_KEY, tag, connectId)
-        pipe:commit()
-        self._connectTag = tag
-    end
-end
-
-function WebSocketConnectBase:getConnectTag()
-    if not self._connectTag then
-        local connectId = self:getConnectId()
-        local redis = self:_getRedis()
-        self._connectTag = redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, connectId)
-    end
-    return self._connectTag
-end
-
-function WebSocketConnectBase:removeConnectTag()
-    if not self._connectId then return end
-    local connectId = self:getConnectId()
-    local tag = self:getConnectTag()
-    if tag then
-        local pipe = self:_getRedis():newPipeline()
-        pipe:command("HDEL", Constants.CONNECTS_ID_DICT_KEY, connectId)
-        pipe:command("HDEL", Constants.CONNECTS_TAG_DICT_KEY, tag)
-        pipe:commit()
-    end
 end
 
 function WebSocketConnectBase:sendMessageToSelf(message)

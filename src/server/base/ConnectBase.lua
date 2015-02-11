@@ -79,46 +79,25 @@ function ConnectBase:destroySession()
     end
 end
 
-function ConnectBase:getConnectIdByTag(tag)
-    if not tag then
-        throw("get connect id by invalid tag \"%s\"", tostring(tag))
-    else
-        local redis = self:_getRedis()
-        return redis:command("HGET", Constants.CONNECTS_TAG_DICT_KEY, tostring(tag))
-    end
-end
-
-function ConnectBase:getConnectTagById(connectId)
-    if not connectId then
-        throw("get connect tag by invalid id \"%s\"", tostring(connectId))
-    else
-        local redis = self:_getRedis()
-        return redis:command("HGET", Constants.CONNECTS_ID_DICT_KEY, tostring(connectId))
-    end
-end
-
 function ConnectBase:closeConnect(connectId)
     if not connectId then
         throw("invalid connect id \"%s\"", tostring(connectId))
-    else
-        self:sendMessageToConnect(connectId, "QUIT")
     end
+    self:sendMessageToConnect(connectId, "QUIT")
 end
 
 function ConnectBase:sendMessageToConnect(connectId, message)
     if not connectId then
         throw("send message to connect with invalid id \"%s\"", tostring(connectId))
-    else
-        local channelName = Constants.CONNECT_CHANNEL_PREFIX .. tostring(connectId)
-        self:sendMessageToChannel(channelName, message)
     end
+    local channelName = Constants.CONNECT_CHANNEL_PREFIX .. tostring(connectId)
+    self:sendMessageToChannel(channelName, message)
 end
 
 function ConnectBase:sendMessageToChannel(channelName, message)
     if not channelName or not message then
         throw("send message to channel with invalid channel name \"%s\" or invalid message", tostring(channelName))
     end
-
     if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON and type(message) == "table" then
         message = json_encode(message)
     end

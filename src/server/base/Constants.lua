@@ -14,8 +14,6 @@ Constants.MESSAGE_FORMAT_TEXT                   = "text"
 Constants.DEFAULT_MESSAGE_FORMAT                = Constants.MESSAGE_FORMAT_JSON
 
 -- redis keys
-Constants.CONNECTS_ID_DICT_KEY                  = "_CONNECTS_ID_DICT" -- id => tag
-Constants.CONNECTS_TAG_DICT_KEY                 = "_CONNECTS_TAG_DICT" -- tag => id
 Constants.NEXT_CONNECT_ID_KEY                   = "_NEXT_CONNECT_ID"
 Constants.CONNECT_CHANNEL_PREFIX                = "_C"
 
