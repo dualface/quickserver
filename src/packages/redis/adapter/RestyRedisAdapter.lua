@@ -79,7 +79,7 @@ function RestyRedisAdapter:setKeepAlive(timeout, size)
     end
 end
 
-local function _formatCommand(args)
+local function _formatCommandArgs(args)
     local result = {}
     table_walk(args, function(v) result[#result + 1] = tostring(v) end)
     return table_concat(result, ", ")
@@ -94,14 +94,14 @@ function RestyRedisAdapter:command(command, ...)
     end
 
     if DEBUG > 1 then
-        printInfo("%s command \"%s\": %s", self:_instancename(), string_upper(command), _formatCommand({...}))
+        printInfo("%s command \"%s\": %s", self:_instancename(), string_upper(command), _formatCommandArgs({...}))
     end
 
     local res, err = method(self._instance, ...)
     if res == ngx_null then res = nil end
 
     if err then
-        err = string_format("%s command \"%s\" failed, s", self:_instancename(), err)
+        err = string_format("%s command \"%s\" failed, %s", self:_instancename(), string_upper(command), err)
     elseif DEBUG > 1 then
         printInfo("%s command \"%s\", result = %s", self:_instancename(), string_upper(command), tostring(res))
     end
@@ -124,38 +124,47 @@ function RestyRedisAdapter:pubsub(subscriptions)
 
     local subscribeMessages = {}
 
-    local function _subscribe(f, channels)
+    local function _subscribe(f, channels, command)
         for _, channel in ipairs(channels) do
-            local result, err = f(self._instance, channel)
-            if result then
-                subscribeMessages[#subscribeMessages + 1] = result
-                printInfo("%s subscribe %s", self:_instancename(), channel)
+            if DEBUG > 1 then
+                printInfo("%s command \"%s\": %s", self:_instancename(), string_upper(command), channel)
+            end
+            local res, err = f(self._instance, channel)
+            if err then
+                printWarn("%s command \"%s\" failed, %s", self:_instancename(), string_upper(command), err)
+            else
+                subscribeMessages[#subscribeMessages + 1] = res
+                if DEBUG > 1 then
+                    printInfo("%s command \"%s\", result = %s", self:_instancename(), string_upper(command), _formatCommandArgs(res))
+                end
             end
         end
     end
 
-    local function _unsubscribe(f, channels)
+    local function _unsubscribe(f, channels, command)
         for _, channel in ipairs(channels) do
+            if DEBUG > 1 then
+                printInfo("%s command \"%s\": %s", self:_instancename(), string_upper(command), channel)
+            end
             f(self._instance, channel)
-            printInfo("%s ubsubscribe %s", self:_instancename(), channel)
         end
     end
 
     local subscriptionsCount = 0
     local function _abort()
         if subscriptions.subscribe then
-            _unsubscribe(self._instance.unsubscribe, subscriptions.subscribe)
+            _unsubscribe(self._instance.unsubscribe, subscriptions.subscribe, "UNSUBSCRIBE")
         end
         if subscriptions.psubscribe then
-            _unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe)
+            _unsubscribe(self._instance.punsubscribe, subscriptions.psubscribe, "PUNSUBSCRIBE")
         end
     end
 
     if subscriptions.subscribe then
-        _subscribe(self._instance.subscribe, subscriptions.subscribe)
+        _subscribe(self._instance.subscribe, subscriptions.subscribe, "SUBSCRIBE")
     end
     if subscriptions.psubscribe then
-        _subscribe(self._instance.psubscribe, subscriptions.psubscribe)
+        _subscribe(self._instance.psubscribe, subscriptions.psubscribe, "PSUBSCRIBE")
     end
 
     return coroutine.wrap(function()
@@ -164,20 +173,24 @@ function RestyRedisAdapter:pubsub(subscriptions)
                 _abort()
                 break
             end
-            local result, err
+            local message, result, err
             if #subscribeMessages > 0 then
                 result = subscribeMessages[1]
                 table_remove(subscribeMessages, 1)
             else
                 result, err = self._instance:read_reply()
-                if err and err ~= "timeout" then
-                    _abort()
-                    break
+                if err then
+                    if err ~= "timeout" then
+                        _abort()
+                        break
+                    else
+                        -- err == timeout
+                        message = {kind = "timeout"}
+                    end
                 end
             end
 
-            local message
-            if result then
+            if not message and result then
                 if result[1] == "pmessage" then
                     message = {
                         kind = result[1],
