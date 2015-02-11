@@ -6,25 +6,20 @@ function ChatAction:ctor(app)
 end
 
 function ChatAction:sendmessageAction(arg)
-    if not arg.tag then
-        throw("not set argument: \"tag\"")
+    if not arg.dest then
+        throw("not set argument: \"dest\"")
     end
     if not arg.message then
         throw("not set argument: \"message\"")
     end
-    local tag = arg.tag
-    local connectId = self._app:getConnectIdByTag(tag)
-    if connectId then
-        local session = self._app:getSession()
-        local message = {
-            username = session:get("username"),
-            message = arg.message,
-            tag = self._app:getConnectTag()
-        }
-        self._app:sendMessageToConnect(connectId, json.encode(message))
-    else
-        printWarn("not found connect id for tag \"%s\"", tag)
-    end
+    local dest = arg.dest
+    local session = self._app:getSession()
+    local message = {
+        username = session:get("username"),
+        message = arg.message,
+        src = self._app:getConnectId()
+    }
+    self._app:sendMessageToConnect(dest, message)
 end
 
 return ChatAction

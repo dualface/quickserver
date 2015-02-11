@@ -9,12 +9,11 @@ end
 
 function WebSocketConnect:afterConnectReady()
     -- send connect id to client
-    local message = {connectId = self:getConnectId()}
+    local connectId = self:getConnectId()
+    local message = {connectId = connectId}
     self:sendMessageToSelf(message)
 
     -- add connect id to online users list
-
-    return tag
 end
 
 function WebSocketConnect:beforeConnectClose()

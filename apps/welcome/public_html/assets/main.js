@@ -232,7 +232,7 @@ test.http_request = function(action, data, callback) {
 test.send_message = function(dest, message) {
     dest = dest.toString();
     if (dest === "") {
-        log.add("PLEASE ENTER destination Connect Tag");
+        log.add("PLEASE ENTER destination Connect Id");
         return false;
     }
 
@@ -244,7 +244,7 @@ test.send_message = function(dest, message) {
 
     var data = {
         "action": "chat.sendmessage",
-        "tag": dest,
+        "dest": dest,
         "message": message,
         "user": test.username
     }
