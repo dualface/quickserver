@@ -105,6 +105,13 @@ function ConnectBase:sendMessageToChannel(channelName, message)
     redis:command("PUBLISH", channelName, tostring(message))
 end
 
+function ConnectBase:getRedis()
+    if not self._redis then
+        self._redis = self:_newRedis()
+    end
+    return self._redis
+end
+
 function ConnectBase:_loadSession(sid)
     local redis = self:getRedis()
     local session = SessionService.load(redis, sid, self.config.appSessionExpiredTime, ngx.var.remote_addr)
@@ -124,13 +131,6 @@ function ConnectBase:_genSession()
     local origin = string.format("%s|%s", addr, ngx_md5(mask))
     local sid = ngx_md5(origin)
     return SessionService:create(self:getRedis(), sid, self.config.appSessionExpiredTime, addr)
-end
-
-function ConnectBase:getRedis()
-    if not self._redis then
-        self._redis = self:_newRedis()
-    end
-    return self._redis
 end
 
 function ConnectBase:_newRedis()

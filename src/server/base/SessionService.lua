@@ -113,6 +113,11 @@ function SessionService:setKeepAlive()
     self._redis:command("EXPIRE", self._key, self._expired)
 end
 
+function SessionService:checkAlive()
+    local res = self._redis:command("EXISTS", self._key)
+    return tostring(res) == "1"
+end
+
 function SessionService:destroy()
     self._redis:command("DEL", self._key)
 end

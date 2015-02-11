@@ -131,6 +131,12 @@ function WebSocketConnectBase:runEventLoop()
         For fragmented frames, the err return value is the Lua string "again".
         ]]
         local frame, ftype, err = socket:recv_frame()
+        -- check session
+        if not self._session:checkAlive() then
+            printWarn("session is lost")
+            break
+        end
+
         if err then
             if err == "again" then
                 framesPool[#framesPool + 1] = frame
