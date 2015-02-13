@@ -2,8 +2,8 @@
 $(document).ready(function() {
     var l = document.location;
     $("#server_addr").val(l.host);
-    $("#dest_connect_id").val("");
-    test.set_inputs_disabled(false);
+    $("#dest_connect_tag").val("");
+    test.setLogin(false);
 });
 
 var f2num = function(n, l) {
@@ -64,27 +64,41 @@ var test = {
 
     username: null,
     session_id: null,
+    connect_tag: null,
 
     socket: null,
     msg_id: 0,
     callbacks: {}
 };
 
-test.set_inputs_disabled = function(disabled) {
-    $("#server_addr").prop("disabled", disabled);
-    $("#input_username").prop("disabled", disabled);
+test.setLogin = function(login) {
+    $("#server_addr").prop("disabled", login);
+    $("#input_username").prop("disabled", login);
 
-    $("#button_login").val(disabled ? "Logout" : "Login")
+    $("#button_login").val(login ? "Logout" : "Login")
         .unbind("click")
         .click(function() {
-            return disabled ? test.logout() : test.login();
+            return login ? test.logout() : test.login();
         });
+
+    if (!login) {
+        $("#session_id").text("none");
+        $("#connect_tag").text("none");
+        $("#count_value").text("[COUNT = *]");
+        $("#dest_user").empty();
+        $("#dest_connect_tag").empty();
+        test.username = null;
+        test.session_id = null;
+        test.connect_tag = null;
+        test.socket = null;
+        test.callbacks = {};
+    }
 }
 
 test.validate_res = function(res, fields) {
     var err = res["err"];
     if (typeof err !== "undefined") {
-        test.set_inputs_disabled(false);
+        test.setLogin(false);
         log.add("ERR: " + err.toString());
         return false;
     }
@@ -117,21 +131,27 @@ test.login = function() {
     test.http_server_addr = "http://" + test.server_addr + "/" + test.http_entry
     test.websocket_server_addr = "ws://" + test.server_addr + "/" + test.websocket_entry
 
-    test.set_inputs_disabled(true);
+    test.setLogin(true);
+
+    log.add_mark();
+    log.add("LOGOUT");
 
     var data = {"username": username}
     test.http_request("user.login", data, function(res) {
-        if (!test.validate_res(res, ["sid", "count"])) {
-            test.set_inputs_disabled(false);
+        if (!test.validate_res(res, ["sid", "tag", "count"])) {
+            test.setLogin(false);
             return;
         }
         test.session_id = res["sid"].toString();
+        test.connect_tag = res["tag"].toString();
         log.add("GET SESSION ID: " + test.session_id);
         log.add("count = " + res["count"].toString());
         $("#session_id").text(test.session_id);
+        $("#connect_tag").text(test.connect_tag);
         $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
 
         test.connect();
+        test.setLogin(true);
     });
 }
 
@@ -141,13 +161,14 @@ test.logout = function() {
         return false;
     }
 
+    log.add_mark();
+    log.add("LOGOUT");
+
     test.http_request("user.logout", {"sid": test.session_id}, function(res) {
-        test.session_id = null;
-        log.add("LOGOUTED");
-        $("#session_id").text("none");
-        $("#connect_id").text("none");
-        $("#count_value").text("[COUNT = *]");
-        test.set_inputs_disabled(false);
+        if (test.socket) {
+            test.socket.close();
+        }
+        test.setLogin(false);
     });
 }
 
@@ -161,6 +182,46 @@ test.count = function() {
         if (!test.validate_res(res, ["count"])) return;
         log.add("count = " + res["count"].toString());
         $("#count_value").text("[COUNT = " + res["count"].toString() + "]");
+    });
+}
+
+test.on_destuserchanged = function() {
+    var sel = $("#dest_user")[0];
+    if (sel.selectedIndex >= 0) {
+        var selected = $(sel.options[sel.selectedIndex]);
+        $("#dest_connect_tag").val(selected.val());
+    } else {
+        $("#dest_connect_tag").val("");
+    }
+}
+
+test.on_allusers = function(data) {
+    var users = data["users"];
+    if (users) {
+        var dest_user = $("#dest_user");
+        dest_user.empty();
+        for (var i = 0; i < users.length; ++i) {
+            var user = users[i];
+            var username = $("<div/>").text(user.username).html();
+            dest_user.append($("<option></option>").val(user.tag).text(user.username));
+        }
+        dest_user.prop("selectedIndex", -1);
+    }
+}
+
+test.on_adduser = function(data) {
+    var dest_user = $("#dest_user");
+    dest_user.append($("<option></option>").val(data.tag).text(data.username));
+}
+
+test.on_removeuser = function(data) {
+    var dest_user_options = $("#dest_user > option");
+    dest_user_options.each(function() {
+        if ($(this).text() == data.username) {
+            $(this).remove();
+            test.on_destuserchanged();
+            return;
+        }
     });
 }
 
@@ -197,16 +258,14 @@ test.connect = function() {
                 test.callbacks[msgid] = null;
                 callback(data);
             }
-        } else {
-            var connectId = data["connectId"];
-            if (typeof connectId !== "undefined") {
-                $("#connect_id").text(connectId);
-            }
+        } else if (data["name"]) {
+            var name = "on_" + data["name"].toString();
+            test[name](data);
         }
     };
     socket.onclose = function() {
         log.add("WEBSOCKET DISCONNECTED");
-        test.socket = null;
+        test.setLogin(false);
     };
 
     test.socket = socket;
@@ -229,10 +288,10 @@ test.http_request = function(action, data, callback) {
     $.post(url, data, callback, "json");
 }
 
-test.send_message = function(dest, message) {
-    dest = dest.toString();
-    if (dest === "") {
-        log.add("PLEASE ENTER destination Connect Id");
+test.send_message = function(tag, message) {
+    tag = tag.toString();
+    if (tag === "") {
+        log.add("PLEASE ENTER destination Connect Tag");
         return false;
     }
 
@@ -244,9 +303,8 @@ test.send_message = function(dest, message) {
 
     var data = {
         "action": "chat.sendmessage",
-        "dest": dest,
+        "tag": tag,
         "message": message,
-        "user": test.username
     }
 
     test.send_data(data);

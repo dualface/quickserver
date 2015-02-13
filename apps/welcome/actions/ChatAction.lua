@@ -1,25 +1,34 @@
 
 local ChatAction = class("ChatAction")
 
-function ChatAction:ctor(app)
-    self._app = app
+function ChatAction:ctor(connect)
+    self.connect = connect
+    self.connects = connect.connects
 end
 
 function ChatAction:sendmessageAction(arg)
-    if not arg.dest then
-        throw("not set argument: \"dest\"")
+    local tag = arg.tag
+    if not tag then
+        throw("not set argument: \"tag\"")
     end
-    if not arg.message then
+    -- get connect id by tag
+    local connectId = self.connects:getIdByTag(tag)
+    if not connectId then
+        throw("not found connect id by tag \"%s\"", tag)
+    end
+
+    local message = arg.message
+    if not message then
         throw("not set argument: \"message\"")
     end
-    local dest = arg.dest
-    local session = self._app:getSession()
-    local message = {
+
+    local session = self.connect:getSession()
+    local data = {
+        src = session:get("tag"),
         username = session:get("username"),
-        message = arg.message,
-        src = self._app:getConnectId()
+        message = message,
     }
-    self._app:sendMessageToConnect(dest, message)
+    self.connect:sendMessageToConnect(connectId, data)
 end
 
 return ChatAction

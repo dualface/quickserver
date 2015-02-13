@@ -29,15 +29,15 @@
                 </td>
             </tr>
             <tr>
-                <th>Session ID :</th>
+                <th>Session ID:</th>
                 <td>
                     <span id="session_id">none</span>
                 </td>
             </tr>
             <tr>
-                <th>Connect ID :</th>
+                <th>Connect Tag :</th>
                 <td>
-                    <span id="connect_id">none</span>
+                    <span id="connect_tag">none</span>
                 </td>
             </tr>
             <tr>
@@ -55,14 +55,18 @@
                 <th colspan="2" class="title">Test : Send message to connect</th>
             </tr>
             <tr>
-                <th>Connect Id :</th>
-                <td><input type="text" id="dest_connect_id" /></td>
+                <th>Online users :</th>
+                <td><select id="dest_user" onchange="return test.on_destuserchanged();"></select></td>
+            </tr>
+            <tr>
+                <th>Connect Tag :</th>
+                <td><input type="text" id="dest_connect_tag" /></td>
             </tr>
             <tr>
                 <th>Message :</th>
                 <td>
                     <input type="text" id="send_message" />
-                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_id').val(), $('#send_message').val());" />
+                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_tag').val(), $('#send_message').val());" />
                 </td>
             </tr>
         </table>
