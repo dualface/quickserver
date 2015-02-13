@@ -216,7 +216,6 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
             enabled = false,
             running = false,
             retryCount = 0,
-            redis = nil,
         }
         self._subscribeChannels[channelName] = sub
     end
@@ -232,7 +231,6 @@ function WebSocketConnectBase:subscribeChannel(channelName, callback)
 
         -- pubsub thread need separated redis connect
         local redis = self:_newRedis()
-        sub.redis = redis
         local channel = sub.name
         local loop, err = redis:pubsub({subscribe = channel})
         if not loop then
