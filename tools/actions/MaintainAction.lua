@@ -30,8 +30,9 @@ local _GET_PID_PATTERN = "pgrep %s"
 local _GET_PERFORMANCE_PATTERN = "ps -p %s -o pcpu= -o pmem="
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
-local _MONITOR_CPU_LIST_PATTERN = "_MONITOR_%s_CPU"
-local _MONITOR_MEM_LIST_PATTERN = "_MONITOR_%s_MEM"
+local _MONITOR_LIST_LEN_KEY = "_MONITOR_LIST_LENGTH"
+local _MONITOR_CPU_LIST_PATTERN = "_MONITOR_%s_CPU_%s_LIST"
+local _MONITOR_MEM_LIST_PATTERN = "_MONITOR_%s_MEM_%s_LIST"
 
 -- since this tool is running background as a loop,
 -- redis connection don't need closing.
@@ -41,26 +42,90 @@ local MaintainAction = class("Maintain")
 
 function MaintainAction:ctor(app)
     self._app = app
-    self.config.process = self.config.monitor.process
-
+    self._process = self.config.monitor.process
+    self._interval = self.config.monitor.interval 
+    self._secListLen = 0
+    self._minuteListLen = 0
+    self._hourListLen = 0
     self._procData = {}
     self._isProcessRestart = false
 end
 
 function MaintainAction:monitorAction(arg)
-    _getPid()
-    _getPerfomance()
-    _save()
+    local sock = require("socket")
+    local elapseSec = 0
+    local elapseMin = 0
+    local interval = self._interval
+
+    while true do
+        _getPid()
+        _getPerfomance()
+        _save(elapseSec/60, elapseMin/60)
+        sock.select(nil, nil, interval) 
+        if elapseSec >= 60 then
+            elapseSec = elapseSec % 60
+        end
+        if elapseMin >= 60 then
+            elapseMin = elapseMin % 60
+        end
+
+        elapseSec = elapseSec + interval
+        elapseMin = elapseMin + (elapseSec / 60)
+    end
 end
 
-function MaintainAction:_save()
+function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
+    local secListLen = self._secListLen
+    local maxSecLen = 600 / self._interval
+    local minuteListLen = self._minuteListLen
+    local hourListLen = self._hourListLen
+
     local pipe = self:getRedis():newPipeline()
     for k, v in pairs(self._procData) do
-        local cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, "")
-        local memList = string_format(_MONITOR_MEM_LIST_PATTERN, "")
-        pipe:command("")
+        local cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "SEC")
+        local memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "SEC")
+        local cpuRatio = v[1]
+        local memRatio = v[2]
+        pipe:command("RPUSH", cpuList, cpuRatio)
+        pipe:command("RPUSH", memList, memRatio)
+        if secListLen == maxSecLen then 
+            pipe:command("LPOP", cpuList)
+            pipe:command("LPOP", memList)
+        end
+
+        if isUpdateMinList then
+            cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "MINUTE")
+            memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "MINUTE")
+            pipe:command("RPUSH", cpuList, cpuRatio)
+            pipe:command("RPUSH", memList, memRatio)
+            if minuteListLen == 60 then
+                pipe:command("LPOP", cpuList)
+                pipe:command("LPOP", memList)
+            end
+        end
+        
+        if isUpdateHourList then
+            cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "HOUR")
+            memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "HOUR")
+            pipe:command("RPUSH", cpuList, cpuRatio)
+            pipe:comand("RPUSH", memList, memRatio)
+            if hourListLen == 24 then
+                pipe:command("LPOP", cpuList)
+                pipe:command("LPOP", memList)
+            end
+        end
     end
     pipe:commit()
+
+    if secListLen < maxSecLen then
+        self._secListLen = self._secListLen + 1
+    end
+    if isUpdateMinList and minuteListLen < 60 then
+        self._minuteListLen = self._minuteListLen + 1
+    end
+    if isUpdateHourList and hourListLen < 24 then
+        self._hourListLen = self._hourListLen + 1
+    end
 end
 
 function MaintainAction:_getPerfomance()
@@ -77,9 +142,8 @@ function MaintainAction:_getPid()
         return
     end
 
-    local process = self.config.process
+    local process = self._process
     local pipe = self.getRedis():newPipeline()
-
     for _, procName in ipairs(process) do
         local cmd = string_format("pgrep %s", procName)
         local fout = io_popen(cmd)
@@ -87,12 +151,22 @@ function MaintainAction:_getPid()
         fout:close()
 
         local pids = string_split(res, "\n")
-        for _, pid in ipairs(pids) do
+        for i, pid in ipairs(pids) do
+            local pName
+            if procName == "nginx" then
+                if i == 1 then    
+                    pName = procName .. " master" 
+                else 
+                    pName = procName .. " worker#" .. tostring(i)
+                end
+            else 
+                pName = procName
+            end
+
             self._procData[pid] = {}
-            pipe:command("HSET", _MONITOR_PROC_DICT_KEY, pid, procName)
+            pipe:command("HSET", _MONITOR_PROC_DICT_KEY, pid, pName)
         end
     end
-
     pipe:commit()
 
     self._isProcessRestart = false
