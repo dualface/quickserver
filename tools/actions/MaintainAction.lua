@@ -42,7 +42,7 @@ local MaintainAction = class("Maintain")
 function MaintainAction:ctor(app)
     self._app = app
     self._process = self.config.monitor.process
-    self._interval = self.config.monitor.interval 
+    self._interval = self.config.monitor.interval
     self._secListLen = 0
     self._minuteListLen = 0
     self._hourListLen = 0
@@ -60,7 +60,7 @@ function MaintainAction:monitorAction(arg)
         _getPid()
         _getPerfomance()
         _save(elapseSec/60, elapseMin/60)
-        sock.select(nil, nil, interval) 
+        sock.select(nil, nil, interval)
         if elapseSec >= 60 then
             elapseSec = elapseSec % 60
         end
@@ -87,7 +87,7 @@ function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
         local memRatio = v[2]
         pipe:command("RPUSH", cpuList, cpuRatio)
         pipe:command("RPUSH", memList, memRatio)
-        if secListLen == maxSecLen then 
+        if secListLen == maxSecLen then
             pipe:command("LPOP", cpuList)
             pipe:command("LPOP", memList)
         end
@@ -102,7 +102,7 @@ function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
                 pipe:command("LPOP", memList)
             end
         end
-        
+
         if isUpdateHourList then
             cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "HOUR")
             memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "HOUR")
@@ -153,12 +153,12 @@ function MaintainAction:_getPid()
         for i, pid in ipairs(pids) do
             local pName
             if procName == "nginx" then
-                if i == 1 then    
-                    pName = procName .. " master" 
-                else 
+                if i == 1 then
+                    pName = procName .. " master"
+                else
                     pName = procName .. " worker#" .. tostring(i)
                 end
-            else 
+            else
                 pName = procName
             end
 

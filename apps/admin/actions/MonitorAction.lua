@@ -39,8 +39,8 @@ function MonitorAction:getdataAction(arg)
     local process = redis:command("HGETALL", _MONITOR_PROC_DICT_KEY)
     local result = {}
     for i = 1, #res, 2 do
-        local pid = process[i] 
-        local procName = process[i+1] 
+        local pid = process[i]
+        local procName = process[i+1]
         result[procName] = {}
         _fillData(pid, result[procName])
     end
@@ -48,7 +48,7 @@ function MonitorAction:getdataAction(arg)
     return result
 end
 
-function MonitorAction:_fillData(pid, t) 
+function MonitorAction:_fillData(pid, t)
     local listType = {"SEC", "MINUTE", "HOUR"}
     t.mem = {}
     t.cpu = {}
