@@ -554,9 +554,11 @@ function table.removebyvalue(array, value, removeall)
 end
 
 function table.map(t, fn)
+    local n = {}
     for k, v in pairs(t) do
-        t[k] = fn(v, k)
+        n[k] = fn(v, k)
     end
+    return n
 end
 
 function table.walk(t, fn)
@@ -566,9 +568,13 @@ function table.walk(t, fn)
 end
 
 function table.filter(t, fn)
+    local n = {}
     for k, v in pairs(t) do
-        if not fn(v, k) then t[k] = nil end
+        if fn(v, k) then
+            n[k] = v
+        end
     end
+    return n
 end
 
 function table.unique(t, bArray)
@@ -627,7 +633,7 @@ function string.split(input, delimiter)
     if (delimiter=='') then return false end
     local pos,arr = 1, {}
     for st,sp in function() return string_find(input, delimiter, pos, true) end do
-        local str = string_sub(input, pos, st - 1) 
+        local str = string_sub(input, pos, st - 1)
         if str ~= "" then
             table_insert(arr, str)
         end
