@@ -25,6 +25,8 @@ THE SOFTWARE.
 ]]
 
 local ActionDispatcher = import(".ActionDispatcher")
+local Constants = import(".Constants")
+
 local CLIBase = class("CLIBase", ActionDispatcher)
 
 function CLIBase:ctor(config, arg)
@@ -39,13 +41,13 @@ function CLIBase:run()
         self:runEventLoop()
     end, function(err)
         err = tostring(err)
-        printlog(ERR, err)
+        printError(err)
     end)
 end
 
 function CLIBase:runEventLoop()
     local actionName = self._requestParameters[1]
-    if actionName == "help" then
+    if actionName == nil or actionName == "help" then
         self:_showHelp()
         return
     end

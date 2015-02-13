@@ -42,11 +42,15 @@ end
 
 function RedisLuaAdapter:connect()
     local ok, result = pcall(function()
-        self._instance = redis.connect({
-            host = self._config.host,
-            port = self._config.port,
-            timeout = self._config.timeout
-        })
+        if self._config.socket then
+            self._instance = redis.connect(self._config.socket)
+        else
+            self._instance = redis.connect({
+                host = self._config.host,
+                port = self._config.port,
+                timeout = self._config.timeout
+            })
+        end
     end)
     if ok then
         return true
