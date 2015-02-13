@@ -39,10 +39,10 @@ local RedisService = cc.load("redis").service
 
 local MaintainAction = class("Maintain")
 
-function MaintainAction:ctor(app)
-    self._app = app
-    self._process = self.config.monitor.process
-    self._interval = self.config.monitor.interval
+function MaintainAction:ctor(cmd)
+    self._cmd = cmd 
+    self._process = cmd.config.monitor.process
+    self._interval = cmd.config.monitor.interval
     self._secListLen = 0
     self._minuteListLen = 0
     self._hourListLen = 0
@@ -57,9 +57,9 @@ function MaintainAction:monitorAction(arg)
     local interval = self._interval
 
     while true do
-        _getPid()
-        _getPerfomance()
-        _save(elapseSec/60, elapseMin/60)
+        self:_getPid()
+        self:_getPerfomance()
+        self:_save(elapseSec/60, elapseMin/60)
         sock.select(nil, nil, interval)
         if elapseSec >= 60 then
             elapseSec = elapseSec % 60
@@ -137,12 +137,8 @@ function MaintainAction:_getPerfomance()
 end
 
 function MaintainAction:_getPid()
-    if not self._isProcessRestart then
-        return
-    end
-
     local process = self._process
-    local pipe = self.getRedis():newPipeline()
+    local pipe = self.getRedis()
     for _, procName in ipairs(process) do
         local cmd = string_format("pgrep %s", procName)
         local fout = io_popen(cmd)
@@ -167,8 +163,6 @@ function MaintainAction:_getPid()
         end
     end
     pipe:commit()
-
-    self._isProcessRestart = false
 end
 
 function MaintainAction:getRedis()
@@ -179,7 +173,7 @@ function MaintainAction:getRedis()
 end
 
 function MaintainAction:_newRedis()
-    local redis = RedisService:create(self.config.redis)
+    local redis = RedisService:create(self._cmd.config.redis)
     local ok, err = redis:connect()
     if err then
         throw("connect internal redis failed, %s", err)
