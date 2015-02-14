@@ -36,8 +36,7 @@ local _RESET_NGINX_CMD = [[nginx -p _QUICK_SERVER_ROOT_ -c _QUICK_SERVER_ROOT_/b
 local _RESET_BEANSTALKD_CMD = [[_QUICK_SERVER_ROOT_/bin/beanstalkd/bin/beanstalkd > _QUICK_SERVER_ROOT_/logs/beanstalkd.log &]]
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
-local _MONITOR_CPU_LIST_PATTERN = "_MONITOR_%s_CPU_%s_LIST"
-local _MONITOR_MEM_LIST_PATTERN = "_MONITOR_%s_MEM_%s_LIST"
+local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
 
 -- since this tool is running background as a loop,
 -- redis connection don't need closing.
@@ -85,38 +84,27 @@ function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
         local secListLen = v.secListLen
         local minuteListLen = v.minuteListLen
         local hourListLen = v.hourListLen
-        printf("3 len: %d %d %d", secListLen, minuteListLen, hourListLen)
-        local cpuRatio = v.cpu
-        local memRatio = v.mem
+        local data = v.cpu .. "|" .. v.mem .. "|" .. v.conn
 
-        local cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "SEC")
-        local memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "SEC")
-        pipe:command("RPUSH", cpuList, cpuRatio)
-        pipe:command("RPUSH", memList, memRatio)
+        local list = string_format(_MONITOR_LIST_PATTERN, k, "SEC")
+        pipe:command("RPUSH", list, data)
         if secListLen == maxSecLen then
-            pipe:command("LPOP", cpuList)
-            pipe:command("LPOP", memList)
+            pipe:command("LPOP", list)
         end
 
         if isUpdateMinList ~= 0 then
-            cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "MINUTE")
-            memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "MINUTE")
-            pipe:command("RPUSH", cpuList, cpuRatio)
-            pipe:command("RPUSH", memList, memRatio)
+            list = string_format(_MONITOR_LIST_PATTERN, k, "MINUTE")
+            pipe:command("RPUSH", list, data)
             if minuteListLen == 60 then
-                pipe:command("LPOP", cpuList)
-                pipe:command("LPOP", memList)
+                pipe:command("LPOP", list)
             end
         end
 
         if isUpdateHourList ~= 0 then
-            cpuList = string_format(_MONITOR_CPU_LIST_PATTERN, k, "HOUR")
-            memList = string_format(_MONITOR_MEM_LIST_PATTERN, k, "HOUR")
-            pipe:command("RPUSH", cpuList, cpuRatio)
-            pipe:comand("RPUSH", memList, memRatio)
+            list = string_format(_MONITOR_LIST_PATTERN, k, "HOUR")
+            pipe:command("RPUSH", list, data)
             if hourListLen == 24 then
-                pipe:command("LPOP", cpuList)
-                pipe:command("LPOP", memList)
+                pipe:command("LPOP", list)
             end
         end
     end
@@ -132,16 +120,19 @@ function MaintainAction:_getPerfomance()
         local tRes = string_split(res, " ")
         self._procData[k].cpu = tRes[1]
         self._procData[k].mem = tRes[2]
+        self._procData[k].conn = self:_getConnNums(k)
 
         -- get current list len
         local redis = self:getRedis()
-        self._procData[k].secListLen = redis:command("LLEN", string_format(_MONITOR_CPU_LIST_PATTERN, k, "SEC"))
-        self._procData[k].minuteListLen = redis:command("LLEN", string_format(_MONITOR_CPU_LIST_PATTERN, k, "MINUTE"))
-        self._procData[k].hourListLen = redis:command("LLEN", string_format(_MONITOR_CPU_LIST_PATTERN, k, "HOUR"))
+        self._procData[k].secListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "SEC"))
+        self._procData[k].minuteListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))
+        self._procData[k].hourListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
     end
 
-    for k, v in pairs(self._procData) do
-        printf("%s pid %s: cpu %s, mem %s", k, v.pid, v.cpu, v.mem)
+    if DEBUG > 1 then
+        for k, v in pairs(self._procData) do
+            printInfo("%s pid %s: cpu %s, mem %s", k, v.pid, v.cpu, v.mem)
+        end
     end
 end
 
@@ -159,7 +150,6 @@ function MaintainAction:_getPid()
         end
 
         local pids = string_split(res, "\n")
-        printf("pids = %s", res)
         for i, pid in ipairs(pids) do
             local pName = string_upper(procName)
             if procName == "nginx" then
@@ -199,6 +189,24 @@ function MaintainAction:_resetProcess(procName)
     fout:close()
 
     return res
+end
+
+function MaintainAction:_getConnNums(procName)
+    -- only support redis now.
+    if procName == "redis-server" then
+        local redis = self:getRedis()
+        res = redis:command("INFO")
+        for _, v in ipairs(res) do
+            local connNums = string_match(v, "^connected_clients:(%d+)")
+            if connNums then
+                return connNums
+            end
+        end
+    end
+
+    -- TODO: accurately get connections of ngnix & beanstalkd.
+
+    return 0
 end
 
 function MaintainAction:getRedis()
