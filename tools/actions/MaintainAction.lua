@@ -31,9 +31,9 @@ local io_popen = io.popen
 local _GET_PID_PATTERN = "pgrep %s"
 local _GET_PERFORMANCE_PATTERN = "ps -p %s -o pcpu= -o rss="
 
-local _RESET_REDIS_CMD = [[/opt/qs/bin/redis/bin/redis-server /opt/qs/bin/redis/conf/redis.conf]]
-local _RESET_NGINX_CMD = [[nginx -p /opt/qs -c /opt/qs/bin/openresty/nginx/conf/nginx.conf]]
-local _RESET_BEANSTALKD_CMD = [[/opt/qs/bin/beanstalkd/bin/beanstalkd > /opt/qs/logs/beanstalkd.log &]]
+local _RESET_REDIS_CMD = [[_QUICK_SERVER_ROOT_/bin/redis/bin/redis-server _QUICK_SERVER_ROOT_/bin/redis/conf/redis.conf]]
+local _RESET_NGINX_CMD = [[nginx -p _QUICK_SERVER_ROOT_ -c _QUICK_SERVER_ROOT_/bin/openresty/nginx/conf/nginx.conf]]
+local _RESET_BEANSTALKD_CMD = [[_QUICK_SERVER_ROOT_/bin/beanstalkd/bin/beanstalkd > _QUICK_SERVER_ROOT_/logs/beanstalkd.log &]]
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
 local _MONITOR_CPU_LIST_PATTERN = "_MONITOR_%s_CPU_%s_LIST"
