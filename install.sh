@@ -132,7 +132,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
 
     #deploy tool script
     cd $CUR_DIR/shells/
-    cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR
+    cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh tools.sh $DEST_DIR
     ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
     #copy nginx and Quick Server framework conf file
@@ -140,6 +140,11 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
+
+    #modify monitor tools path
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MaintainAction.lua
+
 
     #install luasocket
     cd $BUILD_DIR

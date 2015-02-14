@@ -44,7 +44,7 @@ end
 function BeanstalkdService:connect()
     local ok, err = self._beans:connect()
     if err then
-        throw("connect to beanstalkd failed, %s", err) 
+        throw("connect to beanstalkd failed, %s", err)
     end
 end
 

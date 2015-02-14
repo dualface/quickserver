@@ -32,7 +32,7 @@ function Factory.create(config, classNamePrefix, ...)
     if ok then
         tagretClass = _tagretClass
     end
-        
+
     if not tagretClass then
         tagretClass = require("server.base." .. classNamePrefix .. "Base")
     end

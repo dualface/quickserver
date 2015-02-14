@@ -1,6 +1,6 @@
 package.path = package.path .. ";/opt/qs/src/?.lua;/opt/qs/bin/openresty/lualib/?.lua;;"
 
-local assert = assert 
+local assert = assert
 local type = type
 local print = print
 local pairs = pairs
@@ -10,7 +10,7 @@ local table_insert = table.insert
 local string_find = string.find
 
 local printf = function(fmt, ...)
-    local msg = string_format(fmt, ...)    
+    local msg = string_format(fmt, ...)
     print(msg)
 end
 
@@ -45,19 +45,19 @@ local function _runAllCase()
     local passed = 0
     local failed = 0
 
-    for suitName, _cases in pairs(_tests) do 
+    for suitName, _cases in pairs(_tests) do
         printf("Test %s", suitName)
         printf("======================================")
 
         local testSuitPassed = 0
         local testSuitFailed = 0
-        for caseName, steps in pairs(_cases) do 
+        for caseName, steps in pairs(_cases) do
             assert(type(steps) == "table")
 
             printf("Run TestCase: %s", caseName)
             local run = loadstring(table_cocat(steps, "\n"))
-            local r = run() 
-            printf("End TestCase: %s", caseName) 
+            local r = run()
+            printf("End TestCase: %s", caseName)
             if r then
                 testSuitPassed = testSuitPassed + 1
                 printf("--- Passed ---\n")
@@ -79,13 +79,13 @@ local function _runAllCase()
         println()
 
         suitNum = suitNum + 1
-        passed = passed + testSuitPassed 
+        passed = passed + testSuitPassed
         failed = failed + testSuitFailed
-    end 
-    
+    end
+
     _summarizeResult(suitNum, passed, failed)
 
-    return allTestResut 
+    return allTestResut
 end
 
 local function _runCase(testSuitName, testCaseName)
@@ -102,7 +102,7 @@ local function _register(testSuitName, testCaseName)
 end
 
 function BEGIN_CASE(testSuitName, testCaseName)
-    _steps = _register(testSuitName, testCaseName) 
+    _steps = _register(testSuitName, testCaseName)
 end
 
 function END_CASE()
@@ -113,7 +113,7 @@ function END_CASE()
     _steps = nil
 end
 
-function RUN_ALL_CASES() 
+function RUN_ALL_CASES()
     _runAllCase()
 end
 
@@ -124,7 +124,7 @@ function EXPECT_TRUE(condition)
     assert(_steps)
 
     if condition == false then
-        local codes = [[do 
+        local codes = [[do
             return false
         end
         ]]
@@ -196,7 +196,7 @@ end
 
 function EXPECT_SUBSTR(substr, actualStr)
     assert(_steps)
-    
+
     if not string_find(actualStr, substr) then
         local codes = [[do
             return false

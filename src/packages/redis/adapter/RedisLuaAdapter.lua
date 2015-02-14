@@ -30,6 +30,7 @@ local table_concat = table.concat
 local table_walk = table.walk
 local string_format = string.format
 local string_upper = string.upper
+local string_lower = string.lower
 
 local redis = require("3rd.redis.redis_lua")
 
@@ -42,11 +43,15 @@ end
 
 function RedisLuaAdapter:connect()
     local ok, result = pcall(function()
-        self._instance = redis.connect({
-            host = self._config.host,
-            port = self._config.port,
-            timeout = self._config.timeout
-        })
+        if self._config.socket then
+            self._instance = redis.connect(self._config.socket)
+        else
+            self._instance = redis.connect({
+                host = self._config.host,
+                port = self._config.port,
+                timeout = self._config.timeout
+            })
+        end
     end)
     if ok then
         return true
@@ -60,6 +65,7 @@ function RedisLuaAdapter:close()
 end
 
 function RedisLuaAdapter:command(command, ...)
+    command = string_lower(command)
     local method = self._instance[command]
     assert(type(method) == "function", string_format("RedisLuaAdapter:command() - invalid command %s", tostring(command)))
 
@@ -91,10 +97,7 @@ function RedisLuaAdapter:commitPipeline(commands)
         self._instance:pipeline(function()
             printInfo("RedisLuaAdapter:commitPipeline() - init pipeline")
             for _, arg in ipairs(commands) do
-                local command = arg[1]
-                local method = self._instance[command]
-                assert(type(method) == "function", string_format("RedisLuaAdapter:commitPipeline() - invalid command %s", tostring(command)))
-                method(self._instance, unpack(arg[2]))
+                self:command(arg[1], unpack(arg[2]))
             end
             printInfo("RedisLuaAdapter:commitPipeline() - commit pipeline")
         end)
