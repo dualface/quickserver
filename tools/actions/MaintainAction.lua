@@ -172,14 +172,9 @@ function MaintainAction:_getPid()
                 pName = pName .. "_#" .. tostring(i)
             end
 
-            if type(self._procData[pName]) == "table"  then
-                local oldPid = self._procData[pName].pid
-                pip:command("HDEL", _MONITOR_PROC_DICT_KEY, oldPid)
-            end
             self._procData[pName] = {}
             self._procData[pName].pid = pid
             pipe:command("HSET", _MONITOR_PROC_DICT_KEY, pName, pid)
-            pipe:command("HSET", _MONITOR_PROC_DICT_KEY, pid, pName)
         end
     end
     pipe:commit()

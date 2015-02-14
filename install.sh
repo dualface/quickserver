@@ -144,7 +144,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     #modify monitor tools path
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MaintainAction.lua
-    
+
 
     #install luasocket
     cd $BUILD_DIR
