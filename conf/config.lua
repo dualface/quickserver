@@ -74,7 +74,7 @@ local config = {
     monitor = {
         process = {
             "nginx",
-            "redis",
+            "redis-server",
             "beanstalkd",
         },
 
