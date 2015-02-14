@@ -46,7 +46,7 @@ local RedisService = cc.load("redis").service
 local MaintainAction = class("Maintain")
 
 function MaintainAction:ctor(cmd)
-    self._cmd = cmd 
+    self._cmd = cmd
     self._process = cmd.config.monitor.process
     self._interval = cmd.config.monitor.interval
     self._procData = {}
@@ -64,9 +64,6 @@ function MaintainAction:monitorAction(arg)
         self:_getPid()
         self:_getPerfomance()
         self:_save(elapseSec/60, elapseMin/60)
-        do 
-            break
-        end
         sock.select(nil, nil, interval)
         if elapseSec >= 60 then
             elapseSec = elapseSec % 60
@@ -82,7 +79,7 @@ end
 
 function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
     local maxSecLen = 600 / self._interval
-    
+
     local pipe = self:getRedis():newPipeline()
     for k, v in pairs(self._procData) do
         local secListLen = v.secListLen
@@ -135,7 +132,7 @@ function MaintainAction:_getPerfomance()
         local tRes = string_split(res, " ")
         self._procData[k].cpu = tRes[1]
         self._procData[k].mem = tRes[2]
-        
+
         -- get current list len
         local redis = self:getRedis()
         self._procData[k].secListLen = redis:command("LLEN", string_format(_MONITOR_CPU_LIST_PATTERN, k, "SEC"))

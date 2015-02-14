@@ -97,7 +97,7 @@ function RedisLuaAdapter:commitPipeline(commands)
         self._instance:pipeline(function()
             printInfo("RedisLuaAdapter:commitPipeline() - init pipeline")
             for _, arg in ipairs(commands) do
-                self:command(arg[1], unpack(arg[2]))                 
+                self:command(arg[1], unpack(arg[2]))
             end
             printInfo("RedisLuaAdapter:commitPipeline() - commit pipeline")
         end)
