@@ -26,6 +26,7 @@ local string_format = string.format
 local string_match = string.match
 local string_sub = string.sub
 local string_lower = string.lower
+local string_split = string.split
 local table_insert = table.insert
 local math_trunc = math.trunc
 local io_popen = io.popen
@@ -68,6 +69,11 @@ function MonitorAction:getdataAction(arg)
     if timeSpan <= 600 then
         table_insert(listType, "SEC")
         start = -math_trunc(timeSpan / self._interval)
+        -- indicate that client has a query interval less than monitoring interval
+        -- so at least return the latest data.
+        if start == 0 then
+            start = -1
+        end
     elseif timeSpan <= 3600 then
         table_insert(listType, "MINUTE")
         start = -math_trunc(timeSpan / 60)
@@ -104,6 +110,8 @@ function MonitorAction:_getMemTotal()
 end
 
 function MonitorAction:_convertToSec(timeSpan)
+    if not timeSpan then return nil end
+
     local time = string_match(string_lower(timeSpan), "^(%d+[s|h|m])")
     local unit = string_sub(time, -1)
     local number = string_sub(time, 1, -2)
@@ -134,6 +142,9 @@ function MonitorAction:_fillData(procName, listType, start)
         local list = string_format(_MONITOR_LIST_PATTERN, procName, typ)
         local data = redis:command("LRANGE", list, start, -1)
         local field = self:_getFiled(typ)
+        t.cpu[field] = {}
+        t.mem[field] = {}
+        t.conn_num[field] = {}
         for _, v in ipairs(data) do
             local tmp = string_split(v, "|")
             table_insert(t.cpu[field], tmp[1])
