@@ -23,6 +23,7 @@ THE SOFTWARE.
 ]]
 
 local string_format = string.format
+local string_find = string.find
 local string_sub = string.sub
 local string_upper = string.upper
 local string_split = string.split
@@ -193,15 +194,10 @@ end
 
 function MaintainAction:_getConnNums(procName)
     -- only support redis now.
-    if procName == "redis-server" then
+    if string_find(procName, "REDIS%-SERVER") then
         local redis = self:getRedis()
         res = redis:command("INFO")
-        for _, v in ipairs(res) do
-            local connNums = string_match(v, "^connected_clients:(%d+)")
-            if connNums then
-                return connNums
-            end
-        end
+        return res.clients.connected_clients
     end
 
     -- TODO: accurately get connections of ngnix & beanstalkd.
