@@ -114,18 +114,21 @@ function MonitorAction:_convertToSec(timeSpan)
 
     local time = string_match(string_lower(timeSpan), "^(%d+[s|h|m])")
     local unit = string_sub(time, -1)
-    local number = string_sub(time, 1, -2)
+    local number = tonumber(string_sub(time, 1, -2))
+    if not number then
+        return nil
+    end
 
     if unit == "h" then
-        return tonumber(number) * 3600
+        return number * 3600
     end
 
     if unit == "m" then
-        return tonumber(number)*60
+        return number * 60
     end
 
     if unit == "s" then
-        return tonumber(number)
+        return number
     end
 
     return nil
