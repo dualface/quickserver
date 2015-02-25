@@ -16,20 +16,17 @@ function showHelp()
 CURRDIR=$(dirname $(readlink -f $0))
 NGINXDIR=$CURRDIR/bin/openresty/nginx
 
-ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,debug,help -n 'Start quick server' -- "$@")
+ARGS=$(getopt -o h --long no-nginx,no-redis,no-beanstalkd,debug,help -n 'Start quick server' -- "$@")
 
 if [ $? != 0 ] ; then echo "Start Quick Server Terminating..." >&2; exit 1; fi
 
 eval set -- "$ARGS"
 
 declare -i DEBUG=0
-declare -i ALL=0
-declare -i BEANS=0
-declare -i NGINX=0
-declare -i REDIS=0
-if [ $# -eq 1 ] ; then
-    ALL=1
-fi
+declare -i ALL=1
+declare -i NO_BEANS=0
+declare -i NO_NGINX=0
+declare -i NO_REDIS=0
 
 while true ; do
     case "$1" in
@@ -38,23 +35,21 @@ while true ; do
             shift
             ;;
 
-        -a|--all)
-            ALL=1
+        --no-beanstalkd)
+            NO_BEANS=1
+            ALL=0
             shift
             ;;
 
-        -b|--beanstalkd)
-            BEANS=1
+        --no-redis)
+            NO_REDIS=1
+            ALL=0
             shift
             ;;
 
-        -r|--redis)
-            REDIS=1
-            shift
-            ;;
-
-        -n|--nginx)
-            NGINX=1
+        --no-nginx)
+            NO_NGINX=1
+            ALL=0
             shift
             ;;
 
@@ -73,26 +68,25 @@ while true ; do
 done
 
 # "debug" option has no effect on other options, except "--all(-a)" and "--nginx(-n)".
-if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ]; then
-    DEBUG=0
-    echo "please NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
-
-fi
+#if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ]; then
+#    DEBUG=0
+#    echo "please NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
+#fi
 
 #start redis
-if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
+if [ $NO_REDIS -ne 1 ]; then
     $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
     echo "Start Redis DONE"
 fi
 
 #start beanstalkd
-if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
+if [ $NO_BEANS -ne 1 ]; then
     $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
     echo "Start Beanstalkd DONE"
 fi
 
 #start nginx
-if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
+if [ $NO_NGINX -ne 1 ]; then
     sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
     if [ $DEBUG -eq 1 ] ; then
         echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
