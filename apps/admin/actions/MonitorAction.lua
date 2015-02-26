@@ -34,8 +34,6 @@ local io_popen = io.popen
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
 local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
 
-local _GET_MEM_TOTAL_CMD = [[cat /proc/meminfo | grep "MemTotal"]]
-
 local MonitorAction = class("MonitorAction")
 
 function MonitorAction:ctor(connect)
@@ -137,22 +135,41 @@ end
 function MonitorAction:_fillData(procName, listType, start)
     local redis = self._redis
     local t = {}
-    t.mem = {}
     t.cpu = {}
-    t.conn_num = {}
+    if not string_find(procName, "BEANSTALKD") then
+        t.mem = {}
+        if not string_find(procName, "NGINX_WORKER") then
+            t.conn_num = {}
+        end
+    else
+        t.total_jobs = {}
+    end
 
     for _, typ in ipairs(listType) do
         local list = string_format(_MONITOR_LIST_PATTERN, procName, typ)
         local data = redis:command("LRANGE", list, start, -1)
         local field = self:_getFiled(typ)
         t.cpu[field] = {}
-        t.mem[field] = {}
-        t.conn_num[field] = {}
+        if not string_find(procName, "BEANSTALKD") then
+            t.mem[field] = {}
+            if not string_find(procName, "NGINX_WORKER") then
+                t.conn_num[field] = {}
+            end
+        else
+            t.total_jobs[field] = {}
+        end
+
         for _, v in ipairs(data) do
             local tmp = string_split(v, "|")
             table_insert(t.cpu[field], tmp[1])
-            table_insert(t.mem[field], tmp[2])
-            table_insert(t.conn_num[field], tmp[3])
+            if not string_find(procName, "BEANSTALKD") then
+                table_insert(t.mem[field], tmp[2])
+                if not string_find(procName, "NGINX_WORKER") then
+                    table_insert(t.conn_num[field], tmp[3])
+                end
+            else
+                table_insert(t.total_jobs[field], tmp[3])
+            end
         end
     end
 
