@@ -23,6 +23,7 @@ THE SOFTWARE.
 ]]
 
 local type = type
+local string_lower = string.lower
 
 local BeanstalkdService = class("BeanstalkdService")
 

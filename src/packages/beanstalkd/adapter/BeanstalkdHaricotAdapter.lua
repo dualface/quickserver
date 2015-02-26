@@ -26,6 +26,7 @@ local assert = assert
 local type = type
 local tostring = tostring
 local string_format = string.format
+local string_upper = string.upper
 
 local haricot = require("3rd.beanstalkd.haricot")
 
