@@ -29,23 +29,34 @@ local string_upper = string.upper
 local string_split = string.split
 local io_popen = io.popen
 
-local _GET_PID_PATTERN = "pgrep %s"
-local _GET_PERFORMANCE_PATTERN = "ps -p %s -o pcpu= -o rss="
-
 local _RESET_REDIS_CMD = [[_QUICK_SERVER_ROOT_/bin/redis/bin/redis-server _QUICK_SERVER_ROOT_/bin/redis/conf/redis.conf]]
 local _RESET_NGINX_CMD = [[nginx -p _QUICK_SERVER_ROOT_ -c _QUICK_SERVER_ROOT_/bin/openresty/nginx/conf/nginx.conf]]
 local _RESET_BEANSTALKD_CMD = [[_QUICK_SERVER_ROOT_/bin/beanstalkd/bin/beanstalkd > _QUICK_SERVER_ROOT_/logs/beanstalkd.log &]]
 
+local _GET_MEM_INFO_CMD = [[cat /proc/meminfo | grep -E "Mem(Free|Total)"]]
+local _GET_DISK_INFO_CMD = [[df --total -k | grep "total"]]
+local _GET_CPU_INFO_CMD = [[cat /proc/cpuinfo | grep "cpu cores"]]
+
+local _GET_PID_PATTERN = "pgrep %s"
+local _GET_PERFORMANCE_PATTERN = "ps -p %s -o pcpu= -o rss="
+
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
 local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
+local _MONITOR_MEM_INFO_KEY = "_MONITOR_MEM_INFO"
+local _MONITOR_CPU_INFO_KEY = "_MONITOR_CPU_INFO"
+local _MONITOR_DISK_INFO_KEY = "_MONITOR_DISK_INFO"
 
 -- since this tool is running background as a loop,
 -- redis connection don't need closing.
 local RedisService = cc.load("redis").service
 
-local MaintainAction = class("Maintain")
+local BeansService = cc.load("beanstalkd").service
 
-function MaintainAction:ctor(cmd)
+local http = require("3rd.http")
+
+local WatchdogAction = class("Watchdog")
+
+function WatchdogAction:ctor(cmd)
     self._cmd = cmd
     self._process = cmd.config.monitor.process
     self._interval = cmd.config.monitor.interval
@@ -54,11 +65,15 @@ function MaintainAction:ctor(cmd)
     self._cpuThreshold = cmd.config.cpu
 end
 
-function MaintainAction:monitorAction(arg)
+function WatchdogAction:monitorAction(arg)
     local sock = require("socket")
     local elapseSec = 0
     local elapseMin = 0
     local interval = self._interval
+
+    self:_getCpuInfo()
+    self:_getMemInfo()
+    self:_getDiskInfo()
 
     while true do
         self:_getPid()
@@ -77,10 +92,39 @@ function MaintainAction:monitorAction(arg)
     end
 end
 
-function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
+function WatchdogAction:_getCpuInfo()
+    local fout = io_popen(_GET_CPU_INFO_CMD)
+    local res = string_match(fout:read("*a"), "cpu cores.*: (%d+)")
+    fout:close()
+
+    local redis = self:_getRedis()
+    redis:command("SET", _MONITOR_CPU_CORES_KEY, res)
+
+    return res
+end
+
+function MonitorAction:_getMemInfo()
+    local fout = io_popen(_GET_MEM_INFO_CMD)
+    local total, free = string_match(fout:read("*a"), "MemTotal:%s+(%d+).*MemFree:%s+(%d+)")
+    fout:close()
+
+    local redis = self:_getRedis()
+    redis:command("SET", _MONITOR_MEM_INFO_KEY, total .. "|" .. free)
+end
+
+function MonitorAction:_getDiskInfo()
+    local fout = io_popen(_GET_DISK_INFO_CMD)
+    local total, free = string_match(fout:read("*a"), "total%s+(%d+) %d+ (%d+).*")
+    fout:close()
+
+    local redis = self:_getRedis()
+    redis:command("SET", _MONITOR_DISK_INFO_KEY, total .. "|" .. free)
+end
+
+function WatchdogAction:_save(isUpdateMinList, isUpdateHourList)
     local maxSecLen = 600 / self._interval
 
-    local pipe = self:getRedis():newPipeline()
+    local pipe = self:_getRedis():newPipeline()
     for k, v in pairs(self._procData) do
         local secListLen = v.secListLen
         local minuteListLen = v.minuteListLen
@@ -112,7 +156,7 @@ function MaintainAction:_save(isUpdateMinList, isUpdateHourList)
     pipe:commit()
 end
 
-function MaintainAction:_getPerfomance()
+function WatchdogAction:_getPerfomance()
     for k, _ in pairs(self._procData) do
         local pid = self._procData[k].pid
         local cmd = string_format(_GET_PERFORMANCE_PATTERN, pid)
@@ -124,7 +168,7 @@ function MaintainAction:_getPerfomance()
         self._procData[k].conn = self:_getConnNums(k)
 
         -- get current list len
-        local redis = self:getRedis()
+        local redis = self:_getRedis()
         self._procData[k].secListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "SEC"))
         self._procData[k].minuteListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))
         self._procData[k].hourListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
@@ -137,11 +181,11 @@ function MaintainAction:_getPerfomance()
     end
 end
 
-function MaintainAction:_getPid()
+function WatchdogAction:_getPid()
     local process = self._process
-    local pipe = self:getRedis():newPipeline()
+    local pipe = self:_getRedis():newPipeline()
     for _, procName in ipairs(process) do
-        local cmd = string_format("pgrep %s", procName)
+        local cmd = string_format(_GET_PID_PATTERN, procName)
         local fout = io_popen(cmd)
         local res = fout:read("*a")
         fout:close()
@@ -171,7 +215,7 @@ function MaintainAction:_getPid()
     pipe:commit()
 end
 
-function MaintainAction:_resetProcess(procName)
+function WatchdogAction:_resetProcess(procName)
     if procName == "nginx" then
         os_execute(_RESET_NGINX_CMD)
     end
@@ -184,7 +228,7 @@ function MaintainAction:_resetProcess(procName)
         os_execute(_RESET_BEANSTALKD_CMD)
     end
 
-    local cmd = string_format("pgrep %s", procName)
+    local cmd = string_format(_GET_PID_PATTERN, procName)
     local fout = io_popen(cmd)
     local res = fout:read("*a")
     fout:close()
@@ -192,27 +236,57 @@ function MaintainAction:_resetProcess(procName)
     return res
 end
 
-function MaintainAction:_getConnNums(procName)
-    -- only support redis now.
+function WatchdogAction:_getConnNums(procName)
+    -- redis connections.
     if string_find(procName, "REDIS%-SERVER") then
-        local redis = self:getRedis()
+        local redis = self:_getRedis()
         res = redis:command("INFO")
         return res.clients.connected_clients
     end
 
-    -- TODO: accurately get connections of ngnix & beanstalkd.
+    -- nginx connections
+    if string_find(procName, "NGINX_MASTER") then
+        local client = http:new()
+        local _, _, _, _, bodyStr = client:request{
+            url = [[https://127.0.0.1/nginx_status]],
+            method = "GET", 
+        }
+    end
+    
+    -- beanstalkd jobs
+    if string_find(procName, "BEANSTALKD") then
+        local beans = self:_getBeans()
+        local res = beans:command("stats_tube", self._cmd.beanstalkd.jobTube)
+        return string_match(res, "total%-jobs: (%d+)")
+    end
 
     return 0
 end
 
-function MaintainAction:getRedis()
+function WatchdogAction:_getBeans()
+    if not self._beans then
+        self._beans = self:_newBeans()
+    end
+    return self._beans 
+end
+
+function WatchdogAction:_newBeans()
+    local beans = BeansService:create(self._cmd.config.beanstalkd)
+    local ok, err = beans:connect()
+    if err then
+        throw("connect internal beanstalkd failed, %s", err)
+    end
+    return beans
+end
+
+function WatchdogAction:_getRedis()
     if not self._redis then
         self._redis = self:_newRedis()
     end
     return self._redis
 end
 
-function MaintainAction:_newRedis()
+function WatchdogAction:_newRedis()
     local redis = RedisService:create(self._cmd.config.redis)
     local ok, err = redis:connect()
     if err then
@@ -221,4 +295,4 @@ function MaintainAction:_newRedis()
     return redis
 end
 
-return MaintainAction
+return WatchdogAction
