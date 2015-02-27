@@ -27,6 +27,7 @@ declare -i ALL=1
 declare -i NO_BEANS=0
 declare -i NO_NGINX=0
 declare -i NO_REDIS=0
+declare -i NO_MONITOR=0
 
 while true ; do
     case "$1" in
@@ -53,6 +54,12 @@ while true ; do
             shift
             ;;
 
+        --no-monitor)
+            NO_MONITOR=1
+            ALL=0
+            shift
+            ;;
+
         -h|--help)
             showHelp;
             exit 0
@@ -67,25 +74,19 @@ while true ; do
     esac
 done
 
-# "debug" option has no effect on other options, except "--all(-a)" and "--nginx(-n)".
-#if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ]; then
-#    DEBUG=0
-#    echo "please NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
-#fi
-
-#start redis
+# start redis
 if [ $NO_REDIS -ne 1 ]; then
     $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
     echo "Start Redis DONE"
 fi
 
-#start beanstalkd
+# start beanstalkd
 if [ $NO_BEANS -ne 1 ]; then
     $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
     echo "Start Beanstalkd DONE"
 fi
 
-#start nginx
+# start nginx
 if [ $NO_NGINX -ne 1 ]; then
     sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
     if [ $DEBUG -eq 1 ] ; then
@@ -101,6 +102,11 @@ if [ $NO_NGINX -ne 1 ]; then
     fi
     nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
     echo "Start Nginx DONE"
+fi
+
+# start monitor
+if [ $NO_MONITOR -ne 1 ]; then
+    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &  
 fi
 
 cd $CURRDIR

@@ -119,7 +119,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     mkdir -p $DEST_BIN_DIR/openresty
 
     # install nginx
-    ./configure --prefix=$DEST_BIN_DIR/openresty --with-luajit
+    ./configure --prefix=$DEST_BIN_DIR/openresty --with-luajit --with-http_stub_status_module
     make
     make install
 
@@ -141,9 +141,9 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
 
-    #modify monitor tools path
+    #modify tools path
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MaintainAction.lua
+    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
 
 
     #install luasocket
