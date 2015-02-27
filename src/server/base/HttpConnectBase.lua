@@ -91,20 +91,7 @@ end
 
 function HttpConnectBase:run()
     local result, err = self:runEventLoop()
-
-    local rtype = type(result)
-    if not err then
-        if rtype == "nil" then
-            ngx.status = ngx.HTTP_OK
-            return
-        elseif rtype == "string" then
-            ngx.status = ngx.HTTP_OK
-            ngx_say(result)
-            return
-        end
-    end
-
-    local result, err = self:_genOutput(result, err)
+    result, err = self:_genOutput(result, err)
     if err then
         -- return an error page with custom contents
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
