@@ -92,7 +92,7 @@ set -e
 CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
 
-OPENRESTY_VER=1.7.7.2
+OPENRESTY_VER=1.7.7.1
 REDIS_VAR=2.6.16
 BEANSTALKD_VER=1.9
 
