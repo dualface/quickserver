@@ -187,7 +187,7 @@ end
 
 function MonitorAction:_getFiled(typ)
     if typ == "SEC" then
-        return "last_600s"
+        return "last_60s"
     end
 
     if typ == "MINUTE" then
