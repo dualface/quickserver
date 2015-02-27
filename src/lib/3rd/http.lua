@@ -20,7 +20,7 @@ local default = {
 
 
 -- global variables
-local url = require("server.lib.url")
+local url = require("url")
 
 local mt = { __index = package.loaded[...] }
 
