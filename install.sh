@@ -162,7 +162,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd $BUILD_DIR
     tar zxf luahttpclient.tar.gz
     cp -f httpclient.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
-    cp -f httpclient/* $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    cp -rf httpclient $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     #i install inspect
     cd $BUILD_DIR
