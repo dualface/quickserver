@@ -99,7 +99,7 @@ BEANSTALKD_VER=1.9
 cd ~
 rm -fr $BUILD_DIR
 mkdir -p $BUILD_DIR
-cp -f $CUR_DIR/install/*.tar.gz $BUILD_DIR
+cp -f $CUR_DIR/installation/*.tar.gz $BUILD_DIR
 
 DEST_BIN_DIR=$DEST_DIR/bin
 
@@ -130,33 +130,44 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -rf $CUR_DIR/apps $DEST_DIR
     cp -rf $CUR_DIR/tools $DEST_DIR
 
-    #deploy tool script
+    # deploy tool script
     cd $CUR_DIR/shells/
     cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh tools.sh $DEST_DIR
     ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
 
-    #copy nginx and Quick Server framework conf file
+    # copy nginx and Quick Server framework conf file
     cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
 
-    #modify tools path
+    # modify tools path
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
 
 
-    #install luasocket
+    # install luasocket
     cd $BUILD_DIR
     tar zxf luasocket.tar.gz
     cp -rf socket.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket
     cp -rf socket $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
     cp -f socket.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
-    #install cjson
+    # install cjson
     cd $BUILD_DIR
     tar zxf cjson.tar.gz
     cp -f cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+
+    # install http client 
+    cd $BUILD_DIR
+    tar zxf luahttpclient.tar.gz
+    cp -f httpclient.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    cp -f httpclient/* $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+
+    #i install inspect
+    cd $BUILD_DIR
+    tar zxf luainspect.tar.gz
+    cp -f inspect.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     echo "Install Openresty and Quick Server framework DONE"
 fi
