@@ -27,19 +27,22 @@ local string_match = string.match
 local string_sub = string.sub
 local string_lower = string.lower
 local string_split = string.split
+local string_find = string.find
 local table_insert = table.insert
 local math_trunc = math.trunc
 local io_popen = io.popen
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
 local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
+local _MONITOR_MEM_INFO_KEY = "_MONITOR_MEM_INFO"
+local _MONITOR_CPU_INFO_KEY = "_MONITOR_CPU_INFO"
+local _MONITOR_DISK_INFO_KEY = "_MONITOR_DISK_INFO"
 
 local MonitorAction = class("MonitorAction")
 
 function MonitorAction:ctor(connect)
     self.connect = connect
     self._interval = connect.config.monitor.interval
-    self._redis = connect:getRedis()
 end
 
 function MonitorAction:getalldataAction(arg)
@@ -50,7 +53,9 @@ function MonitorAction:getalldataAction(arg)
     end
 
     result.interval = self._interval
-    result.mem_total = self:_getMemTotal()
+    result.cpu_cores = self:_getSystemInfo(_MONITOR_CPU_INFO_KEY)
+    result.mem_total, result.mem_free = self:_getSystemInfo(_MONITOR_MEM_INFO_KEY)
+    result.disk_total, result.disk_free = self:_getSystemInfo(_MONITOR_DISK_INFO_KEY)
 
     return result
 end
@@ -64,7 +69,7 @@ function MonitorAction:getdataAction(arg)
 
     local listType = {}
     local start = 0
-    if timeSpan <= 600 then
+    if timeSpan <= 60 then
         table_insert(listType, "SEC")
         start = -math_trunc(timeSpan / self._interval)
         -- indicate that client has a query interval less than monitoring interval
@@ -87,30 +92,34 @@ function MonitorAction:getdataAction(arg)
     end
 
     result.interval = self._interval
-    result.mem_total = self:_getMemTotal()
+    result.cpu_cores = self:_getSystemInfo(_MONITOR_CPU_INFO_KEY)
+    result.mem_total, result.mem_free = self:_getSystemInfo(_MONITOR_MEM_INFO_KEY)
+    result.disk_total, result.disk_free = self:_getSystemInfo(_MONITOR_DISK_INFO_KEY)
 
     return result
 end
 
 function MonitorAction:_getProcess()
-    local redis = self._redis
+    local redis = self.connect:getRedis()
     local process = redis:command("HKEYS", _MONITOR_PROC_DICT_KEY)
 
     return process
 end
 
-function MonitorAction:_getMemTotal()
-    local fout = io_popen(_GET_MEM_TOTAL_CMD)
-    local res = string_match(fout:read("*a"), "(%d+) kB")
-    fout:close()
+function MonitorAction:_getSystemInfo(key)
+    local redis = self.connect:getRedis()
+    local res = string_split(redis:command("GET", key), "|")
 
-    return res
+    return res[1], res[2]
 end
 
 function MonitorAction:_convertToSec(timeSpan)
     if not timeSpan then return nil end
 
     local time = string_match(string_lower(timeSpan), "^(%d+[s|h|m])")
+    if time == nil then
+        throw("time format error.")
+    end
     local unit = string_sub(time, -1)
     local number = tonumber(string_sub(time, 1, -2))
     if not number then
@@ -133,7 +142,7 @@ function MonitorAction:_convertToSec(timeSpan)
 end
 
 function MonitorAction:_fillData(procName, listType, start)
-    local redis = self._redis
+    local redis = self.connect:getRedis()
     local t = {}
     t.cpu = {}
     if not string_find(procName, "BEANSTALKD") then

@@ -22,11 +22,14 @@ THE SOFTWARE.
 
 ]]
 
+local pcall = pcall
 local string_format = string.format
 local string_find = string.find
 local string_sub = string.sub
 local string_upper = string.upper
 local string_split = string.split
+local string_match = string.match
+local math_trunc = math.trunc
 local io_popen = io.popen
 
 local _RESET_REDIS_CMD = [[_QUICK_SERVER_ROOT_/bin/redis/bin/redis-server _QUICK_SERVER_ROOT_/bin/redis/conf/redis.conf]]
@@ -78,7 +81,8 @@ function MonitorAction:watchAction(arg)
     while true do
         self:_getPid()
         self:_getPerfomance()
-        self:_save(elapseSec/60, elapseMin/60)
+        printInfo("elapseSec = %d, elapseMin = %d", elapseSec, elapseMin)
+        self:_save(math_trunc(elapseSec/60), math_trunc(elapseMin/60))
         sock.select(nil, nil, interval)
         if elapseSec >= 60 then
             elapseSec = elapseSec % 60
@@ -88,7 +92,7 @@ function MonitorAction:watchAction(arg)
         end
 
         elapseSec = elapseSec + interval
-        elapseMin = elapseMin + (elapseSec / 60)
+        elapseMin = elapseMin + (math_trunc(elapseSec / 60))
     end
 end
 
@@ -98,7 +102,7 @@ function MonitorAction:_getCpuInfo()
     fout:close()
 
     local redis = self:_getRedis()
-    redis:command("SET", _MONITOR_CPU_CORES_KEY, res)
+    redis:command("SET", _MONITOR_CPU_INFO_KEY, res)
 
     return res
 end
@@ -122,7 +126,7 @@ function MonitorAction:_getDiskInfo()
 end
 
 function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
-    local maxSecLen = 600 / self._interval
+    local maxSecLen = 60 / self._interval
 
     local pipe = self:_getRedis():newPipeline()
     for k, v in pairs(self._procData) do
@@ -133,14 +137,14 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
 
         local list = string_format(_MONITOR_LIST_PATTERN, k, "SEC")
         pipe:command("RPUSH", list, data)
-        if secListLen == maxSecLen then
+        if secListLen > maxSecLen then
             pipe:command("LPOP", list)
         end
 
         if isUpdateMinList ~= 0 then
             list = string_format(_MONITOR_LIST_PATTERN, k, "MINUTE")
             pipe:command("RPUSH", list, data)
-            if minuteListLen == 60 then
+            if minuteListLen > 60 then
                 pipe:command("LPOP", list)
             end
         end
@@ -148,7 +152,7 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
         if isUpdateHourList ~= 0 then
             list = string_format(_MONITOR_LIST_PATTERN, k, "HOUR")
             pipe:command("RPUSH", list, data)
-            if hourListLen == 24 then
+            if hourListLen > 24 then
                 pipe:command("LPOP", list)
             end
         end
@@ -203,8 +207,6 @@ function MonitorAction:_getPid()
                 else
                     pName = pName .. "_WORKER_#" .. tostring(i-1)
                 end
-            else
-                pName = pName .. "_#" .. tostring(i)
             end
 
             self._procData[pName] = {}
@@ -258,8 +260,12 @@ function MonitorAction:_getConnNums(procName)
     -- beanstalkd jobs
     if string_find(procName, "BEANSTALKD") then
         local beans = self:_getBeans()
-        local res = beans:command("stats_tube", self._cmd.beanstalkd.jobTube)
-        return string_match(res, "total%-jobs: (%d+)")
+        local ok, res = pcall(beans.command, beans, "stats_tube", self._cmd.config.beanstalkd.jobTube)
+        if not ok then
+            return "0"
+        else
+            return string_match(res, "total%-jobs: (%d+)")
+        end
     end
 
     return 0
