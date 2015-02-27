@@ -54,9 +54,9 @@ local BeansService = cc.load("beanstalkd").service
 
 local http = require("3rd.http")
 
-local WatchdogAction = class("Watchdog")
+local MonitorAction = class("Monitor")
 
-function WatchdogAction:ctor(cmd)
+function MonitorAction:ctor(cmd)
     self._cmd = cmd
     self._process = cmd.config.monitor.process
     self._interval = cmd.config.monitor.interval
@@ -65,7 +65,7 @@ function WatchdogAction:ctor(cmd)
     self._cpuThreshold = cmd.config.cpu
 end
 
-function WatchdogAction:monitorAction(arg)
+function MonitorAction:watchAction(arg)
     local sock = require("socket")
     local elapseSec = 0
     local elapseMin = 0
@@ -92,7 +92,7 @@ function WatchdogAction:monitorAction(arg)
     end
 end
 
-function WatchdogAction:_getCpuInfo()
+function MonitorAction:_getCpuInfo()
     local fout = io_popen(_GET_CPU_INFO_CMD)
     local res = string_match(fout:read("*a"), "cpu cores.*: (%d+)")
     fout:close()
@@ -121,7 +121,7 @@ function MonitorAction:_getDiskInfo()
     redis:command("SET", _MONITOR_DISK_INFO_KEY, total .. "|" .. free)
 end
 
-function WatchdogAction:_save(isUpdateMinList, isUpdateHourList)
+function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
     local maxSecLen = 600 / self._interval
 
     local pipe = self:_getRedis():newPipeline()
@@ -156,7 +156,7 @@ function WatchdogAction:_save(isUpdateMinList, isUpdateHourList)
     pipe:commit()
 end
 
-function WatchdogAction:_getPerfomance()
+function MonitorAction:_getPerfomance()
     for k, _ in pairs(self._procData) do
         local pid = self._procData[k].pid
         local cmd = string_format(_GET_PERFORMANCE_PATTERN, pid)
@@ -181,7 +181,7 @@ function WatchdogAction:_getPerfomance()
     end
 end
 
-function WatchdogAction:_getPid()
+function MonitorAction:_getPid()
     local process = self._process
     local pipe = self:_getRedis():newPipeline()
     for _, procName in ipairs(process) do
@@ -215,7 +215,7 @@ function WatchdogAction:_getPid()
     pipe:commit()
 end
 
-function WatchdogAction:_resetProcess(procName)
+function MonitorAction:_resetProcess(procName)
     if procName == "nginx" then
         os_execute(_RESET_NGINX_CMD)
     end
@@ -236,7 +236,7 @@ function WatchdogAction:_resetProcess(procName)
     return res
 end
 
-function WatchdogAction:_getConnNums(procName)
+function MonitorAction:_getConnNums(procName)
     -- redis connections.
     if string_find(procName, "REDIS%-SERVER") then
         local redis = self:_getRedis()
@@ -263,14 +263,14 @@ function WatchdogAction:_getConnNums(procName)
     return 0
 end
 
-function WatchdogAction:_getBeans()
+function MonitorAction:_getBeans()
     if not self._beans then
         self._beans = self:_newBeans()
     end
     return self._beans 
 end
 
-function WatchdogAction:_newBeans()
+function MonitorAction:_newBeans()
     local beans = BeansService:create(self._cmd.config.beanstalkd)
     local ok, err = beans:connect()
     if err then
@@ -279,14 +279,14 @@ function WatchdogAction:_newBeans()
     return beans
 end
 
-function WatchdogAction:_getRedis()
+function MonitorAction:_getRedis()
     if not self._redis then
         self._redis = self:_newRedis()
     end
     return self._redis
 end
 
-function WatchdogAction:_newRedis()
+function MonitorAction:_newRedis()
     local redis = RedisService:create(self._cmd.config.redis)
     local ok, err = redis:connect()
     if err then
@@ -295,4 +295,4 @@ function WatchdogAction:_newRedis()
     return redis
 end
 
-return WatchdogAction
+return MonitorAction
