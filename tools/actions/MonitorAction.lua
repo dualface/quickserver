@@ -52,7 +52,7 @@ local RedisService = cc.load("redis").service
 
 local BeansService = cc.load("beanstalkd").service
 
-local http = require("3rd.http")
+local httpClient = require("httpclient").new()
 
 local MonitorAction = class("Monitor")
 
@@ -246,13 +246,15 @@ function MonitorAction:_getConnNums(procName)
 
     -- nginx connections
     if string_find(procName, "NGINX_MASTER") then
-        local client = http:new()
-        local _, _, _, _, bodyStr = client:request{
-            url = [[https://127.0.0.1/nginx_status]],
-            method = "GET", 
-        }
+        local res = httpClient:get("http://localhost:8088/nginx_status")
+        if res.body then
+            return string_match(res.body, "connections: (%d+)")
+        else
+            printWarn("access nginx_status failed, err: %s", res.err)
+            return -1
+        end
     end
-    
+
     -- beanstalkd jobs
     if string_find(procName, "BEANSTALKD") then
         local beans = self:_getBeans()
@@ -267,7 +269,7 @@ function MonitorAction:_getBeans()
     if not self._beans then
         self._beans = self:_newBeans()
     end
-    return self._beans 
+    return self._beans
 end
 
 function MonitorAction:_newBeans()

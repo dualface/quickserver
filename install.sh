@@ -158,7 +158,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     tar zxf cjson.tar.gz
     cp -f cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
 
-    # install http client 
+    # install http client
     cd $BUILD_DIR
     tar zxf luahttpclient.tar.gz
     cp -f httpclient.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.

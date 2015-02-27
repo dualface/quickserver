@@ -106,7 +106,7 @@ fi
 
 # start monitor
 if [ $NO_MONITOR -ne 1 ]; then
-    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &  
+    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
 fi
 
 cd $CURRDIR
