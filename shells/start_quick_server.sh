@@ -16,18 +16,24 @@ function showHelp()
 CURRDIR=$(dirname $(readlink -f $0))
 NGINXDIR=$CURRDIR/bin/openresty/nginx
 
-ARGS=$(getopt -o h --long no-nginx,no-redis,no-beanstalkd,debug,help -n 'Start quick server' -- "$@")
+ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,debug,help -n 'Start quick server' -- "$@")
 
 if [ $? != 0 ] ; then echo "Start Quick Server Terminating..." >&2; exit 1; fi
 
 eval set -- "$ARGS"
 
 declare -i DEBUG=0
-declare -i ALL=1
-declare -i NO_BEANS=0
-declare -i NO_NGINX=0
-declare -i NO_REDIS=0
-declare -i NO_MONITOR=0
+declare -i ALL=0
+declare -i BEANS=0
+declare -i NGINX=0
+declare -i REDIS=0
+if [ $# -eq 1 ] ; then
+    ALL=1
+fi
+
+if [ $# -eq 2 ] && [ $1 == "--debug" ]; then
+    ALL=1
+fi
 
 while true ; do
     case "$1" in
@@ -36,27 +42,23 @@ while true ; do
             shift
             ;;
 
-        --no-beanstalkd)
-            NO_BEANS=1
-            ALL=0
+        -a|--all)
+            ALL=1
             shift
             ;;
 
-        --no-redis)
-            NO_REDIS=1
-            ALL=0
+        -b|--beanstalkd)
+            BEANS=1
             shift
             ;;
 
-        --no-nginx)
-            NO_NGINX=1
-            ALL=0
+        -r|--redis)
+            REDIS=1
             shift
             ;;
 
-        --no-monitor)
-            NO_MONITOR=1
-            ALL=0
+        -n|--nginx)
+            NGINX=1
             shift
             ;;
 
@@ -75,19 +77,19 @@ while true ; do
 done
 
 # start redis
-if [ $NO_REDIS -ne 1 ]; then
+if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
     $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
     echo "Start Redis DONE"
 fi
 
 # start beanstalkd
-if [ $NO_BEANS -ne 1 ]; then
+if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
     echo "Start Beanstalkd DONE"
 fi
 
 # start nginx
-if [ $NO_NGINX -ne 1 ]; then
+if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
     if [ $DEBUG -eq 1 ] ; then
         echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
@@ -104,13 +106,11 @@ if [ $NO_NGINX -ne 1 ]; then
     echo "Start Nginx DONE"
 fi
 
-# start monitor
-if [ $NO_MONITOR -ne 1 ]; then
-    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
-fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ]; then
+    # start monitor
+    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
     echo -e "\033[31mStart Quick Server DONE! \033[0m"
 fi
 

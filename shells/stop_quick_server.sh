@@ -103,6 +103,8 @@ fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
+    killall tools.sh
+    killall lua
     echo -e "\033[31mStop Quick Server DONE! \033[0m"
 fi
 
