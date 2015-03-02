@@ -149,9 +149,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     # install luasocket
     cd $BUILD_DIR
     tar zxf luasocket.tar.gz
-    cp -rf socket.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket
+    cp -rf socket.so/socket $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+    cp -rf socket.so/mime $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
     cp -rf socket $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
-    cp -f socket.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    cp -f socket.lua mime.lua ltn12.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     # install cjson
     cd $BUILD_DIR
