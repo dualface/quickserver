@@ -184,6 +184,8 @@ function MonitorAction:_getPerfomance()
         local cmd = string_format(_GET_PERFORMANCE_PATTERN, pid, pid)
         local fout = io_popen(cmd)
         local res = string_sub(fout:read("*a"), 1, -2) -- trim "\n"
+        fout:close()
+
         local tRes = string_split(res, " ")
         v.cpu = tRes[1]
         v.mem = tRes[2]
