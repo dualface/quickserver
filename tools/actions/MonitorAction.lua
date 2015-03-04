@@ -29,6 +29,8 @@ local string_sub = string.sub
 local string_upper = string.upper
 local string_split = string.split
 local string_match = string.match
+local table_insert = table.insert
+local table_concat = table.concat
 local math_trunc = math.trunc
 local io_popen = io.popen
 
@@ -41,7 +43,7 @@ local _GET_DISK_INFO_CMD = [[df --total -k | grep "total"]]
 local _GET_CPU_INFO_CMD = [[cat /proc/cpuinfo | grep "cpu cores"]]
 
 local _GET_PID_PATTERN = "pgrep %s"
-local _GET_PERFORMANCE_PATTERN = [[top -b -n 1 -p%s | grep "%s" | awk '{print $9" "$6}']]
+local _GET_PERFORMANCE_PATTERN = [[top -b -n 1 -p%s]]
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
 local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
@@ -57,6 +59,8 @@ local BeansService = cc.load("beanstalkd").service
 
 local httpClient = require("httpclient").new()
 
+local socket = require("socket")
+
 local MonitorAction = class("Monitor")
 
 function MonitorAction:ctor(cmd)
@@ -66,6 +70,10 @@ function MonitorAction:ctor(cmd)
     self._procData = {}
     self._memThreshold = cmd.config.mem
     self._cpuThreshold = cmd.config.cpu
+
+    self._minuteListLen = 0
+    self._secListLen = 0
+    self._hourListLen = 0
 end
 
 function MonitorAction:watchAction(arg)
@@ -81,14 +89,17 @@ function MonitorAction:watchAction(arg)
     self:_getDiskInfo()
 
     while true do
+        local timer1 = socket.gettime()
         self:_getPid()
         self:_getPerfomance()
 
-        printInfo("elapseSec = %d, elapseMin = %d", elapseSec, elapseMin)
-
         self:_save(math_trunc(elapseSec/60), math_trunc(elapseMin/60))
+        local timer2 = socket.gettime()
 
-        sock.select(nil, nil, interval)
+        local dTime = timer2 - timer1
+        if interval - dTime > 0 then
+            sock.sleep(interval-dTime)
+        end
 
         if elapseSec >= 60 then
             elapseSec = elapseSec % 60
@@ -106,9 +117,9 @@ function MonitorAction:_initList()
 
     local pipe = self:_getRedis():newPipeline()
     for k, _ in pairs(self._procData) do
-        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "SEC"))            
-        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))            
-        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))            
+        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "SEC"))
+        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))
+        pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
     end
     pipe:commit()
 end
@@ -147,9 +158,9 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
 
     local pipe = self:_getRedis():newPipeline()
     for k, v in pairs(self._procData) do
-        local secListLen = v.secListLen
-        local minuteListLen = v.minuteListLen
-        local hourListLen = v.hourListLen
+        local secListLen = self._secListLen
+        local minuteListLen = self._minuteListLen
+        local hourListLen = self._hourListLen
         local data = v.cpu .. "|" .. v.mem .. "|" .. v.conn
 
         local list = string_format(_MONITOR_LIST_PATTERN, k, "SEC")
@@ -175,26 +186,42 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
         end
     end
     pipe:commit()
+
+    if self._secListLen <= maxSecLen then
+        self._secListLen = self._secListLen + 1
+    end
+    if self._minuteListLen <= 60 then
+        self._minuteListLen = self._minuteListLen + 1
+    end
+    if self._hourListLen <= 24 then
+        self._hourListLen = self._hourListLen + 1
+    end
 end
 
 function MonitorAction:_getPerfomance()
+    -- get cpu%, mem via top
+    local pids = {}
+    for _, v in pairs (self._procData) do
+        table_insert(pids, v.pid)
+    end
+    local strPids = table_concat(pids, ",")
+
+    local cmd = string_format(_GET_PERFORMANCE_PATTERN, strPids)
+    local fout = io_popen(cmd)
+    local topRes = string_split(fout:read("*a"), "\n")
+    fout:close()
+
+    local filterRes = {}
+    for i = #topRes-#pids+1, #topRes do
+        local t = string_split(topRes[i], " ")
+        filterRes[t[1]] = {t[9], t[6]}
+    end
+
     for k, v in pairs(self._procData) do
         local pid = v.pid
-        local cmd = string_format(_GET_PERFORMANCE_PATTERN, pid, pid)
-        local fout = io_popen(cmd)
-        local res = string_sub(fout:read("*a"), 1, -2) -- trim "\n"
-        fout:close()
-
-        local tRes = string_split(res, " ")
-        v.cpu = tRes[1]
-        v.mem = tRes[2]
+        v.cpu = filterRes[pid][1]
+        v.mem = filterRes[pid][2]
         v.conn = self:_getConnNums(k)
-
-        -- get current list len
-        local redis = self:_getRedis()
-        v.secListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "SEC"))
-        v.minuteListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))
-        v.hourListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
     end
 
     if DEBUG >= 1 then
@@ -202,12 +229,12 @@ function MonitorAction:_getPerfomance()
             printInfo("%s pid %s: cpu %s, mem %s", k, v.pid, v.cpu, v.mem)
             if tonumber(v.cpu) > 100 then
                 printWarn("cpu usage %s of %s is large than 100", v.cpu, k)
-                local cmd = string_format(_GET_PERFORMANCE_PATTERN, v.pid, v.pid) 
+                local cmd = string_format(_GET_PERFORMANCE_PATTERN, v.pid, v.pid)
                 local fout = io_popen(cmd)
                 local res = fout:read("*a")
                 fout:close()
                 printWarn("current top cmd: %s", cmd)
-                printWarn("current top cmd result: %s", res) 
+                printWarn("current top cmd result: %s", res)
             end
         end
     end
