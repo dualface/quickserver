@@ -229,12 +229,6 @@ function MonitorAction:_getPerfomance()
             printInfo("%s pid %s: cpu %s, mem %s", k, v.pid, v.cpu, v.mem)
             if tonumber(v.cpu) > 100 then
                 printWarn("cpu usage %s of %s is large than 100", v.cpu, k)
-                local cmd = string_format(_GET_PERFORMANCE_PATTERN, v.pid, v.pid)
-                local fout = io_popen(cmd)
-                local res = fout:read("*a")
-                fout:close()
-                printWarn("current top cmd: %s", cmd)
-                printWarn("current top cmd result: %s", res)
             end
         end
     end
