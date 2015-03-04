@@ -41,7 +41,6 @@ local _GET_DISK_INFO_CMD = [[df --total -k | grep "total"]]
 local _GET_CPU_INFO_CMD = [[cat /proc/cpuinfo | grep "cpu cores"]]
 
 local _GET_PID_PATTERN = "pgrep %s"
---local _GET_PERFORMANCE_PATTERN = "ps -p %s -o pcpu= -o rss="
 local _GET_PERFORMANCE_PATTERN = [[top -b -n 1 -p%s | grep "%s" | awk '{print $9" "$6}']]
 
 local _MONITOR_PROC_DICT_KEY = "_MONITOR_PROC_DICT"
@@ -136,7 +135,7 @@ end
 
 function MonitorAction:_getDiskInfo()
     local fout = io_popen(_GET_DISK_INFO_CMD)
-    local total, free = string_match(fout:read("*a"), "total%s+(%d+) %d+ (%d+).*")
+    local total, free = string_match(fout:read("*a"), "total%s+(%d+)%s+%d+%s+(%d+).*")
     fout:close()
 
     local redis = self:_getRedis()
@@ -198,9 +197,18 @@ function MonitorAction:_getPerfomance()
         v.hourListLen = redis:command("LLEN", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
     end
 
-    if DEBUG > 1 then
+    if DEBUG >= 1 then
         for k, v in pairs(self._procData) do
             printInfo("%s pid %s: cpu %s, mem %s", k, v.pid, v.cpu, v.mem)
+            if tonumber(v.cpu) > 100 then
+                printWarn("cpu usage %s of %s is large than 100", v.cpu, k)
+                local cmd = string_format(_GET_PERFORMANCE_PATTERN, v.pid, v.pid) 
+                local fout = io_popen(cmd)
+                local res = fout:read("*a")
+                fout:close()
+                printWarn("current top cmd: %s", cmd)
+                printWarn("current top cmd result: %s", res) 
+            end
         end
     end
 end
