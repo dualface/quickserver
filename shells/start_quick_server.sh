@@ -14,7 +14,10 @@ function showHelp()
 }
 
 CURRDIR=$(dirname $(readlink -f $0))
+OLDDIR=$(pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx
+
+cd $CURRDIR
 
 ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,debug,help -n 'Start quick server' -- "$@")
 
@@ -116,3 +119,5 @@ fi
 
 sleep 1
 $CURRDIR/status_quick_server.sh
+
+cd $OLDDIR
