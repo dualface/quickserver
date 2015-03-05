@@ -25,7 +25,10 @@ THE SOFTWARE.
 local Factory = class("Factory")
 
 function Factory.create(config, classNamePrefix, ...)
-    package.path = config.appRootPath .. "/?.lua;" .. package.path
+    local path = config.appRootPath .. "/?.lua;"
+    if string.sub(package.path, 1, string.len(path)) ~= path then
+        package.path = path .. package.path
+    end
 
     local tagretClass
     local ok, _tagretClass = pcall(require, classNamePrefix)
