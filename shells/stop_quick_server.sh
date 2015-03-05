@@ -81,10 +81,10 @@ fi
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
-        nginx -q -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s stop
+        nginx -q -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s stop
         echo "Stop Nginx DONE"
     else
-        nginx -p $(pwd) -c $NGINX_DIR/conf/nginx.conf -s reload
+        nginx -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s reload
         echo "Reload Nginx conf DONE"
     fi
 fi
