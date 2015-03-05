@@ -190,10 +190,10 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
     if self._secListLen <= maxSecLen then
         self._secListLen = self._secListLen + 1
     end
-    if self._minuteListLen <= 60 then
+    if isUpdateMinList ~= 0 and self._minuteListLen <= 60 then
         self._minuteListLen = self._minuteListLen + 1
     end
-    if self._hourListLen <= 24 then
+    if isUpdateHourList ~= 0 and self._hourListLen <= 24 then
         self._hourListLen = self._hourListLen + 1
     end
 end
