@@ -1,10 +1,11 @@
 
-var interval = 5;
+var interval = 2;
+var interval_60s_steps = Math.round(60 / interval);
 
 var chart_opts = {
     axisX: {
-        showLabel: false,
-        offset: 0
+        showLabel: true,
+        offset: 20
     },
     axisY: {
         showLabel: true,
@@ -20,18 +21,13 @@ var chart_opts = {
     fullWidth: true
 };
 
-
 var last60s_cpu_data = {
     labels: [],
-    series: [
-        [], // beanstalkd
-        [], // redis
-        []  // nginx
-    ]
+    series: [[]]
 };
 
-for (var i = 0; i < 60 / interval; ++i) {
-    last60s_cpu_data.labels[i] = "";
+for (var i = 0; i < interval_60s_steps; ++i) {
+    last60s_cpu_data.labels[i] = "|";
 }
 
 var last60s_cpu_opts = $.extend(true, {}, chart_opts);
@@ -77,7 +73,7 @@ function update_last60s() {
 
         var cores = parseFloat(data.cpu_cores);
         var loads = {nginx: [], redis: [], beanstalkd: []};
-        for (var index = 0; index < 60 / interval; ++index) {
+        for (var index = 0; index < interval_60s_steps; ++index) {
             var load = calc_ngx_cpu_load_at_index(data, "last_60s", index);
             if (load === false) {
                 break;
@@ -88,18 +84,21 @@ function update_last60s() {
         }
 
         console.log("loads.nginx.length = " + loads.nginx.length.toString());
-        for (var index = 0; index < loads.nginx.length; ++index) {
-            var load1 = loads.beanstalkd[index] / cores;
-            last60s_cpu_data.series[0][index] = load1;
-            var load2 = loads.redis[index] / cores + load1;
-            last60s_cpu_data.series[1][index] = load2;
-
-            var load3 = loads.nginx[index] / cores + load2;
-            if (load3 > 100) {
-                console.log("load3 = " + load3.toString());
-                load3 = 100;
+        var length = loads.nginx.length;
+        var offset = interval_60s_steps - length;
+        if (offset > 0) {
+            for (var index = 0; index < offset; ++index) {
+                last60s_cpu_data.series[0][index] = 0;
             }
-            last60s_cpu_data.series[2][index] = load3;
+        }
+        for (var index = 0; index < length; ++index) {
+            var idx = offset + index;
+            var load = (loads.beanstalkd[index] + loads.redis[index] + loads.nginx[index]) / cores;
+            if (load > 100) {
+                console.log("load = " + load.toString());
+                load = 100;
+            }
+            last60s_cpu_data.series[0][idx] = load;
         }
         dashboard.last60s_cpu_chart.update(last60s_cpu_data);
 

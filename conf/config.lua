@@ -89,7 +89,7 @@ local config = {
             critical = 90,
         },
 
-        interval = 10,
+        interval = 2,
 
         criticalStatePersistentTImes = 3,
     },
