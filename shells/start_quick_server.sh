@@ -130,7 +130,7 @@ fi
 cd $CURRDIR
 if [ $ALL -eq 1 ]; then
     # start monitor
-    pgrep tools.sh
+    pgrep tools.sh > /dev/null
     if [ $? -ne 0 ]; then
         $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
     fi

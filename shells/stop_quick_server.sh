@@ -76,6 +76,7 @@ done
 if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ] && [ $RELOAD -ne 0 ]; then
     RELOAD=0
     echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
+    exit 0
 fi
 
 #stop nginx
@@ -106,8 +107,10 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     echo "Stop Beanstalkd DONE"
 fi
 
-killall tools.sh 2> /dev/null
-killall lua 2> /dev/null
+if [ $RELOAD -eq 0 ]; then
+    killall tools.sh 2> /dev/null
+    killall lua 2> /dev/null
+fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
