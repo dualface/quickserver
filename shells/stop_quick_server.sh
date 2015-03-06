@@ -73,7 +73,7 @@ while true ; do
 done
 
 # "--reload" option has no effect on other options, except "--ngxin(-n)".
-if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ] ; then
+if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ] && [ $RELOAD -ne 0 ]; then
     RELOAD=0
     echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
 fi
@@ -81,8 +81,13 @@ fi
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
-        nginx -q -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s stop
-        echo "Stop Nginx DONE"
+        pgrep nginx > /dev/null
+        while [ $? -eq 0 ]
+        do
+            nginx -q -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s stop
+            echo "Stop Nginx DONE"
+            pgrep nginx > /dev/null
+        done
     else
         nginx -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s reload
         echo "Reload Nginx conf DONE"
@@ -91,20 +96,21 @@ fi
 
 #stop redis
 if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
-    killall redis-server
+    killall redis-server 2> /dev/null
     echo "Stop Redis DONE"
 fi
 
 #stop beanstalkd
 if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
-    killall beanstalkd
+    killall beanstalkd 2> /dev/null
     echo "Stop Beanstalkd DONE"
 fi
 
+killall tools.sh 2> /dev/null
+killall lua 2> /dev/null
+
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
-    killall tools.sh
-    killall lua
     echo -e "\033[31mStop Quick Server DONE! \033[0m"
 fi
 
