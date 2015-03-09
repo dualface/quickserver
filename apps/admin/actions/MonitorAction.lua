@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 ]]
 
+local tonumber = tonumber
 local string_format = string.format
 local string_match = string.match
 local string_sub = string.sub
@@ -170,14 +171,14 @@ function MonitorAction:_fillData(procName, listType, start)
 
         for _, v in ipairs(data) do
             local tmp = string_split(v, "|")
-            table_insert(t.cpu[field], tmp[1])
+            table_insert(t.cpu[field], tonumber(tmp[1]))
             if not string_find(procName, "BEANSTALKD") then
-                table_insert(t.mem[field], tmp[2])
+                table_insert(t.mem[field], tonumber(tmp[2]))
                 if not string_find(procName, "NGINX_WORKER") then
-                    table_insert(t.conn_num[field], tmp[3])
+                    table_insert(t.conn_num[field], tonumber(tmp[3]))
                 end
             else
-                table_insert(t.total_jobs[field], tmp[3])
+                table_insert(t.total_jobs[field], tonumber(tmp[3]))
             end
         end
     end
