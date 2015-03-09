@@ -219,9 +219,11 @@ function MonitorAction:_getPerfomance()
 
     for k, v in pairs(self._procData) do
         local pid = v.pid
-        v.cpu = filterRes[pid][1]
-        v.mem = filterRes[pid][2]
-        v.conn = self:_getConnNums(k)
+        if filterRes[pid] then
+            v.cpu = filterRes[pid][1]
+            v.mem = filterRes[pid][2]
+            v.conn = self:_getConnNums(k)
+        end
     end
 
     if DEBUG >= 1 then
@@ -237,6 +239,7 @@ end
 function MonitorAction:_getPid()
     local process = self._process
     local pipe = self:_getRedis():newPipeline()
+    pipe:command("DEL", _MONITOR_PROC_DICT_KEY)
     for _, procName in ipairs(process) do
         local cmd = string_format(_GET_PID_PATTERN, procName)
         local fout = io_popen(cmd)
