@@ -223,6 +223,10 @@ function MonitorAction:_getPerfomance()
             v.cpu = filterRes[pid][1]
             v.mem = filterRes[pid][2]
             v.conn = self:_getConnNums(k)
+        else
+            v.cpu = "0.0"
+            v.mem = "0"
+            v.conn = "0"
         end
     end
 
