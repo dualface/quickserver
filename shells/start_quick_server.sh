@@ -81,39 +81,59 @@ done
 
 # start redis
 if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
-    $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
-    echo "Start Redis DONE"
+    pgrep redis-server > /dev/null
+    if [ $? -ne 0 ]; then
+        $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
+        echo "Start Redis DONE"
+    else
+        echo "Redis is already started"
+    fi
 fi
 
 # start beanstalkd
 if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
-    $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
-    echo "Start Beanstalkd DONE"
+    pgrep beanstalkd > /dev/null
+    if [ $? -ne 0 ]; then
+        $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
+        echo "Start Beanstalkd DONE"
+    else
+        echo "Beanstalkd is already started"
+    fi
 fi
 
 # start nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
-    sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
-    if [ $DEBUG -eq 1 ] ; then
-        echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
-        sed -i "s#DEBUG = _DBG_WARN#DEBUG = _DBG_DEBUG#g" $CURRDIR/conf/config.lua
-        sed -i "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
-        sed -i "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
+    pgrep nginx > /dev/null
+    if [ $? -ne 0 ]; then
+        sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
+        if [ $DEBUG -eq 1 ] ; then
+            echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
+            sed -i "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
+            sed -i "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
+            sed -i "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
+            sed -i "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/tools.sh
+        else
+            echo -e "Start Nginx in \033[31m RELEASE \033[0m mode..."
+            sed -i "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
+            sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
+            sed -i "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
+            sed -i "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/tools.sh
+        fi
+        nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
+        echo "Start Nginx DONE"
     else
-        echo -e "Start Nginx in \033[31m RELEASE \033[0m mode..."
-        sed -i "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_WARN#g" $CURRDIR/conf/config.lua
-        sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
-        sed -i "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
+        echo "Nginx is already started"
     fi
-    nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
-    echo "Start Nginx DONE"
 fi
 
 
 cd $CURRDIR
 if [ $ALL -eq 1 ]; then
     # start monitor
-    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    pgrep tools.sh > /dev/null
+    if [ $? -ne 0 ]; then
+        $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    fi
     echo -e "\033[31mStart Quick Server DONE! \033[0m"
 fi
 

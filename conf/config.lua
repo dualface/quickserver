@@ -31,10 +31,7 @@ local config = {
     -- user app
     appRootPath = "_QUICK_SERVER_ROOT_/<USER_APP_ROOT>",
 
-    appWorkersEnabled = true,
-    appWorkers = {
-        instances = 4,
-    },
+    numOfWorkers = 4,
 
     appHttpMessageFormat   = "json",
     appSocketMessageFormat = "json",
@@ -51,8 +48,6 @@ local config = {
     maxSubscribeRetryCount = 10,
 
     -- internal memory database
-    -- --no-redis
-    redisEnabled = true,
     redis = {
         socket     = "unix:_QUICK_SERVER_ROOT_/tmp/redis.sock",
         -- host       = "127.0.0.1",
@@ -61,8 +56,6 @@ local config = {
     },
 
     -- background job server
-    -- --no-beanstalkd
-    beanstalkdEnabled = true,
     beanstalkd = {
         host       = "127.0.0.1",
         port       = 11300,
@@ -70,8 +63,6 @@ local config = {
     },
 
     -- internal monitor
-    -- --no-workers
-    monitorEnabled = true,
     monitor = {
         process = {
             "nginx",
@@ -79,19 +70,7 @@ local config = {
             "beanstalkd",
         },
 
-        mem = {
-            warning = 70,
-            critical = 90,
-        },
-
-        cpu = {
-            warning = 70,
-            critical = 90,
-        },
-
         interval = 2,
-
-        criticalStatePersistentTImes = 3,
     },
 }
 
