@@ -23,6 +23,7 @@ THE SOFTWARE.
 ]]
 
 local pcall = pcall
+local tostring = tostring
 local string_format = string.format
 local string_find = string.find
 local string_sub = string.sub
@@ -304,7 +305,7 @@ function MonitorAction:_getConnNums(procName)
 
     -- nginx connections
     if string_find(procName, "NGINX_MASTER") then
-        local res = httpClient:get("http://localhost:8088/nginx_status")
+        local res = httpClient:get("http://localhost:" .. tostring(self._cmd.config.port) .. "/nginx_status")
         if res.body then
             return string_match(res.body, "connections: (%d+)")
         else
