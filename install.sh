@@ -124,7 +124,6 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     make install
 
     # install quick server framework
-    ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha /usr/bin/lua
     ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_BIN_DIR/openresty/luajit/bin/lua
     cp -rf $CUR_DIR/src $DEST_DIR
     cp -rf $CUR_DIR/apps $DEST_DIR
