@@ -2,7 +2,7 @@
 export LUA_PATH="_QUICK_SERVER_ROOT_/src/?.lua;_QUICK_SERVER_ROOT_/src/lib/?.lua;;"
 
 DIR=$(dirname $(readlink -f $0))
-LUABIN=lua
+LUABIN=bin/openresty/luajit/bin/lua
 SCRIPT=CLIBootstrap.lua
 
 cd $DIR

@@ -109,7 +109,7 @@ fi
 
 if [ $RELOAD -eq 0 ]; then
     killall tools.sh 2> /dev/null
-    killall lua 2> /dev/null
+    killall bin/openresty/luajit/bin/lua 2> /dev/null
 fi
 
 cd $CURRDIR
