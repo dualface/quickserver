@@ -13,6 +13,22 @@ function showHelp()
     echo "In default, Quick Server will start in release mode, or else it will start in debug mode when you specified \"--debug\" following options.But NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
 }
 
+function getNginxNumOfWorker()
+{
+    LUABIN=bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
+
+    $LUABIN -e "$CODE"
+}
+
+function getNginxPort()
+{
+    LUABIN=bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print(_C.port);'
+
+    $LUABIN -e "$CODE"
+}
+
 CURRDIR=$(dirname $(readlink -f $0))
 OLDDIR=$(pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx
@@ -106,6 +122,13 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     pgrep nginx > /dev/null
     if [ $? -ne 0 ]; then
         sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
+
+        PORT=$(getNginxPort)
+        sed -i "s#listen 8088#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+
+        NUMOFWORKERS=$(getNginxNumOfWorker)
+        sed -i "s#worker_processes 4#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+
         if [ $DEBUG -eq 1 ] ; then
             echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
             sed -i "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
