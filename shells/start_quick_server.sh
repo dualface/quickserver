@@ -124,10 +124,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
         sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
 
         PORT=$(getNginxPort)
-        sed -i "s#listen 8088#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+        sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
         NUMOFWORKERS=$(getNginxNumOfWorker)
-        sed -i "s#worker_processes 4#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+        sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         if [ $DEBUG -eq 1 ] ; then
             echo -e "Start Nginx in \033[31m DEBUG \033[0m mode..."
