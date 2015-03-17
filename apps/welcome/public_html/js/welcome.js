@@ -13,7 +13,7 @@ var dashboard = {
             axisY: {
                 showLabel: true,
                 offset: 30,
-                scaleMinSpace: 20
+                scaleMinSpace: 30
             },
             showArea: true,
             height: 200,
@@ -95,8 +95,27 @@ var dashboard = {
             return value + 'M';
         };
 
+        // last60s_connects
+        var last60s_connects_data = $.extend(true, {}, last60s_data_base);
+        self.data.last60s_connects_data = last60s_connects_data;
+
+        var last60s_connects_opts = $.extend(true, {}, self.opts.chart_opts);
+        last60s_connects_opts.high = null;
+        last60s_connects_opts.axisY.scaleMinSpace = 50;
+
+        // last60s_jobs
+        var last60s_jobs_data = $.extend(true, {}, last60s_data_base);
+        self.data.last60s_jobs_data = last60s_jobs_data;
+
+        var last60s_jobs_opts = $.extend(true, {}, self.opts.chart_opts);
+        last60s_jobs_opts.high = null;
+        last60s_jobs_opts.axisY.scaleMinSpace = 50;
+
+        // create charts
         self.charts.last60s_cpu_chart = new Chartist.Line('#last60s_cpu', last60s_cpu_data, last60s_cpu_opts);
         self.charts.last60s_mem_chart = new Chartist.Line('#last60s_mem', last60s_mem_data, last60s_mem_opts);
+        self.charts.last60s_connects_chart = new Chartist.Line('#last60s_connects', last60s_connects_data, last60s_connects_opts);
+        self.charts.last60s_jobs_chart = new Chartist.Line('#last60s_jobs', last60s_jobs_data, last60s_jobs_opts);
     },
 
     update_last60s: function() {
@@ -115,9 +134,13 @@ var dashboard = {
 
             var last60s_cpu_data = self.data.last60s_cpu_data;
             var last60s_mem_data = self.data.last60s_mem_data;
+            var last60s_connects_data = self.data.last60s_connects_data;
+            var last60s_jobs_data = self.data.last60s_jobs_data;
 
             var loads = {nginx: [], redis: [], beanstalkd: []};
             var mems = {nginx: 0, redis: 0};
+            var connects = {nginx: [], redis: []};
+            var jobs = {beanstalkd: []};
 
             var redis_data = data["REDIS-SERVER"];
             var beanstalkd_data = data["BEANSTALKD"];
@@ -132,6 +155,11 @@ var dashboard = {
 
                 mems.nginx = nginx_data.mem;
                 mems.redis = parseInt(data["REDIS-SERVER"].mem.last_60s[index]);
+
+                connects.nginx[index] = parseInt(data["NGINX_MASTER"].conn_num.last_60s[index]);
+                connects.redis[index] = parseInt(data["REDIS-SERVER"].conn_num.last_60s[index]);
+
+                jobs.beanstalkd[index] = parseInt(data["BEANSTALKD"].total_jobs.last_60s[index]);
             }
 
             var length = loads.nginx.length;
@@ -141,6 +169,8 @@ var dashboard = {
                 for (var index = 0; index < offset; ++index) {
                     last60s_cpu_data.series[0][index] = 0;
                     last60s_mem_data.series[0][index] = 0;
+                    last60s_connects_data.series[0][index] = 0;
+                    last60s_jobs_data.series[0][index] = 0;
                 }
             }
 
@@ -152,9 +182,14 @@ var dashboard = {
                 }
                 last60s_cpu_data.series[0][idx] = load;
                 last60s_mem_data.series[0][idx] = Math.ceil((mems.nginx + mems.redis) / 1024);
+
+                last60s_connects_data.series[0][idx] = connects.nginx[index];
+                last60s_jobs_data.series[0][idx] = jobs.beanstalkd[index];
             }
             self.charts.last60s_cpu_chart.update(last60s_cpu_data);
             self.charts.last60s_mem_chart.update(last60s_mem_data);
+            self.charts.last60s_connects_chart.update(last60s_connects_data);
+            self.charts.last60s_jobs_chart.update(last60s_jobs_data);
 
             // MEM
             self.opts.update_last60s_busy = false;
