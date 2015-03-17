@@ -1,9 +1,8 @@
 
-error_log logs/error.log;
 worker_processes 4;
+error_log logs/error.log;
 
 worker_rlimit_nofile 65535;
-
 
 events {
     worker_connections 12000;
@@ -11,9 +10,9 @@ events {
 }
 
 http {
-    include '/opt/qs/bin/openresty/nginx/conf/mime.types';
+    include '_QUICK_SERVER_ROOT_/bin/openresty/nginx/conf/mime.types';
 
-    # optimize 
+    # optimize
     #keepalive_timeout 60;
     #keepalive_requests 10000;
 
@@ -22,11 +21,11 @@ http {
     open_file_cache_valid 60s;
 
     # tmp
-    client_body_temp_path /opt/qs/tmp/client_body_temp;
-    fastcgi_temp_path /opt/qs/tmp/fastcgi_temp;
-    proxy_temp_path /opt/qs/tmp/proxy_temp;
-    scgi_temp_path /opt/qs/tmp/scgi_temp;
-    uwsgi_temp_path /opt/qs/tmp/uwsgi_temp;
+    client_body_temp_path _QUICK_SERVER_ROOT_/tmp/client_body_temp;
+    fastcgi_temp_path _QUICK_SERVER_ROOT_/tmp/fastcgi_temp;
+    proxy_temp_path _QUICK_SERVER_ROOT_/tmp/proxy_temp;
+    scgi_temp_path _QUICK_SERVER_ROOT_/tmp/scgi_temp;
+    uwsgi_temp_path _QUICK_SERVER_ROOT_/tmp/uwsgi_temp;
 
     # security
     client_max_body_size 32k;
@@ -38,12 +37,12 @@ http {
     ssi off;
 
     # lua
-    lua_package_path '/opt/qs/src/?.lua;/opt/qs/src/lib/?.lua;;';
+    lua_package_path '_QUICK_SERVER_ROOT_/src/?.lua;_QUICK_SERVER_ROOT_/src/lib/?.lua;;';
     lua_shared_dict INDEXES 512k;
     lua_code_cache on;
 
     init_by_lua '
-SERVER_CONFIG = loadfile("/opt/qs/conf/config.lua")()
+SERVER_CONFIG = loadfile("_QUICK_SERVER_ROOT_/conf/config.lua")()
 DEBUG = _DBG_ERROR
 require("framework.init")
 ';
@@ -53,12 +52,12 @@ require("framework.init")
 
         # user app
         location ~ /api {
-            content_by_lua_file '/opt/qs/src/HttpBootstrap.lua';
+            content_by_lua_file '_QUICK_SERVER_ROOT_/src/HttpBootstrap.lua';
         }
 
         location = /socket {
             lua_socket_log_errors off;
-            content_by_lua_file '/opt/qs/src/WebSocketBootstrap.lua';
+            content_by_lua_file '_QUICK_SERVER_ROOT_/src/WebSocketBootstrap.lua';
         }
 
         # quick server welcome
@@ -67,7 +66,7 @@ require("framework.init")
 if not SERVER_CONFIG.welcomeEnabled then
     ngx.exit(403)
 end';
-            root /opt/qs/apps/welcome/public_html;
+            root _QUICK_SERVER_ROOT_/apps/welcome/public_html;
             index index.html;
         }
 
@@ -78,7 +77,7 @@ if not SERVER_CONFIG.welcomeEnabled then
 else
     SERVER_CONFIG.appRootPath = SERVER_CONFIG.quickserverRootPath .. "/apps/welcome"
 end';
-            content_by_lua_file '/opt/qs/src/HttpBootstrap.lua';
+            content_by_lua_file '_QUICK_SERVER_ROOT_/src/HttpBootstrap.lua';
         }
 
         location = /welcome_socket {
@@ -89,7 +88,7 @@ if not SERVER_CONFIG.welcomeEnabled then
 else
     SERVER_CONFIG.appRootPath = SERVER_CONFIG.quickserverRootPath .. "/apps/welcome"
 end';
-            content_by_lua_file '/opt/qs/src/WebSocketBootstrap.lua';
+            content_by_lua_file '_QUICK_SERVER_ROOT_/src/WebSocketBootstrap.lua';
         }
 
         # quick server admin api
@@ -100,7 +99,7 @@ if not SERVER_CONFIG.adminEnabled then
 else
     SERVER_CONFIG.appRootPath = SERVER_CONFIG.quickserverRootPath .. "/apps/admin"
 end';
-            content_by_lua_file '/opt/qs/src/HttpBootstrap.lua';
+            content_by_lua_file '_QUICK_SERVER_ROOT_/src/HttpBootstrap.lua';
         }
 
         location = /nginx_status {

@@ -141,5 +141,5 @@ if [ $ALL -eq 1 ] ; then
     echo -e "\033[31mStop Quick Server DONE! \033[0m"
 fi
 
-sleep 1
+sleep 3
 $CURRDIR/status_quick_server.sh
