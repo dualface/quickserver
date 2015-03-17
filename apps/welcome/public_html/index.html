@@ -37,12 +37,14 @@
     </nav>
 
     <div class="uk-grid">
-        <div class="uk-width-1-1 uk-margin-top">
+        <div class="uk-width-1-1">
+            <div id="init_alert" class="uk-alert uk-alert-success">INIT: GET SERVER STATUS.</div>
+            <div id="error_alert" class="uk-alert uk-alert-danger">ERROR: CAN'T GET SERVER STATUS.</div>
             <h2>Node Status <div class="uk-badge uk-badge-warning">realtime - last 60s</div></h2>
         </div>
     </div>
 
-    <div class="uk-grid " data-uk-grid-margin>
+    <div id="chart_last60s_1" class="uk-grid " data-uk-grid-margin>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
                 <h3 id="last60s_cpu_title" class="uk-panel-title">CPU Load</h3>
@@ -57,7 +59,7 @@
         </div>
     </div>
 
-    <div class="uk-grid uk-grid-match" data-uk-grid-match="{target:'.uk-panel'}" data-uk-grid-margin>
+    <div id="chart_last60s_2" class="uk-grid uk-grid-match" data-uk-grid-margin>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
                 <h3 id="last60s_connects_title" class="uk-panel-title">Connects</h3>

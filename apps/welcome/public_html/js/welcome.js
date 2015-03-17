@@ -44,6 +44,9 @@ var dashboard = {
     },
 
     init: function() {
+        $("#init_alert").show();
+        $("#error_alert").hide();
+
         var self = this;
 
         $.getJSON(dashboard.admin_url + "&time_span=1s", function(data) {
@@ -63,6 +66,14 @@ var dashboard = {
             window.setInterval(function() {
                 self.update_last60s();
             }, 1000 * self.server_data.interval);
+
+            $("#chart_last60s_1").show();
+            $("#chart_last60s_2").show();
+            $("#init_alert").hide();
+        })
+        .fail(function() {
+            $("#init_alert").hide();
+            $("#error_alert").show();
         });
     },
 
@@ -192,6 +203,10 @@ var dashboard = {
 
             // MEM
             self.opts.update_last60s_busy = false;
+            $("#error_alert").hide();
+        })
+        .fail(function() {
+            $("#error_alert").show();
         });
     },
 
