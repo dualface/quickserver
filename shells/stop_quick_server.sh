@@ -13,8 +13,24 @@ function showHelp()
     echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
 }
 
+function getNginxNumOfWorker()
+{
+    LUABIN=bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
+
+    $LUABIN -e "$CODE"
+}
+
+function getNginxPort()
+{
+    LUABIN=bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print(_C.port);'
+
+    $LUABIN -e "$CODE"
+}
+
 CURRDIR=$(dirname $(readlink -f $0))
-NGINX_DIR=$CURRDIR/bin/openresty/nginx/
+NGINXDIR=$CURRDIR/bin/openresty/nginx/
 
 ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,reload,help -n 'Stop quick server' -- "$@")
 
@@ -85,12 +101,18 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
         pgrep nginx > /dev/null
         while [ $? -eq 0 ]
         do
-            nginx -q -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s stop
+            nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
             echo "Stop Nginx DONE"
             pgrep nginx > /dev/null
         done
     else
-        nginx -p $CURRDIR -c $NGINX_DIR/conf/nginx.conf -s reload
+        PORT=$(getNginxPort)
+        sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+
+        NUMOFWORKERS=$(getNginxNumOfWorker)
+        sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+
+        nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
         echo "Reload Nginx conf DONE"
     fi
 fi
@@ -107,9 +129,11 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     echo "Stop Beanstalkd DONE"
 fi
 
-if [ $RELOAD -eq 0 ]; then
-    killall tools.sh 2> /dev/null
-    killall lua 2> /dev/null
+killall tools.sh 2> /dev/null
+killall bin/openresty/luajit/bin/lua 2> /dev/null
+
+if [ $RELOAD -ne 0 ]; then
+    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
 fi
 
 cd $CURRDIR
