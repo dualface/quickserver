@@ -122,7 +122,6 @@ var dashboard = {
         var self = this;
 
         if (self.opts.update_last60s_busy) {
-            console.log("REPEAT");
             return;
         }
 
@@ -142,7 +141,7 @@ var dashboard = {
             var connects = {nginx: [], redis: []};
             var jobs = {beanstalkd: []};
 
-            var redis_data = data["REDIS-SERVER"];
+            var redis_data = data["REDIS_SERVER"];
             var beanstalkd_data = data["BEANSTALKD"];
             for (var index = 0; index < interval_60s_steps; ++index) {
                 var nginx_data = self.calc_ngx_data_at_index(data, "last_60s", index);
@@ -154,10 +153,10 @@ var dashboard = {
                 loads.beanstalkd[index] = parseFloat(beanstalkd_data.cpu.last_60s[index]);
 
                 mems.nginx = nginx_data.mem;
-                mems.redis = parseInt(data["REDIS-SERVER"].mem.last_60s[index]);
+                mems.redis = parseInt(data["REDIS_SERVER"].mem.last_60s[index]);
 
                 connects.nginx[index] = parseInt(data["NGINX_MASTER"].conn_num.last_60s[index]);
-                connects.redis[index] = parseInt(data["REDIS-SERVER"].conn_num.last_60s[index]);
+                connects.redis[index] = parseInt(data["REDIS_SERVER"].conn_num.last_60s[index]);
 
                 jobs.beanstalkd[index] = parseInt(data["BEANSTALKD"].total_jobs.last_60s[index]);
             }
@@ -193,7 +192,6 @@ var dashboard = {
 
             // MEM
             self.opts.update_last60s_busy = false;
-            console.log("update last60s");
         });
     },
 

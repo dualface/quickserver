@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Quick Server Tests</title>
+<script type="application/javascript" src="assets/jquery-2.1.3.min.js"></script>
+<script type="application/javascript" src="assets/Chart.min.js"></script>
+<script type="application/javascript" src="assets/main.js"></script>
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="msapplication-TileColor" content="#da532c" />
+<meta name="msapplication-TileImage" content="/mstile-144x144.png" />
+<meta name="theme-color" content="#ffffff" />
+<link type="text/css" rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<div id="title">
+    <h1>Quick Server <span class="version">v0.5.0</span></h1>
+    <h2>The Game Server Framework for cocos2d-x developers.</h2>
+</div>
+
+<div id="tabbar">
+    <ul>
+        <li class="current">Dashboard</li>
+        <li><a href="#">Tests/Demo</a></li>
+        <li><a href="#">Documents</a></li>
+    </ul>
+</div>
+
+<div id="dashboard">
+
+    <canvas id="myChart" width="400" height="400"></canvas>
+
+</div>
+
+<div id="contents">
+    <h1>Quick Server Tests</h1>
+
+    <div class="widget">
+        <table class="form last">
+            <tr>
+                <th colspan="2" class="title">Login</th>
+            </tr>
+            <tr>
+                <th>Server :</th>
+                <td><input type="text" id="server_addr" />&nbsp;<span>[api/socket]</span></td>
+            </tr>
+            <tr>
+                <th>Username / Password :</th>
+                <td>
+                    <input type="text" id="input_username" class="small" />
+                    <input type="button" value="Login" id="button_login" />
+                </td>
+            </tr>
+            <tr>
+                <th>Session ID:</th>
+                <td>
+                    <span id="session_id">none</span>
+                </td>
+            </tr>
+            <tr>
+                <th>Connect Tag :</th>
+                <td>
+                    <span id="connect_tag">none</span>
+                </td>
+            </tr>
+            <tr>
+                <th>Persistent session :</th>
+                <td>
+                    <span id="count_value">[COUNT = *]</span>&nbsp;<input type="button" value="Test persistent session" onclick="return test.count();" />
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="widget">
+        <table class="form">
+            <tr>
+                <th colspan="2" class="title">Test : Send message to connect</th>
+            </tr>
+            <tr>
+                <th>Online users :</th>
+                <td><select id="dest_user" onchange="return test.on_destuserchanged();"></select></td>
+            </tr>
+            <tr>
+                <th>Connect Tag :</th>
+                <td><input type="text" id="dest_connect_tag" /></td>
+            </tr>
+            <tr>
+                <th>Message :</th>
+                <td>
+                    <input type="text" id="send_message" />
+                    <input type="button" value="Send" onclick="return test.send_message($('#dest_connect_tag').val(), $('#send_message').val());" />
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</div>
+
+<div id="console">
+    <pre id="log"></pre>
+    <div id="console_toolbar">
+        <input type="button" value="Insert Mark" onclick="return log.add_mark();" />
+        &nbsp;&nbsp;
+        <input type="button" value="Clear" onclick="return log.clear();" />
+    </div>
+</div>
+
+</body>
+</html>
