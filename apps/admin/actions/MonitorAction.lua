@@ -90,6 +90,10 @@ function MonitorAction:getdataAction(arg)
     local process = self:_getProcess()
     for _, procName in ipairs(process) do
         result[procName] = self:_fillData(procName, listType, start)
+        if procName == "REDIS-SERVER" then
+            result["REDIS_SERVER"] = result[procName]
+            result[procName] = nil
+        end
     end
 
     result.interval = self._interval
