@@ -1,5 +1,26 @@
 ## Change Log
 
+
+### 0.5.0
+- UPGRADE: 
+    - upgrade luasocket to 3.0-rc1.
+    - add lua-inspect lib.
+
+- IMPROVE: make installation better, improve all shells of installation.
+    - offer an unique install.sh instead of install_ubunutu.sh and install_centos.sh.
+    - except fundamental packages from linux distro, such as "git", "zip" and some building tools, all other packages can be installed without online. This can save much time.
+    - the install.sh supports parameters. 
+
+- IMPROVE: offer all new wiki docs by Sphinx project in ".rst" format.
+    - the new wiki can be outputed in many file formats, such as html, pdf, latex, etc.
+    - easy to generate with make tools.
+    - the wiki docs in html format is released with Quick Server.
+
+- CHNAGE: almost all Quick Server codes are refactored.
+    - new architecture, all modules with "Server" in name are refactored to "Connect".  
+    - Http and WebSocket modules are refactored, inheriting from "ConnectBase".
+
+
 ### 0.4.0
 - UPGRADE: From Openresty 1.7.2.x to 1.7.7.x.
 - IMPROVE: make install_ubunutu.sh better in order that user can install Quick-Server convenienty, and fix some bugs in it.
