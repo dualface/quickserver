@@ -2,15 +2,16 @@
 
 function showHelp()
 {
-    echo "Usage: [sudo] ./start_quick_server.sh [OPTIONS] [--debug]"
+    echo "Usage: [sudo] ./start_quick_server.sh [OPTIONS]"
     echo "Options:"
-    echo -e "\t -a | --all \t\t start nginx(release mode), redis and beanstalkd"
-    echo -e "\t -n | --nginx \t\t start nginx in release mode"
-    echo -e "\t -r | --redis \t\t start redis"
-    echo -e "\t -b | --beanstalkd \t start beanstalkd"
-    echo -e "\t -h | --help \t\t show this help"
+    echo -e "\t -a , --all \t\t start nginx(release mode), redis and beanstalkd"
+    echo -e "\t -n , --nginx \t\t start nginx in release mode"
+    echo -e "\t -r , --redis \t\t start redis"
+    echo -e "\t -b , --beanstalkd \t start beanstalkd"
+    echo -e "\t -h , --help \t\t show this help"
+    echo -e "\t      --debug \t\t start Quick Server in debug mode."
     echo "if the option is not specified, default option is \"--all(-a)\"."
-    echo "In default, Quick Server will start in release mode, or else it will start in debug mode when you specified \"--debug\" following options.But NOTICE that \"--debug\" swich has no effect on other options except \"--all(-a)\" and \"--nginx(-n)\"."
+    echo "In default, Quick Server will start in release mode, or else it will start in debug mode when you specified \"--debug\"."
 }
 
 function getNginxNumOfWorker()

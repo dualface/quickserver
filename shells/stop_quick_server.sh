@@ -4,13 +4,13 @@ function showHelp()
 {
     echo "Usage: [sudo] ./stop_quick_server.sh [OPTIONS] [--reload]"
     echo "Options:"
-    echo -e "\t -a | --all \t\t stop nginx, redis and beanstalkd"
-    echo -e "\t -n | --nginx \t\t stop nginx"
-    echo -e "\t -r | --redis \t\t stop redis"
-    echo -e "\t -b | --beanstalkd \t stop beanstalkd"
-    echo -e "\t -h | --help \t\t show this help"
+    echo -e "\t -a , --all \t\t stop nginx, redis and beanstalkd"
+    echo -e "\t -n , --nginx \t\t stop nginx"
+    echo -e "\t -r , --redis \t\t stop redis"
+    echo -e "\t -b , --beanstalkd \t stop beanstalkd"
+    echo -e "\t -h , --help \t\t show this help"
+    echo -e "\t      --reload \t\t reload Quick Server config."
     echo "if the option is not specified, default option is \"--all(-a)\"."
-    echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
 }
 
 function getNginxNumOfWorker()
@@ -89,14 +89,12 @@ while true ; do
 done
 
 # "--reload" option has no effect on other options, except "--ngxin(-n)".
-if [ $NGINX -ne 1 ] && [ $ALL -ne 1 ] && [ $RELOAD -ne 0 ]; then
-    RELOAD=0
-    echo "please NOTICE that \"--reload\" swich can only be used with option \"--nginx(-n)\", or else it has no effect."
-    exit 0
+if [ $RELOAD -ne 0 ]; then
+    ALL=0
 fi
 
 #stop nginx
-if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
+if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
         pgrep nginx > /dev/null
         while [ $? -eq 0 ]
