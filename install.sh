@@ -145,7 +145,6 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
 
-
     # install luasocket
     cd $BUILD_DIR
     tar zxf luasocket-$LUASOCKET_VER.tar.gz
@@ -165,10 +164,13 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -f httpclient.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
     cp -rf httpclient $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
-    #i install inspect
+    # install inspect
     cd $BUILD_DIR
     tar zxf luainspect.tar.gz
     cp -f inspect.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+
+    # install docs
+    cp -rf $CUR_DIR/docs $DEST_DIR/
 
     echo "Install Openresty and Quick Server framework DONE"
 fi
