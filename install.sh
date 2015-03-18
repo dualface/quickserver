@@ -151,11 +151,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     tar zxf luasocket-$LUASOCKET_VER.tar.gz
     cd luasocket-$LUASOCKET_VER
     sed -i "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
+    sed -i "s#LUAINC_linux_base?=/usr/include#LUAINC_linux_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
+    sed -i "s#\$(LUAINC_linux_base)/lua/\$(LUAV)#\$(LUAINC_linux_base)/luajit-2.1#g" src/makefile
     make && make install
-    #cp -rf socket.so/socket $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
-    #cp -rf socket.so/mime $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
-    #cp -rf socket $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
-    #cp -f socket.lua mime.lua ltn12.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    cp -f src/serial.so src/unix.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket/.
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
