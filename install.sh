@@ -154,9 +154,9 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cp -f socket.lua mime.lua ltn12.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     # install cjson
-    cd $BUILD_DIR
-    tar zxf cjson.tar.gz
-    cp -f cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+    #cd $BUILD_DIR
+    #tar zxf cjson.tar.gz
+    cp -f ngx_openresty-1.7.7.1/build/lua-cjson-2.1.0.2/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
 
     # install http client
     cd $BUILD_DIR
