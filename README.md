@@ -3,53 +3,40 @@
 
 ---
 
-## 最新版本 0.4.0
+## 最新版本 0.5.0
 
-## 安装
+## 介绍
 
-### 通过Docker安装
+Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构，让开发者可以使用 Lua 脚本语言快速完成服务端的功能开发。
 
-1.  安装dcoker, 请参考 https://www.docker.com/ 。
-2.  运行命令: *docker pull chukong/quick-server* 。
+主要特征:
 
-> **注意** 接下来的步骤请参考：[用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
+-   稳定可靠、经过验证的高性能游戏服务端架构。
+-   使用 Lua 脚本语言开发服务端功能。
+-   支持短连接和长连接，满足从异步网络到实时网络的各种需求。
+-   支持插件机制，使用第三方插件加快功能开发。
 
-### 通过Shell脚本安装
+>   更多介绍可以参考[Quick Server 介绍](http://quickserver-doc.rtfd.org/en/latest/intro.html)。
 
-1.  从github或者OSChina下载quick-server源码：
+## 相关资源
 
-    github:
-    https://github.com/dualface/quickserver.git
+-   [Quick-Server Wiki首页](http://quickserver-doc.readthedocs.org/en/latest/index.html)
 
-    在OSChina有镜像仓库：
-    https://git.oschina.net/cheerayhuang/quick-x-server.git
+    包括 Quick Server 的方方面面，基本介绍，安装和使用指南，源码分析等等。
 
-2.  在源码根目录下运行脚本 **install_ubuntu.sh**。
+-   [邮件列表]()
+   
+    敬请期待
 
-> **注意** 采用脚本安装方式，请自行在Ubuntu环境下安装MySql。
+-   支援邮件
+   
+    cheeray.huang#gmail.com
 
-> **注意** 该脚本依赖于dpkg包管理，目前只支持Ubuntu环境，理论支持Debian，未作测试。
+    qiyu.huang#chukong-inc.com
 
-> **注意** 更加详细的内容请参考: [在Linux下通过脚本安装Quick Server
-](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
-
-## 相关链接
-
--   [Quick-Server Wiki首页](https://github.com/dualface/quickserver/wiki)
-
-    包括Quick-Server基本介绍，安装和使用。
-
--   [Quick-Server相关的常见问题]()
-
-    包括Quick-Server的安装，使用中遇到的问题。
-
--   [在Linux下通过脚本安装Quick Server](https://github.com/dualface/quickserver/wiki/%E5%9C%A8Linux%E4%B8%8B%E9%80%9A%E8%BF%87%E8%84%9A%E6%9C%AC%E5%AE%89%E8%A3%85Quick-Server)
-
-    在Ubuntu下使用命令行安装Quick-Server的过程。
-
--   [用Docker部署Quick-Server](https://github.com/dualface/quickserver/wiki/%E7%94%A8docker%E9%83%A8%E7%BD%B2quick-server)
-
-    利用Docke直接下载容器安装Quick-Server。
+-   QQ群
+       
+    424776815
 
 ## 版本日志
 
@@ -74,5 +61,5 @@
     -   新文档从 0.5.0 开始，其 html 格式的版本会随着 Quick Server 发布。
 
 -   升级了一些子模块。
-    -  luasocket 升级到 3.0-rc1。
+    -  luasocket 升级到 3.0-rc1 版本。
     -  增加了 luainspect 库。
