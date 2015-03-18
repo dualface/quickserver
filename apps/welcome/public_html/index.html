@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="css/uikit.almost-flat.min.css" />
 <link rel="stylesheet" href="css/chartist.min.css">
 <!-- <link rel="stylesheet" href="css/chartist.custom.css"> -->
+<link rel="stylesheet" href="css/custom.css">
 <script type="application/javascript" src="js/jquery-2.1.3.min.js"></script>
 <script type="application/javascript" src="js/uikit.min.js"></script>
 <script type="application/javascript" src="js/chartist.min.js"></script>
@@ -28,24 +29,22 @@
                 <a href="#">Dashboard</a>
             </li>
             <li>
-                <a href="#">Tests/Demo</a>
-            </li>
-            <li>
-                <a href="#">Documents</a>
+                <a href="/docs/index.html" target="_blank">Documents</a>
             </li>
         </ul>
         <a href="#offcanvas" class="uk-navbar-toggle uk-visible-small" data-uk-offcanvas></a>
         <div class="uk-navbar-brand uk-navbar-center uk-visible-small" style="padding: 0 !important; font-size: 16px !important;">QuickServer <span class="uk-badge uk-badge-success">v0.5.0</span></div>
     </nav>
 
-    <!-- Charts -->
     <div class="uk-grid">
-        <div class="uk-width-1-1 uk-margin-top">
+        <div class="uk-width-1-1">
+            <div id="init_alert" class="uk-alert uk-alert-success">INIT: GET SERVER STATUS.</div>
+            <div id="error_alert" class="uk-alert uk-alert-danger">ERROR: CAN'T GET SERVER STATUS.</div>
             <h2>Node Status <div class="uk-badge uk-badge-warning">realtime - last 60s</div></h2>
         </div>
     </div>
 
-    <div class="uk-grid " data-uk-grid-margin>
+    <div id="chart_last60s_1" class="uk-grid " data-uk-grid-margin>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
                 <h3 id="last60s_cpu_title" class="uk-panel-title">CPU Load</h3>
@@ -54,22 +53,22 @@
         </div>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
-                <h3 class="uk-panel-title">MEM Usage (total 2048 MB)</h3>
+                <h3 id="last60s_mem_title" class="uk-panel-title">MEM Usage</h3>
                 <div id="last60s_mem" class="ct-chart"></div>
             </div>
         </div>
     </div>
 
-    <div class="uk-grid uk-grid-match" data-uk-grid-match="{target:'.uk-panel'}" data-uk-grid-margin>
+    <div id="chart_last60s_2" class="uk-grid uk-grid-match" data-uk-grid-margin>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
-                <h3 class="uk-panel-title">Connects (1001 clients, 2002 connects)</h3>
+                <h3 id="last60s_connects_title" class="uk-panel-title">Connects</h3>
                 <div id="last60s_connects" class="ct-chart"></div>
             </div>
         </div>
         <div class="uk-width-medium-1-2">
             <div class="uk-panel uk-panel-box uk-panel-header">
-                <h3 class="uk-panel-title">Jobs (128 background jobs)</h3>
+                <h3 id="last60s_jobs_title" class="uk-panel-title">Jobs</h3>
                 <div id="last60s_jobs" class="ct-chart"></div>
             </div>
         </div>

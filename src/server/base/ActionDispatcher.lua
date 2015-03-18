@@ -27,6 +27,8 @@ local string_lower = string.lower
 local string_ucfirst = string.ucfirst
 local string_gsub = string.gsub
 local string_format = string.format
+local string_find = string.find
+local string_sub = string.sub
 local table_concat = table.concat
 local table_remove = table.remove
 
@@ -64,7 +66,12 @@ function ActionDispatcher:runAction(actionName, data, isPersistentActionInstance
             if ok then
                 actionModule = _actionModule
             else
-                throw("failed to load action module \"%s\", %s", actionModulePath, _actionModule)
+                local err = _actionModule
+                local pos = string_find(err, "\n")
+                if pos then
+                    err = string_sub(err, 1, pos - 2)
+                end
+                throw("failed to load action module \"%s\", %s", actionModulePath, err)
             end
         end
 
