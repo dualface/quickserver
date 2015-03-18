@@ -93,6 +93,7 @@ CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
 
 OPENRESTY_VER=1.7.7.1
+LUASOCKET_VER=3.0-rc1
 REDIS_VAR=2.6.16
 BEANSTALKD_VER=1.9
 
@@ -118,7 +119,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd ngx_openresty-$OPENRESTY_VER
     mkdir -p $DEST_BIN_DIR/openresty
 
-    # install nginx
+    # install openresty
     ./configure --prefix=$DEST_BIN_DIR/openresty --with-luajit --with-http_stub_status_module
     make
     make install
@@ -147,11 +148,14 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
 
     # install luasocket
     cd $BUILD_DIR
-    tar zxf luasocket.tar.gz
-    cp -rf socket.so/socket $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
-    cp -rf socket.so/mime $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
-    cp -rf socket $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
-    cp -f socket.lua mime.lua ltn12.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    tar zxf luasocket-$LUASOCKET_VER.tar.gz
+    cd luasocket-$LUASOCKET_VER
+    sed -i "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
+    make && make install
+    #cp -rf socket.so/socket $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+    #cp -rf socket.so/mime $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
+    #cp -rf socket $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
+    #cp -f socket.lua mime.lua ltn12.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
