@@ -16,7 +16,11 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
 -   支持短连接和长连接，满足从异步网络到实时网络的各种需求。
 -   支持插件机制，使用第三方插件加快功能开发。
 
->   更多介绍可以参考[Quick Server 介绍](http://quickserver-doc.rtfd.org/en/latest/intro.html)。
+更多介绍可以参考[Quick Server 介绍](http://quickserver-doc.rtfd.org/en/latest/intro.html)。
+
+## 安装
+
+安装 Quick Server 请参考[Quick Server 安装](http://quickserver-doc.readthedocs.org/en/latest/install.html)。
 
 ## 相关资源
 
