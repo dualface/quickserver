@@ -6,20 +6,23 @@
     - upgrade luasocket to 3.0-rc1.
     - add lua-inspect lib.
 
-- IMPROVE: make installation better, improve all shells of installation.
+- IMPROVE: make installation better, improve installation shell.
     - offer an unique install.sh instead of install_ubunutu.sh and install_centos.sh.
     - except fundamental packages from linux distro, such as "git", "zip" and some building tools, all other packages can be installed without online. This can save much time.
-    - the install.sh supports parameters. 
+    - the install.sh supports parameters, ex. user can set the path of installation. 
 
 - IMPROVE: offer all new wiki docs by Sphinx project in ".rst" format.
     - the new wiki can be outputed in many file formats, such as html, pdf, latex, etc.
     - easy to generate with make tools.
-    - the wiki docs in html format is released with Quick Server.
+    - the wiki docs in html format is released with Quick Server, in "docs/" dir.
 
 - CHNAGE: almost all Quick Server codes are refactored.
     - new architecture, all modules with "Server" in name are refactored to "Connect".  
     - Http and WebSocket modules are refactored, inheriting from "ConnectBase".
-
+    - new broadcast mechanism.
+    - adjust options in config.lua, more simple, more better.
+    - new maintain and manager shells.
+    - monitor the processes of Quick Server at any time. 
 
 ### 0.4.0
 - UPGRADE: From Openresty 1.7.2.x to 1.7.7.x.
