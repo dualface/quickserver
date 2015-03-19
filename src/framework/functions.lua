@@ -606,13 +606,13 @@ function table.filter(t, fn)
     return n
 end
 
-function table.unique(t, bArray)
+function table.unique(t, isArray)
     local check = {}
     local n = {}
     local idx = 1
     for k, v in pairs(t) do
         if not check[v] then
-            if bArray then
+            if isArray then
                 n[idx] = v
                 idx = idx + 1
             else
@@ -624,46 +624,25 @@ function table.unique(t, bArray)
     return n
 end
 
-<<<<<<< HEAD
 function table.length(t)
-    local count = 0
     if type(t) ~= "table" then
         return 0
     end
 
-    for _, _ in pairs(t) do
+    local count = 0
+    for _, __ in pairs(t) do
         count = count + 1
     end
-
     return count
 end
 
-function table.unique(t, bArray)
-    local check = {}
-    local n = {}
-    local idx = 1
-    for k, v in pairs(t) do
-        if not check[v] then
-            if bArray then
-                n[idx] = v
-                idx = idx + 1
-            else
-                n[k] = v
-            end
-            check[v] = true
-        end
-    end
-    return n
-end
-
-=======
 local _htmlSpecialCharsTable = {}
 _htmlSpecialCharsTable["&"] = "&amp;"
 _htmlSpecialCharsTable["\""] = "&quot;"
 _htmlSpecialCharsTable["'"] = "&#039;"
 _htmlSpecialCharsTable["<"] = "&lt;"
 _htmlSpecialCharsTable[">"] = "&gt;"
->>>>>>> develop
+
 function string.htmlspecialchars(input)
     for k, v in pairs(_htmlSpecialCharsTable) do
         input = string_gsub(input, k, v)
