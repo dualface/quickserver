@@ -403,13 +403,12 @@ end
 
 function math.trunc(x)
     if x <= 0 then
-        return math.ceil(x);
+        return math_ceil(x);
     end
-
-    if math.ceil(x) == x then
-        x = math.ceil(x);
+    if math_ceil(x) == x then
+        x = math_ceil(x);
     else
-        x = math.ceil(x) - 1;
+        x = math_ceil(x) - 1;
     end
     return x;
 end

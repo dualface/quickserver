@@ -15,7 +15,7 @@ function showHelp()
 
 function getNginxNumOfWorker()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
+    LUABIN=$1/bin/openresty/luajit/bin/lua
     CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
 
     $LUABIN -e "$CODE"
@@ -23,7 +23,7 @@ function getNginxNumOfWorker()
 
 function getNginxPort()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
+    LUABIN=$1/bin/openresty/luajit/bin/lua
     CODE='_C=require("conf.config"); print(_C.port);'
 
     $LUABIN -e "$CODE"
@@ -100,6 +100,9 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
         while [ $? -eq 0 ]
         do
             nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
+            if [ $? -ne 0 ]; then
+                exit $?
+            fi
             echo "Stop Nginx DONE"
             pgrep nginx > /dev/null
         done
