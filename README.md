@@ -36,8 +36,6 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
    
     cheeray.huang#gmail.com
 
-    qiyu.huang#chukong-inc.com
-
 -   QQ群
        
     424776815
