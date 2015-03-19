@@ -112,7 +112,6 @@ var dashboard = {
 
         var last60s_connects_opts = $.extend(true, {}, self.opts.chart_opts);
         last60s_connects_opts.high = null;
-        last60s_connects_opts.axisY.scaleMinSpace = 50;
 
         // last60s_jobs
         var last60s_jobs_data = $.extend(true, {}, last60s_data_base);
@@ -120,7 +119,6 @@ var dashboard = {
 
         var last60s_jobs_opts = $.extend(true, {}, self.opts.chart_opts);
         last60s_jobs_opts.high = null;
-        last60s_jobs_opts.axisY.scaleMinSpace = 50;
 
         // create charts
         self.charts.last60s_cpu_chart = new Chartist.Line('#last60s_cpu', last60s_cpu_data, last60s_cpu_opts);
