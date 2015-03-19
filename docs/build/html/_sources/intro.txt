@@ -69,7 +69,7 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
 ----
 
 * E-mail:
-    qiyu.huang#chukong-inc.com
+    cheeray.huang#gmail.com
 
 * QQ群:
     424776815
