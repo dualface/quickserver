@@ -390,18 +390,6 @@ function math.round(value)
     return math_floor(value + 0.5)
 end
 
-function math.trunc(x)
-    if x <= 0 then
-        return math_ceil(x);
-    end
-    if math_ceil(x) == x then
-        x = math_ceil(x);
-    else
-        x = math_ceil(x) - 1;
-    end
-    return x;
-end
-
 local _pi = math.pi
 local _piDiv180 = _pi / 180
 function math.angle2radian(angle)
