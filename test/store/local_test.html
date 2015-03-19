@@ -7,9 +7,7 @@ var msg_id = 0;
 
 function connect() {
     if (ws !== null) return log('already connected');
-    ws = new WebSocket('ws://127.0.0.1:8088/test');
-    //115.28.88.113, cheeray-aliyun
-    //128.199.140.15:8088, cheeray-do
+    ws = new WebSocket('ws://127.0.0.1:8088/WebSocket');
     ws.onopen = function () {
         log('connected');
     };
@@ -38,8 +36,8 @@ function FindObj() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.FIndObj", 
+        "msg_id": msg_id, 
+        "action": "examples.test.FIndObj", 
         "id": p1
         //"property": "i_name",
         //"property_value": "first"
@@ -60,16 +58,16 @@ function DeleteObj() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.deleteobj", 
+        "msg_id": msg_id, 
+        "action": "examples.test.deleteobj", 
         "id": p1
     }
 
     var jsonData = JSON.stringify(data)
-        ws.send(jsonData);
+    ws.send(jsonData);
     msg_id = msg_id + 1
 
-        log('DeleteObj: '+ jsonData);
+    log('DeleteObj: '+ jsonData);
 
     return false;
 }
@@ -84,15 +82,14 @@ function  UpdateObj() {
     document.getElementById('p3').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.UPdAteOBJ", 
+        "msg_id": msg_id, 
+        "action": "examples.test.UPdAteOBJ", 
         "id": p1,
         "rawdata": [
         {"i_name": p2}, 
         {"property": p3}
         ],
         "indexes": ["i_name_bk"],
-        "addtional_info": ["IP", "time"]
     }
 
     var jsonData = JSON.stringify(data)
@@ -114,16 +111,14 @@ function SaveObj() {
     document.getElementById('p3').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.SAVEOBJ", 
-        "session_id" : "57701d739035b6e9ef88de0819e20966",
+        "msg_id": msg_id, 
+        "action": "examples.test.SAVEOBJ", 
         "rawdata": [
         {"key1": p1}, 
         {"property": p2},
         {"i_name": p3}
         ],
             "indexes": ["i_name", "property"]
-            //"addtional_info": ["IP", "TIME"]
     }
 
     var jsonData = JSON.stringify(data)
@@ -141,8 +136,8 @@ function CreateIndex() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.creAteindex", 
+        "msg_id": msg_id, 
+        "action": "examples.test.creAteindex", 
         "property": p1
     }
 
@@ -159,8 +154,8 @@ function ShowIndex() {
     if (ws === null) return log('please connect first');
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.ShowIndex" 
+        "msg_id": msg_id, 
+        "action": "examples.test.ShowIndex" 
     }
 
     var jsonData = JSON.stringify(data);
@@ -177,8 +172,8 @@ function DeleteIndex() {
     document.getElementById('p1').value = "";
 
     var data = {
-        "_msgid": msg_id, 
-        "action": "Store.DeleteIndex", 
+        "msg_id": msg_id, 
+        "action": "examples.test.DeleteIndex", 
         "property": p1
     }
 
