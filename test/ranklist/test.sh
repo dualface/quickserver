@@ -16,20 +16,20 @@ curl 'http://cheeray-aliyun:8088/_ServER/rankList/add?ranklist=myzset&session_id
 
 curl 'http://cheeray-aliyun:8088/_ServER/rankList/add?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&nickname=小&value=14'
 
-#score 
+#score
 curl 'http://cheeray-aliyun:8088/_ServER/rankList/score?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b2'
 
-#rank 
-curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrank?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b1' 
+#rank
+curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrank?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b1'
 
 #revrank
-curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrEvrank?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b' 
+curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrEvrank?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b'
 
 #getrankrange
-curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrankrange?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&offset=1&count=100' 
+curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtrankrange?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&offset=1&count=100'
 
 #getscorerange
-curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtscorerange?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&min=1&max=100' 
+curl 'http://cheeray-aliyun:8088/_ServER/rankList/GEtscorerange?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&min=1&max=100'
 
 #del
 curl 'http://cheeray-aliyun:8088/_ServER/rankList/reMove?ranklist=myzset&session_id=0ba991bbdce369aa2f046310ac67fc96&uid=小%2b'
