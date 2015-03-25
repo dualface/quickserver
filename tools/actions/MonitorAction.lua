@@ -41,7 +41,7 @@ local _RESET_BEANSTALKD_CMD = [[_QUICK_SERVER_ROOT_/bin/beanstalkd/bin/beanstalk
 
 local _GET_MEM_INFO_CMD = [[cat /proc/meminfo | grep -E "Mem(Free|Total)"]]
 local _GET_DISK_INFO_CMD = [[df --total -k | grep "total"]]
-local _GET_CPU_INFO_CMD = [[cat /proc/cpuinfo | grep "cpu cores"]]
+local _GET_CPU_INFO_CMD = [[lscpu]]
 
 local _GET_PID_PATTERN = "pgrep %s"
 local _GET_PERFORMANCE_PATTERN = [[top -b -n 1 -p%s]]
@@ -127,13 +127,11 @@ end
 
 function MonitorAction:_getCpuInfo()
     local fout = io_popen(_GET_CPU_INFO_CMD)
-    local res = string_match(fout:read("*a"), "cpu cores.*: (%d+)")
+    local cores = string_match(fout:read("*a"), "CPU%(s%):%s+(%d+)")
     fout:close()
 
     local redis = self:_getRedis()
-    redis:command("SET", _MONITOR_CPU_INFO_KEY, res)
-
-    return res
+    redis:command("SET", _MONITOR_CPU_INFO_KEY, cores)
 end
 
 function MonitorAction:_getMemInfo()
