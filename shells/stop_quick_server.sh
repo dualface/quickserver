@@ -107,10 +107,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
             pgrep nginx > /dev/null
         done
     else
-        PORT=$(getNginxPort)
+        PORT=$(getNginxPort $CURRDIR)
         sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
-        NUMOFWORKERS=$(getNginxNumOfWorker)
+        NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
         sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
