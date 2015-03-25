@@ -190,3 +190,60 @@ status_quick_server.sh 脚本
     .. note::
 
         只要是以默认的 ``-a`` 或者 ``--all`` 方式启动 Quick Server，那么所有的 section 下都应该看到有进程在运行。如果以其他选项启动了 Quick Server 的部分组件，那么只会看到部分组件的进程在运行，并且 ``[Monitor]`` 下不会有进程运行，也就是在这种情况下， Monitor 不会启动。
+
+.. _install_hello_world:
+
+Hello World!
+------------
+
+安装完成 Quick Server 之后，就可以使用 Quick Server 完成自己的服务器逻辑了，照例从 Hello Worold 开始。
+
+1. 进入一个自己的工作目录， 比如 ``/home/user/my_qs_demo`` 。
+
+2. 在这个工作目录下创建一个 actions 目录。
+
+    .. code-block:: shell
+
+        cd /home/user/my_qs_demo
+        mkdir actions
+
+3. 然后使用一款编辑器，开始敲入 LUA 代码并保存。
+
+    .. code-block:: shell
+
+        vim TestAction.lua
+
+    .. code-block:: lua
+
+        local TestAction = class("TestAction")
+
+        function TestAction:ctor(connect)
+            self.connect = connect
+        end
+
+        function TestAction:helloAction(arg)
+            return {hello="world"}
+        end
+
+        return TestAction
+
+4. 进入 Quick Server 安装好后的目录，比如 ``/opt/quick_server`` 。
+
+    .. code-block:: shell
+
+        cd /opt/quick_server
+
+5. 编辑 config.lua 文件。将 ``appRootPath`` 的值改为 Hello World demo 所在的路径。在这个例子里，改为 ``/home/user/my_qs/demo`` 。
+
+6. 启动 Quick Server。
+
+    .. code-block:: shell
+
+        cd /opt/quick_server
+        sudo start_quick_server.sh
+
+7. 用 ``curl`` 进行测试。会看到 Quick Server 返回 ``{"hello":"world"}`` 。
+
+    .. code-block:: shell
+
+        curl http://localhost:8088/api?action=test.hello
