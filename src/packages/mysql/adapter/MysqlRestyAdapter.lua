@@ -53,7 +53,13 @@ function MysqlRestyAdapter:close()
 end
 
 function MysqlRestyAdapter:setKeepAlive(timeout, size)
-    self._db:setKeepAlive(timeout, size)
+    if size then
+        return self._db:set_keepalive(timeout, size)
+    elseif timeout then
+        return self._db:set_keepAlive(timeout)
+    else
+        return self._db:set_keepalive()
+    end
 end
 
 function MysqlRestyAdapter:query(queryStr)

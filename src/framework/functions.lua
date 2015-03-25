@@ -390,6 +390,17 @@ function math.round(value)
     return math_floor(value + 0.5)
 end
 
+local _pi = math.pi
+local _piDiv180 = _pi / 180
+function math.angle2radian(angle)
+    return angle * _piDiv180
+end
+
+local _piMul180 = _pi * 180
+function math.radian2angle(radian)
+    return radian / _piMul180
+end
+
 function math.trunc(x)
     if x <= 0 then
         return math_ceil(x);
@@ -402,15 +413,20 @@ function math.trunc(x)
     return x;
 end
 
-local _pi = math.pi
-local _piDiv180 = _pi / 180
-function math.angle2radian(angle)
-    return angle * _piDiv180
-end
+function math.newrandomseed()
+    local ok, socket = pcall(function()
+        return require("socket")
+    end)
 
-local _piMul180 = _pi * 180
-function math.radian2angle(radian)
-    return radian / _piMul180
+    if ok then
+        math.randomseed(socket.gettime() * 1000)
+    else
+        math.randomseed(os.time())
+    end
+    math.random()
+    math.random()
+    math.random()
+    math.random()
 end
 
 function io.exists(path)
@@ -577,13 +593,13 @@ function table.filter(t, fn)
     return n
 end
 
-function table.unique(t, bArray)
+function table.unique(t, isArray)
     local check = {}
     local n = {}
     local idx = 1
     for k, v in pairs(t) do
         if not check[v] then
-            if bArray then
+            if isArray then
                 n[idx] = v
                 idx = idx + 1
             else
@@ -595,12 +611,25 @@ function table.unique(t, bArray)
     return n
 end
 
+function table.length(t)
+    if type(t) ~= "table" then
+        return 0
+    end
+
+    local count = 0
+    for _, __ in pairs(t) do
+        count = count + 1
+    end
+    return count
+end
+
 local _htmlSpecialCharsTable = {}
 _htmlSpecialCharsTable["&"] = "&amp;"
 _htmlSpecialCharsTable["\""] = "&quot;"
 _htmlSpecialCharsTable["'"] = "&#039;"
 _htmlSpecialCharsTable["<"] = "&lt;"
 _htmlSpecialCharsTable[">"] = "&gt;"
+
 function string.htmlspecialchars(input)
     for k, v in pairs(_htmlSpecialCharsTable) do
         input = string_gsub(input, k, v)
