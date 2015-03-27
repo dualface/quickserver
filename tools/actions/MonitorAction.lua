@@ -34,6 +34,7 @@ local table_insert = table.insert
 local table_concat = table.concat
 local math_trunc = math.trunc
 local io_popen = io.popen
+local os_execute = os.execute
 
 local _RESET_REDIS_CMD = [[_QUICK_SERVER_ROOT_/bin/redis/bin/redis-server _QUICK_SERVER_ROOT_/bin/redis/conf/redis.conf]]
 local _RESET_NGINX_CMD = [[nginx -p _QUICK_SERVER_ROOT_ -c _QUICK_SERVER_ROOT_/bin/openresty/nginx/conf/nginx.conf]]
