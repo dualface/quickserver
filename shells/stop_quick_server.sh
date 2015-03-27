@@ -95,7 +95,7 @@ fi
 
 # stop monitor first.
 killall tools.sh > /dev/null 2> /dev/null
-killall bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
+killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
 
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
