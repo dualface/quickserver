@@ -9,8 +9,17 @@ function showHelp()
     echo -e "\t -r , --redis \t\t stop redis"
     echo -e "\t -b , --beanstalkd \t stop beanstalkd"
     echo -e "\t -h , --help \t\t show this help"
+    echo -e "\t -v , --version \t\t show version"
     echo -e "\t      --reload \t\t reload Quick Server config."
     echo "if the option is not specified, default option is \"--all(-a)\"."
+}
+
+function getVersion()
+{
+    LUABIN=$1/bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print("Quick Server " .. _QUICK_SERVER_VERSION);'
+
+    $LUABIN -e "$CODE"
 }
 
 function getNginxNumOfWorker()
@@ -31,8 +40,9 @@ function getNginxPort()
 
 CURRDIR=$(dirname $(readlink -f $0))
 NGINXDIR=$CURRDIR/bin/openresty/nginx/
+VERSION=$(getVersion $CURRDIR)
 
-ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,reload,help -n 'Stop quick server' -- "$@")
+ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
 
@@ -72,6 +82,11 @@ while true ; do
         -n|--nginx)
             NGINX=1
             shift
+            ;;
+
+        -v|--version)
+            echo $VERSION
+            exit 0
             ;;
 
         -h|--help)
@@ -149,7 +164,8 @@ fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
-    echo -e "\033[33mStop Quick Server DONE! \033[0m"
+    echo -e "\033[33mStop $VERSION DONE! \033[0m"
+    echo "Stop $VERSION DONE!" >> $CURRDIR/logs/error.log
 fi
 
 sleep 3
