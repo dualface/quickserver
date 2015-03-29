@@ -38,11 +38,16 @@ local jobActionListPattern = "job_%s_sets_"
 
 local JobService = class("JobService")
 
-function JobService:ctor(config)
-    self.bean = cc.load("beanstalkd").service.new(config.beanstalkd)
-    self.redis = cc.load("redis").service.new(config.redis)
-
-    self.jobTube = config.broadcastJobTube
+function JobService:ctor(redis, beans, jobTube)
+    if not redis or not beans then
+        throw("job service is initialized failed: redis or beans is invalid.")
+    end
+    if not jobTube then
+        throw("job Service is initialized failed: job tube is null.")
+    end
+    self._redis = redis
+    self._beans = beans
+    self._jobTube = jobTube
 end
 
 local function checkParams_(data, ...)
