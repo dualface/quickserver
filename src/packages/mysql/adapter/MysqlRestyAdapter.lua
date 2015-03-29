@@ -1,6 +1,6 @@
 --[[
 
-Copyright (c) 2011-2015 chukong-inc.com
+Copyright (c) 2011-2015 dualface#github
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,13 @@ function MysqlRestyAdapter:close()
 end
 
 function MysqlRestyAdapter:setKeepAlive(timeout, size)
-    self._db:setKeepAlive(timeout, size)
+    if size then
+        return self._db:set_keepalive(timeout, size)
+    elseif timeout then
+        return self._db:set_keepAlive(timeout)
+    else
+        return self._db:set_keepalive()
+    end
 end
 
 function MysqlRestyAdapter:query(queryStr)

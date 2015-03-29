@@ -16,7 +16,7 @@ function showHelp()
 
 function getNginxNumOfWorker()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
+    LUABIN=$1/bin/openresty/luajit/bin/lua
     CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
 
     $LUABIN -e "$CODE"
@@ -24,7 +24,7 @@ function getNginxNumOfWorker()
 
 function getNginxPort()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
+    LUABIN=$1/bin/openresty/luajit/bin/lua
     CODE='_C=require("conf.config"); print(_C.port);'
 
     $LUABIN -e "$CODE"
@@ -124,10 +124,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     if [ $? -ne 0 ]; then
         sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
 
-        PORT=$(getNginxPort)
+        PORT=$(getNginxPort $CURRDIR)
         sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
-        NUMOFWORKERS=$(getNginxNumOfWorker)
+        NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
         sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         if [ $DEBUG -eq 1 ] ; then

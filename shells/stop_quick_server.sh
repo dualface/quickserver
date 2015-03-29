@@ -15,16 +15,16 @@ function showHelp()
 
 function getNginxNumOfWorker()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
+    LUABIN=$1/bin/openresty/luajit/bin/lua
+    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.numOfWorkers);"
 
     $LUABIN -e "$CODE"
 }
 
 function getNginxPort()
 {
-    LUABIN=bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.port);'
+    LUABIN=$1/bin/openresty/luajit/bin/lua
+    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.port);"
 
     $LUABIN -e "$CODE"
 }
@@ -93,21 +93,28 @@ if [ $RELOAD -ne 0 ]; then
     ALL=0
 fi
 
+# stop monitor first.
+killall tools.sh > /dev/null 2> /dev/null
+killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
+
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
         pgrep nginx > /dev/null
-        while [ $? -eq 0 ]
-        do
+        if [ $? -eq 0 ]; then
             nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
-            echo "Stop Nginx DONE"
-            pgrep nginx > /dev/null
-        done
+            if [ $? -ne 0 ]; then
+                exit $?
+            fi
+        fi
+
+        sleep 1
+        echo "Stop Nginx DONE"
     else
-        PORT=$(getNginxPort)
+        PORT=$(getNginxPort $CURRDIR)
         sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
-        NUMOFWORKERS=$(getNginxNumOfWorker)
+        NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
         sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
@@ -117,6 +124,14 @@ fi
 
 #stop redis
 if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
+    pgrep nginx > /dev/null
+
+    while [ $? -eq 0 ];
+    do
+        killall nginx 2> /dev/null
+        pgrep nginx > /dev/null
+    done
+
     killall redis-server 2> /dev/null
     echo "Stop Redis DONE"
 fi
@@ -127,8 +142,6 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     echo "Stop Beanstalkd DONE"
 fi
 
-killall tools.sh 2> /dev/null
-killall bin/openresty/luajit/bin/lua 2> /dev/null
 
 if [ $RELOAD -ne 0 ]; then
     $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
