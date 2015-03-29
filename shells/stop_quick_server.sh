@@ -149,7 +149,7 @@ fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
-    echo -e "\033[31mStop Quick Server DONE! \033[0m"
+    echo -e "\033[33mStop Quick Server DONE! \033[0m"
 fi
 
 sleep 3

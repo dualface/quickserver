@@ -137,7 +137,7 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
             sed -i "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
             sed -i "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/tools.sh
         else
-            echo -e "Start Nginx in \033[31m RELEASE \033[0m mode..."
+            echo -e "Start Nginx in \033[32m RELEASE \033[0m mode..."
             sed -i "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
             sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
             sed -i "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
@@ -158,7 +158,7 @@ if [ $ALL -eq 1 ]; then
     if [ $? -ne 0 ]; then
         $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
     fi
-    echo -e "\033[31mStart Quick Server DONE! \033[0m"
+    echo -e "\033[33mStart Quick Server DONE! \033[0m"
 fi
 
 sleep 1
