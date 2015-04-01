@@ -22,17 +22,30 @@ THE SOFTWARE.
 
 ]]
 
-if type(DEBUG) ~= "number" then DEBUG = 0 end
+local string_split = string.split
+local string_len = string.len
+local string_find = string.find
+local string_sub = string.sub
+local string_byte = string.byte
+local string_gsub = string.gsub
 
--- load framework
-cc = cc or {}
+function strip_paths(str, paths)
+    paths = paths or string_split(package.path, ";")
+    paths = checktable(paths)
 
-require("framework.functions")
-require("framework.server_functions")
-require("framework.package_support")
-json = require("framework.json")
+    table.sort(paths, function(a, b)
+        return string_len(a) >= string_len(b)
+    end)
 
-cc.server = {VERSION = "quickserver 0.5.0"}
+    for _, path in ipairs(paths) do
+        local pos = string_find(path, "?", 0, true)
+        if pos then
+            path = string_sub(path, 1, pos - 1)
+        end
+        if string_byte(path) == 47 then
+            str = string_gsub(str, path, "")
+        end
+    end
 
--- register the build-in packages
-cc.register("event", require("framework.packages.event.init"))
+    return str
+end
