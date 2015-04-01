@@ -32,8 +32,8 @@ local os_date = os.date
 local string_format = string.format
 local string_gsub = string.gsub
 
-local jobKey = "job_key_"
-local jobHashList = "job_hashlist_"
+local _JOB_KEY = "_JOB_KEY"
+local _JOB_HASH = "_JOB_HASH"
 local jobActionListPattern = "job_%s_sets_"
 
 local JobService = class("JobService")
@@ -43,7 +43,7 @@ function JobService:ctor(redis, beans, jobTube)
         throw("job service is initialized failed: redis or beans is invalid.")
     end
     if not jobTube then
-        throw("job Service is initialized failed: job tube is null.")
+        throw("job service is initialized failed: job tube is null.")
     end
     self._redis = redis
     self._beans = beans
@@ -66,48 +66,32 @@ local function checkParams_(data, ...)
     return true
 end
 
-function JobService:newJob(data)
-    if type(data) ~= "table" then
-        return nil, "Parameter is not a table."
+function JobService:newJob(action, data, delay, priority, ttr)
+    local beans = self._beans
+    local redis = self._redis
+
+    if not action then
+        throw("job service newJob() failed: job action is null.")
     end
 
-    local bean = self.bean
-    if bean == nil then
-        return nil, "Service beanstalkd is not initialized."
-    end
-
-    local redis = self.redis
-    if redis == nil then
-        return nil, "Service redis is not initialized."
-    end
-
-    if not checkParams_(data, "job", "delay", "to") then
-        return nil, "'job', 'delay' or 'to' is missed in param table."
-    end
-
-    redis:connect()
-    local jobRid, err = redis:command("INCR", jobKey)
+    local jobRid, err = redis:command("INCR", _JOB_KEY)
     if not jobRid then
-        redis:close()
-        return nil, string_format("generate job id failed: %s", err)
+        throw("job service newJob() generate job id failed: %s", err)
     end
 
-    data.rid = jobRid
-    data.start_time = os_date("%Y-%m-%d %H:%M:%S")
-    data.action = nil
-    data.msg_id = nil
+    local job = {}
+    job.rid = jobRid
+    job.start_time = os_date("%Y-%m-%d %H:%M:%S")
+    job.action = action
+    job.data = data
 
     -- put job to beanstalkd
-    bean:connect()
-    bean:command("use", self.jobTube)
+    bean:command("use", self._jobTube)
     local jobBid
-    jobBid, err = bean:command("put", json_encode(data), tonumber(data.priority), tonumber(data.delay))
+    jobBid, err = bean:command("put", json_encode(job), tonumber(priority), tonumber(delay), tonumber(ttr))
     if not jobBid then
-        redis:close()
-        bean:close()
-        return nil, string_format("put job to beanstalkd failed: %s", err)
+        throw("job srevice newJob() put job to beanstalkd failed: %s", err)
     end
-    bean:close()
 
     -- store job info to redis for persistence
     data.bid = jobBid
@@ -117,12 +101,12 @@ function JobService:newJob(data)
     end
 
     -- index actions for findJob service interface
-    local jobActionList = string_format(jobActionListPattern, string_gsub(data.job.action, "%.", "_"))
+    --[[local jobActionList = string_format(jobActionListPattern, string_gsub(data.job.action, "%.", "_"))
     local ok, err = redis:command("SADD", jobActionList, data.rid)
     if not ok then
         printWarn("JobService:newJob() - index actions to %s failed: %s", jobActionList, err)
     end
-    redis:close()
+    redis:close() --]]
 
     return jobRid, nil
 end
