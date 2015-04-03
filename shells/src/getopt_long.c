@@ -1,112 +1,96 @@
-/**************************************************************************
- *
- * Copyright (c) 2013 Nibirutech, Inc. All Rights Reserved
- * www.Nibirutech.com
- * 
- * @file: getopt_long.c
- * @author: Huang Qiyu
- * @email: huangqiyu@nibirutech.com
- * @date: 04-03-2015 13:32:28
- * @version $Revision$
- *
- **************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 
-/* Flag set by ‘--verbose’. */
-static int verbose_flag;
+#define K_PREFIX 10000
 
-int
-main (int argc, char **argv)
-{
-    int c;
+static struct option long_options[] = {
+    /* These options set a flag. */
+    {"all", no_argument, 0, 'a'},
+    {"nginx", no_argument, 0, 'n'},
+    {"redis", no_argument, 0, 'r'},
+    {"beanstalkd", no_argument, 0, 'b'},
+    {"help", no_argument, 0, 'h'},
+    {"prefix", required_argument, 0, K_PREFIX}, 
+    {0, 0, 0, 0}
+};
 
-    while (1)
-    {
-        static struct option long_options[] =
-        {
-            /* These options set a flag. */
-            {"verbose", no_argument,       &verbose_flag, 1},
-            {"brief",   no_argument,       &verbose_flag, 0},
-            /* These options don’t set a flag.
-             *              We distinguish them by their indices. */
-            {"add",     no_argument,       0, 'a'},
-            {"append",  no_argument,       0, 'b'},
-            {"delete",  required_argument, 0, 'd'},
-            {"create",  required_argument, 0, 'c'},
-            {"file",    required_argument, 0, 'f'},
-            {0, 0, 0, 0}
-        };
-        /* getopt_long stores the option index here. */
-        int option_index = 0;
+char* save_option(char **opts, char c, int index, unsigned* len, unsigned* max_len) {
+    char opt[20];
 
-        c = getopt_long (argc, argv, "abc:d:f:",
-                long_options, &option_index);
+    if (index > 0) {
+        strcpy(opt, " --");
+        strcat(opt, long_options[index].name);
+    }
+    else {
+        char tmp[4] = {' ', '-', c, '\0'};
+        strcpy(opt, tmp);  
+    }
 
-        /* Detect the end of the options. */
-        if (c == -1)
-            break;
-
-        switch (c)
-        {
-            case 0:
-                /* If this option set a flag, do nothing else now. */
-                if (long_options[option_index].flag != 0)
-                    break;
-                printf ("option %s", long_options[option_index].name);
-                if (optarg)
-                    printf (" with arg %s", optarg);
-                printf ("\n");
-                break;
-
-            case 'a':
-                    printf("option %s\n", long_options[option_index].name);
-                    puts ("option -a\n");
-
-                break;
-
-            case 'b':
-                puts ("option -b\n");
-                break;
-
-            case 'c':
-                printf ("option -c with value `%s'\n", optarg);
-                break;
-
-            case 'd':
-                printf ("option -d with value `%s'\n", optarg);
-                break;
-
-            case 'f':
-                printf ("option -f with value `%s'\n", optarg);
-                break;
-
-            case '?':
-                /* getopt_long already printed an error message. */
-                break;
-
-            default:
-                abort ();
+    if (*len + strlen(opt) + 1 > *max_len) {
+        *opts = (char*)realloc(*opts, *max_len+strlen(opt)*2+1);
+        if (!*opts) {
+            return NULL;
         }
     }
 
-    /* Instead of reporting ‘--verbose’
-     *      and ‘--brief’ as they are encountered,
-     *           we report the final status resulting from them. */
-    if (verbose_flag)
-        puts ("verbose flag is set");
+    *opts = strcat(*opts, opt);
+    *len = *len + strlen(opt) + 1;
+    *max_len = *max_len + strlen(opt)*2 + 1;
 
-    /* Print any remaining command line arguments (not options). */
-    if (optind < argc)
-    {
-        printf ("non-option ARGV-elements: ");
-        while (optind < argc)
-            printf ("%s ", argv[optind++]);
-        putchar ('\n');
-    }
-
-    exit (0);
+    return *opts;
 }
 
+int main (int argc, char **argv) {
+    int c;
+    char *install_path = NULL;
+    char *options = NULL;
+    unsigned int cur_opt_len = 0;
+    unsigned int max_opt_len = 0;
 
+    while(1) {
+        
+        int option_index = -1;
+
+        c = getopt_long (argc, argv, "abrnh", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch(c) {
+            /* store path from prefix */
+            case K_PREFIX:
+                install_path = optarg;
+                break;
+
+            case 'a':
+            case 'b':
+            case 'r':
+            case 'n':
+            case 'h':
+                if (!save_option(&options, c, option_index, &cur_opt_len, &max_opt_len)) {
+                    free(options);
+                    exit(-1);
+                }
+                break;
+
+            case '?':
+                free(options); 
+                exit(-1);
+
+            default:
+                abort();
+        }
+    }
+
+    /* output args as command "getopt". */
+    printf("%s ", options);
+    if (install_path) {
+        printf("--prefix %s ", install_path);
+    }
+    printf("--");
+
+    free(options);
+
+    return 0;
+}
