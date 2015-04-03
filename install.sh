@@ -93,7 +93,7 @@ CUR_DIR=$(dirname $(readlink -f $0))
 BUILD_DIR=/tmp/install_quick_server
 
 OPENRESTY_VER=1.7.7.1
-LUASOCKET_VER=3.0-rc1
+LUAROCKS_VER=2.2.1
 REDIS_VAR=2.6.16
 BEANSTALKD_VER=1.9
 
@@ -145,24 +145,23 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
     sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
 
-    # install luasocket
+    # install luasocket luasec httpclient
     cd $BUILD_DIR
-    tar zxf luasocket-$LUASOCKET_VER.tar.gz
-    cd luasocket-$LUASOCKET_VER
-    sed -i "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
-    sed -i "s#LUAINC_linux_base?=/usr/include#LUAINC_linux_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
-    sed -i "s#\$(LUAINC_linux_base)/lua/\$(LUAV)#\$(LUAINC_linux_base)/luajit-2.1#g" src/makefile
+    tar zxf luarocks-$LUAROCKS_VER.tar.gz
+    cd luarocks-$LUAROCKS_VER
+    LUAFILE=$DEST_BIN_DIR/openresty/luajit/include/lua5.1
+    if [ ! -f "$LUAFILE" ]; then 
+        ln -s $DEST_BIN_DIR/openresty/luajit/include/luajit-2.1 $file 
+    fi 
+    ./configure --prefix=$DEST_BIN_DIR/openresty/luajit --with-lua=$DEST_BIN_DIR/openresty/luajit
     make && make install
-    cp -f src/serial.so src/unix.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket/.
+    $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install luasocket
+    $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install luasec
+    $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install httpclient
+
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
-
-    # install http client
-    cd $BUILD_DIR
-    tar zxf luahttpclient.tar.gz
-    cp -f httpclient.lua $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
-    cp -rf httpclient $DEST_BIN_DIR/openresty/luajit/share/lua/5.1/.
 
     # install inspect
     cd $BUILD_DIR
