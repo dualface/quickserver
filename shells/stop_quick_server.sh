@@ -39,7 +39,10 @@ function getNginxPort()
 }
 
 CURRDIR=$(dirname $(readlink -f $0))
+OLDDIR=$(pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx/
+
+cd $CURRDIR
 VERSION=$(getVersion $CURRDIR)
 
 ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
@@ -170,3 +173,5 @@ fi
 
 sleep 3
 $CURRDIR/status_quick_server.sh
+
+cd $OLDDIR

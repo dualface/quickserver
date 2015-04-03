@@ -42,9 +42,10 @@ function getNginxPort()
 CURRDIR=$(dirname $(readlink -f $0))
 OLDDIR=$(pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx
-VERSION=$(getVersion $CURRDIR)
 
 cd $CURRDIR
+VERSION=$(getVersion $CURRDIR)
+
 
 ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
 
