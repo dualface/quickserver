@@ -59,6 +59,7 @@ REDIS_VAR=2.6.16
 BEANSTALKD_VER=1.9
 
 if [ $OSTYPE == "MACOS" ]; then
+    gcc -o $CUR_DIR/shells/getopt_long $CUR_DIR/shells/src/getopt_long.c
     ARGS=$($CUR_DIR/shells/getopt_long "$@")
 else
     ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,help,prefix: -n 'Install quick server' -- "$@")
@@ -138,7 +139,7 @@ else
 fi
 
 if [ $OSTYPE == "MACOS" ]; then
-    SED_BIN='sed -i ""'
+    SED_BIN="sed -i --"
 else
     SED_BIN='sed -i'
 fi
@@ -183,21 +184,28 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     # copy nginx and Quick Server framework conf file
     cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
     $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
+    rm -f $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf--
+
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
     $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
+    rm -f $DEST_DIR/conf/config.lua--
 
     # modify tools path
     $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
     $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
+    rm -f $DEST_DIR/tools.sh--
+    rm -f $DEST_DIR/tools/actions/MonitorAction.lua--
+
 
     # install luasocket
     cd $BUILD_DIR
     tar zxf luasocket-$LUASOCKET_VER.tar.gz
     cd luasocket-$LUASOCKET_VER
     if [ $OSTYPE == "MACOS" ]; then
+        $SED_BIN "s#PLAT?= linux#PLAT?= macosx#g" makefile
         $SED_BIN "s#PLAT?=linux#PLAT?=macosx#g" src/makefile
-        $SED_BIN "s#LUAPREFIX_macosx?=/usr/local#LUAPREFIX_macosx?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
-        $SED_BIN "s#LUAINC_macosx_base?=/usr/include#LUAINC_macosx_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
+        $SED_BIN "s#LUAPREFIX_macosx?=/opt/local#LUAPREFIX_macosx?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
+        $SED_BIN "s#LUAINC_macosx_base?=/opt/local/include#LUAINC_macosx_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
         $SED_BIN "s#\$(LUAINC_macosx_base)/lua/\$(LUAV)#\$(LUAINC_macosx_base)/luajit-2.1#g" src/makefile
     else
         $SED_BIN "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
@@ -243,8 +251,9 @@ if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ] ; then
     cp src/redis-check-dump $DEST_BIN_DIR/redis/bin
 
     mkdir -p $DEST_BIN_DIR/redis/conf
-    cp $CUR_DIR/conf/redis.conf $DEST_BIN_DIR/redis/conf/. -f
+    cp -f $CUR_DIR/conf/redis.conf $DEST_BIN_DIR/redis/conf/.
     $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/redis/conf/redis.conf
+    rm -f $DEST_BIN_DIR/redis/conf/redis.conf--
 
     echo "Install Redis DONE"
 fi
