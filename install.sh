@@ -139,7 +139,7 @@ else
 fi
 
 if [ $OSTYPE == "MACOS" ]; then
-    SED_BIN="sed -i --"
+    SED_BIN='sed -i --'
 else
     SED_BIN='sed -i'
 fi
@@ -180,6 +180,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd $CUR_DIR/shells/
     cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh tools.sh $DEST_DIR
     ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
+    # if it in Mac OS X, getopt_long should be deployed.
+    if [ $OSTYPE == "MACOS" ]; then
+        cp -f $CUR_DIR/shells/getopt_long $DEST_DIR/tmp
+    fi
 
     # copy nginx and Quick Server framework conf file
     cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
