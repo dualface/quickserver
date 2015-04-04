@@ -13,27 +13,68 @@ function showHelp()
     echo "if the \"--prefix\" is not specified, default path is \"/opt/quick_server\"."
 }
 
+function checkOSType()
+{
+    type "apt-get" > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+        echo "UBUNTU"
+        exit 0
+    fi
+
+    type "yum" > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+        echo "CENTOS"
+        exit 0
+    fi
+
+    type "brew" > /dev/null 2> /dev/null
+    if [ $? -eq 0 ]; then
+        echo "MACOS"
+        exit 0
+    fi
+
+    echo "UNKNOW"
+    exit 1
+}
+
 if [ $UID -ne 0 ]; then
     echo "Superuser privileges are required to run this script."
     echo "e.g. \"sudo $0\""
     exit 1
 fi
 
-ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,help,prefix: -n 'Install quick server' -- "$@")
+OSTYPE=$(checkOSType)
+CUR_DIR=$(cd "$(dirname $0)" && pwd)
+BUILD_DIR=/tmp/install_quick_server
+DEST_DIR=/opt/quick_server
 
-if [ $? != 0 ] ; then echo "Install Quick Server Terminating..." >&2; exit 1; fi
-
-eval set -- "$ARGS"
-
-declare DEST_DIR=/opt/quick_server
 declare -i ALL=0
 declare -i BEANS=0
 declare -i NGINX=0
 declare -i REDIS=0
 
+OPENRESTY_VER=1.7.7.1
+LUASOCKET_VER=3.0-rc1
+REDIS_VAR=2.6.16
+BEANSTALKD_VER=1.9
+
+if [ $OSTYPE == "MACOS" ]; then
+    ARGS=$($CUR_DIR/shells/getopt_long "$@")
+else
+    ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,help,prefix: -n 'Install quick server' -- "$@")
+fi
+
+if [ $? != 0 ] ; then
+    echo "Install Quick Server Terminating..." >&2;
+    exit 1;
+fi
+
+eval set -- "$ARGS"
+
 if [ $# -eq 1 ] ; then
     ALL=1
 fi
+
 if [ $# -eq 3 ] && [ $1 == "--prefix" ] ; then
     ALL=1
 fi
@@ -70,7 +111,10 @@ while true ; do
             exit 0
             ;;
 
-        --) shift; break ;;
+        --)
+            shift;
+            break
+            ;;
 
         *)
             echo "invalid option: $1"
@@ -79,30 +123,31 @@ while true ; do
     esac
 done
 
-eval apt-get > /dev/null 2> /dev/null
-if [ $? -eq 0 ] ; then
+DEST_BIN_DIR=$DEST_DIR/bin
+
+if [ $OSTYPE == "UBUNTU" ] ; then
     apt-get install -y build-essential libpcre3-dev libssl-dev git-core unzip
-else
+elif [ $OSTYPE == "CENTOS" ]; then
     yum groupinstall -y "Development Tools"
     yum install -y pcre-devel zlib-devel openssl-devel unzip
+elif [ $OSTYPE == "MACOS" ]; then
+    brew install pcre
+else
+    echo "Unsupport current OS."
+    exit 1
+fi
+
+if [ $OSTYPE == "MACOS" ]; then
+    SED_BIN='sed -i ""'
+else
+    SED_BIN='sed -i'
 fi
 
 set -e
 
-CUR_DIR=$(dirname $(readlink -f $0))
-BUILD_DIR=/tmp/install_quick_server
-
-OPENRESTY_VER=1.7.7.1
-LUASOCKET_VER=3.0-rc1
-REDIS_VAR=2.6.16
-BEANSTALKD_VER=1.9
-
-cd ~
-rm -fr $BUILD_DIR
+rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
 cp -f $CUR_DIR/installation/*.tar.gz $BUILD_DIR
-
-DEST_BIN_DIR=$DEST_DIR/bin
 
 mkdir -p $DEST_DIR
 mkdir -p $DEST_BIN_DIR
@@ -137,21 +182,28 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
 
     # copy nginx and Quick Server framework conf file
     cp -f $CUR_DIR/conf/nginx.conf $DEST_BIN_DIR/openresty/nginx/conf/.
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/openresty/nginx/conf/nginx.conf
     cp -f $CUR_DIR/conf/config.lua $DEST_DIR/conf
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/conf/config.lua
 
     # modify tools path
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
 
     # install luasocket
     cd $BUILD_DIR
     tar zxf luasocket-$LUASOCKET_VER.tar.gz
     cd luasocket-$LUASOCKET_VER
-    sed -i "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
-    sed -i "s#LUAINC_linux_base?=/usr/include#LUAINC_linux_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
-    sed -i "s#\$(LUAINC_linux_base)/lua/\$(LUAV)#\$(LUAINC_linux_base)/luajit-2.1#g" src/makefile
+    if [ $OSTYPE == "MACOS" ]; then
+        $SED_BIN "s#PLAT?=linux#PLAT?=macosx#g" src/makefile
+        $SED_BIN "s#LUAPREFIX_macosx?=/usr/local#LUAPREFIX_macosx?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
+        $SED_BIN "s#LUAINC_macosx_base?=/usr/include#LUAINC_macosx_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
+        $SED_BIN "s#\$(LUAINC_macosx_base)/lua/\$(LUAV)#\$(LUAINC_macosx_base)/luajit-2.1#g" src/makefile
+    else
+        $SED_BIN "s#LUAPREFIX_linux?=/usr/local#LUAPREFIX_linux?=$DEST_BIN_DIR/openresty/luajit#g" src/makefile
+        $SED_BIN "s#LUAINC_linux_base?=/usr/include#LUAINC_linux_base?=$DEST_BIN_DIR/openresty/luajit/include#g" src/makefile
+        $SED_BIN "s#\$(LUAINC_linux_base)/lua/\$(LUAV)#\$(LUAINC_linux_base)/luajit-2.1#g" src/makefile
+    fi
     make && make install
     cp -f src/serial.so src/unix.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket/.
 
@@ -192,7 +244,7 @@ if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ] ; then
 
     mkdir -p $DEST_BIN_DIR/redis/conf
     cp $CUR_DIR/conf/redis.conf $DEST_BIN_DIR/redis/conf/. -f
-    sed -i "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/redis/conf/redis.conf
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/redis/conf/redis.conf
 
     echo "Install Redis DONE"
 fi
