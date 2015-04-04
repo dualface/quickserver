@@ -123,7 +123,7 @@ while true ; do
         --) shift; break ;;
 
         *)
-            echo "invalid option: $1"
+            echo "invalid option. $1"
             exit 1
             ;;
     esac
@@ -159,8 +159,6 @@ fi
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     pgrep nginx > /dev/null
     if [ $? -ne 0 ]; then
-        $SED_BIN "/error_log/d" $NGINXDIR/conf/nginx.conf
-
         PORT=$(getNginxPort $CURRDIR)
         $SED_BIN "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
@@ -169,12 +167,12 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
 
         if [ $DEBUG -eq 1 ] ; then
             $SED_BIN "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
-            $SED_BIN "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#error_log logs/error.log;#error_log logs/error.log debug;#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/tools.sh
         else
             $SED_BIN "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
-            $SED_BIN "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#error_log logs/error.log debug;#error_log logs/error.log;#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/tools.sh
         fi

@@ -108,7 +108,7 @@ int main (int argc, char **argv) {
     }
 
     if (k_reload) {
-        printf("--reload");
+        printf("--reload ");
     }
 
     printf("--");

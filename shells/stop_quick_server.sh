@@ -25,7 +25,7 @@ function getVersion()
 function getNginxNumOfWorker()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.numOfWorkers);"
+    CODE="_C=require([[conf.config]]); print(_C.numOfWorkers);"
 
     $LUABIN -e "$CODE"
 }
@@ -33,19 +33,37 @@ function getNginxNumOfWorker()
 function getNginxPort()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.port);"
+    CODE="_C=require([[conf.config]]); print(_C.port);"
 
     $LUABIN -e "$CODE"
 }
 
-CURRDIR=$(dirname $(readlink -f $0))
+function isMacOs()
+{
+    TMPRES=$(uname -s)
+    if [ $TMPRES == "Darwin" ]; then
+        echo "MACOS"
+        exit 0
+    fi
+
+    echo "LINUX"
+}
+
 OLDDIR=$(pwd)
+CURRDIR=$(cd "$(dirname $0)" && pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx/
 
 cd $CURRDIR
 VERSION=$(getVersion $CURRDIR)
 
-ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
+OSTYPE=$(isMacOs)
+if [ $OSTYPE == "MACOS" ]; then
+    ARGS=$($CURRDIR/tmp/getopt_long "$@")
+    SED_BIN='sed -i --'
+else
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
+    SED_BIN='sed -i'
+fi
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
 
@@ -100,7 +118,7 @@ while true ; do
         --) shift; break ;;
 
         *)
-            echo "invalid option: $1"
+            echo "invalid option. $1"
             exit 1
             ;;
     esac
@@ -130,12 +148,17 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
         echo "Stop Nginx DONE"
     else
         PORT=$(getNginxPort $CURRDIR)
-        sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+        $SED_BIN "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
         NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
-        sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+        $SED_BIN "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+
+        rm -f $NGINXDIR/conf/nginx.conf--
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
+        if [ $? -ne 0 ]; then
+            exit $?
+        fi
         echo "Reload Nginx conf DONE"
     fi
 fi
@@ -146,7 +169,7 @@ if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
 
     while [ $? -eq 0 ];
     do
-        killall nginx 2> /dev/null
+        nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
         pgrep nginx > /dev/null
     done
 
@@ -165,7 +188,6 @@ if [ $RELOAD -ne 0 ]; then
     $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
 fi
 
-cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
     echo -e "\033[33mStop $VERSION DONE! \033[0m"
     echo "Stop $VERSION DONE!" >> $CURRDIR/logs/error.log
