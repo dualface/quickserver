@@ -68,7 +68,7 @@ function WebSocketConnectBase:run()
         if DEBUG > 1 then
             ngx_log(ngx.ERR, err .. debug.traceback("", 4))
         else
-            ngx_log(ngx.ERR, strip_paths(err))
+            ngx_log(ngx.ERR, strip_luafile_paths(err))
         end
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
         ngx.exit(ngx.ERROR)

@@ -22,30 +22,9 @@ THE SOFTWARE.
 
 ]]
 
-local string_split = string.split
-local string_len = string.len
-local string_find = string.find
-local string_sub = string.sub
-local string_byte = string.byte
 local string_gsub = string.gsub
 
-function strip_paths(str, paths)
-    paths = paths or string_split(package.path, ";")
-    paths = checktable(paths)
-
-    table.sort(paths, function(a, b)
-        return string_len(a) >= string_len(b)
-    end)
-
-    for _, path in ipairs(paths) do
-        local pos = string_find(path, "?", 0, true)
-        if pos then
-            path = string_sub(path, 1, pos - 1)
-        end
-        if string_byte(path) == 47 then
-            str = string_gsub(str, path, "")
-        end
-    end
-
-    return str
+function strip_luafile_paths(str)
+    str = string_gsub(str, "/.*/(.*lua:%d+:)", "%1")
+    return string_gsub(str, "'/.*/(.*lua)'", "'%1'")
 end
