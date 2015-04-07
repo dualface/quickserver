@@ -26,7 +26,7 @@ local pairs = pairs
 local tonumber = tonumber
 local json_encode = json.encode
 local json_decode = json.decode
-local os_date = os.date
+local os_time = os.time
 local string_format = string.format
 
 local _JOB_KEY = "_JOB_KEY"
@@ -68,7 +68,7 @@ function JobService:add(action, data, delay, priority, ttr)
 
     local job = {}
     job.id = jobId
-    job.start_time = os_date("%Y-%m-%d %H:%M:%S")
+    job.start_time = os_time()
     job.action = action
     job.arg = data
     job.delay = delay
