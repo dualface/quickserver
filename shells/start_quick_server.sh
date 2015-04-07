@@ -188,7 +188,7 @@ fi
 
 
 cd $CURRDIR
-if [ $ALL -eq 1 ]; then
+if [ $ALL -eq 1 ] && [ $OSTYPE != "MACOS" ]; then
     # start monitor
     pgrep tools.sh > /dev/null
     if [ $? -ne 0 ]; then
