@@ -27,8 +27,8 @@ function checkOSType()
         exit 0
     fi
 
-    type "brew" > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
+    RES=$(uname -s)
+    if [ $RES == "Darwin" ]; then
         echo "MACOS"
         exit 0
     fi
@@ -132,7 +132,13 @@ elif [ $OSTYPE == "CENTOS" ]; then
     yum groupinstall -y "Development Tools"
     yum install -y pcre-devel zlib-devel openssl-devel unzip
 elif [ $OSTYPE == "MACOS" ]; then
-    brew install pcre
+    type "brew" > /dev/null 2> /dev/null
+    TMP=$?
+    type "gcc" > /dev/null 2> /dev/null
+    if [ $? -ne 0 ] || [ $TMP -ne 0 ]; then
+        echo "Please install xcode and brew, then run \"brew install pcre\"."
+        exit 0
+    fi
 else
     echo "Unsupport current OS."
     exit 1
