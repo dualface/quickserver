@@ -67,11 +67,7 @@ function ActionDispatcher:runAction(actionName, data, isPersistentActionInstance
                 actionModule = _actionModule
             else
                 local err = _actionModule
-                local pos = string_find(err, "\n")
-                if pos then
-                    err = string_sub(err, 1, pos - 2)
-                end
-                throw("failed to load action module \"%s\", %s", actionModulePath, err)
+                throw(err)
             end
         end
 

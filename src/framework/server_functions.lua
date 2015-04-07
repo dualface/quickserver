@@ -22,17 +22,9 @@ THE SOFTWARE.
 
 ]]
 
-if type(DEBUG) ~= "number" then DEBUG = 0 end
+local string_gsub = string.gsub
 
--- load framework
-cc = cc or {}
-
-require("framework.functions")
-require("framework.server_functions")
-require("framework.package_support")
-json = require("framework.json")
-
-cc.server = {VERSION = "quickserver 0.5.0"}
-
--- register the build-in packages
-cc.register("event", require("framework.packages.event.init"))
+function strip_luafile_paths(str)
+    str = string_gsub(str, "/.*/(.*lua:%d+:)", "%1")
+    return string_gsub(str, "'/.*/(.*lua)'", "'%1'")
+end

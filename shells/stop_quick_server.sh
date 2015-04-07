@@ -9,14 +9,23 @@ function showHelp()
     echo -e "\t -r , --redis \t\t stop redis"
     echo -e "\t -b , --beanstalkd \t stop beanstalkd"
     echo -e "\t -h , --help \t\t show this help"
+    echo -e "\t -v , --version \t\t show version"
     echo -e "\t      --reload \t\t reload Quick Server config."
     echo "if the option is not specified, default option is \"--all(-a)\"."
+}
+
+function getVersion()
+{
+    LUABIN=$1/bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print("Quick Server " .. _QUICK_SERVER_VERSION);'
+
+    $LUABIN -e "$CODE"
 }
 
 function getNginxNumOfWorker()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
+    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.numOfWorkers);"
 
     $LUABIN -e "$CODE"
 }
@@ -24,15 +33,16 @@ function getNginxNumOfWorker()
 function getNginxPort()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.port);'
+    CODE="package.path = [[$1/?.lua;]] .. package.path; _C=require([[conf.config]]); print(_C.port);"
 
     $LUABIN -e "$CODE"
 }
 
 CURRDIR=$(dirname $(readlink -f $0))
 NGINXDIR=$CURRDIR/bin/openresty/nginx/
+VERSION=$(getVersion $CURRDIR)
 
-ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,reload,help -n 'Stop quick server' -- "$@")
+ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
 
@@ -74,6 +84,11 @@ while true ; do
             shift
             ;;
 
+        -v|--version)
+            echo $VERSION
+            exit 0
+            ;;
+
         -h|--help)
             showHelp;
             exit 0
@@ -93,24 +108,28 @@ if [ $RELOAD -ne 0 ]; then
     ALL=0
 fi
 
+# stop monitor first.
+killall tools.sh > /dev/null 2> /dev/null
+killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
+
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
         pgrep nginx > /dev/null
-        while [ $? -eq 0 ]
-        do
+        if [ $? -eq 0 ]; then
             nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
             if [ $? -ne 0 ]; then
                 exit $?
             fi
-            echo "Stop Nginx DONE"
-            pgrep nginx > /dev/null
-        done
+        fi
+
+        sleep 1
+        echo "Stop Nginx DONE"
     else
-        PORT=$(getNginxPort)
+        PORT=$(getNginxPort $CURRDIR)
         sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
-        NUMOFWORKERS=$(getNginxNumOfWorker)
+        NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
         sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
@@ -120,6 +139,14 @@ fi
 
 #stop redis
 if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
+    pgrep nginx > /dev/null
+
+    while [ $? -eq 0 ];
+    do
+        killall nginx 2> /dev/null
+        pgrep nginx > /dev/null
+    done
+
     killall redis-server 2> /dev/null
     echo "Stop Redis DONE"
 fi
@@ -130,8 +157,6 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     echo "Stop Beanstalkd DONE"
 fi
 
-killall tools.sh 2> /dev/null
-killall bin/openresty/luajit/bin/lua 2> /dev/null
 
 if [ $RELOAD -ne 0 ]; then
     $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
@@ -139,7 +164,8 @@ fi
 
 cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
-    echo -e "\033[31mStop Quick Server DONE! \033[0m"
+    echo -e "\033[33mStop $VERSION DONE! \033[0m"
+    echo "Stop $VERSION DONE!" >> $CURRDIR/logs/error.log
 fi
 
 sleep 3
