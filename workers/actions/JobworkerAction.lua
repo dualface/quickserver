@@ -1,7 +1,32 @@
+--[[
+
+Copyright (c) 2011-2015 dualface#github
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+]]
+
 local json_decode = json.decode
 local json_encode = json.encode
 local tostring = tostring
 local os_date = os.date
+local os_time = os.time
 
 local _JOB_HASH = "_JOB_HASH"
 
@@ -21,8 +46,6 @@ function JobworkerAction:handleAction(arg)
     local beans = self:_getBeans()
     local redis = self:_getRedis()
     local jobService = self._jobService
-
-    self:_recoverJobs()
 
     beans:command("watch", self._jobTube)
 
@@ -55,39 +78,11 @@ function JobworkerAction:handleAction(arg)
             res = json_encode(res)
         end
 
-        printf("finish job, jobId: %s, start_time: %s, end_time:%s, result: %s", tostring(data.id), data.start_time, os_date("%Y-%m-%d %H:%M:%S"), res)
+        printf("finish job, jobId: %s, start_time: %s, end_time:%s, result: %s", tostring(data.id), os_date("%Y-%m-%d %H:%M:%S", data.start_time), os_date("%Y-%m-%d %H:%M:%S"), res)
 
 ::reserve_next_job::
     end
 
-end
-
-function JobworkerAction:_recoverJobs()
-    local redis = self:_getRedis()
-    local jobService = self._jobService
-
-    local res, err = redis:command("HGETALL", _JOB_HASH)
-    if not res then
-        printWarn("recover jobs from db faild: %s", err)
-        return
-    end
-
-    for i = 2, #res, 2 do
-        local job, err = json_decode(res[i])
-        if job then
-            local id
-            id, err = JobService:add(job.action, job.arg, job.delay, job.priority, job.ttr)
-            if id then
-                printInfo("recover job success, old job id: %s, new job id: %s", res[i-1], tostring(id))
-            end
-        end
-
-        if err then
-            printWarn("recover job failed: %s. job id: %s, contents: %s", err, res[i-1], res[i])
-        end
-    end
-
-    printInfo("recover jobs finished.")
 end
 
 function JobworkerAction:_getBeans()
