@@ -129,8 +129,8 @@ if [ $RELOAD -ne 0 ]; then
     ALL=0
 fi
 
-# stop monitor first.
-killall tools.sh > /dev/null 2> /dev/null
+# stop monitor and job worker first.
+killall start_workers.sh > /dev/null 2> /dev/null
 killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
 
 #stop nginx
@@ -185,7 +185,11 @@ fi
 
 
 if [ $RELOAD -ne 0 ]; then
-    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    if [ $OSTYPE != "MACOS" ]; then
+        $CURRDIR/bin/instrument/start_workers.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    fi
+
+    $CURRDIR/bin/instrument/start_workers.sh jobworker.handle > $CURRDIR/logs/monitor.log &
 fi
 
 if [ $ALL -eq 1 ] ; then

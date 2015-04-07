@@ -169,15 +169,18 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
             $SED_BIN "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#error_log logs/error.log;#error_log logs/error.log debug;#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
-            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/apps/welcome/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/bin/instrument/start_workers.sh
         else
             $SED_BIN "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#error_log logs/error.log debug;#error_log logs/error.log;#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
-            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/apps/welcome/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/bin/instrument/start_workers.sh
         fi
         rm -f $NGINXDIR/conf/nginx.conf--
-        rm -f $CURRDIR/tools.sh--
+        rm -f $CURRDIR/apps/welcome/tools.sh--
+        rm -f $CURRDIR/bin/instrument/start_workers.sh--
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
         echo "Start Nginx DONE"
@@ -186,14 +189,23 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     fi
 fi
 
-
 cd $CURRDIR
-if [ $ALL -eq 1 ] && [ $OSTYPE != "MACOS" ]; then
+if [ $ALL -eq 1 ]; then
     # start monitor
-    pgrep tools.sh > /dev/null
-    if [ $? -ne 0 ]; then
-        $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    if [ $OSTYPE != "MACOS" ]; then
+        ps -ef | grep -i "monitor.watch" | grep -v "grep" > /dev/null
+        if [ $? -ne 0 ]; then
+            $CURRDIR/bin/instrument/start_workers.sh monitor.watch > $CURRDIR/logs/monitor.log &
+        fi
     fi
+
+    # start job worker
+    I=0
+    while [ $I -lt $NUMOFWORKERS ]; do
+        $CURRDIR/bin/instrument/start_workers.sh jobworker.handle > $CURRDIR/logs/jobworker.log &
+        I=$((I+1))
+    done
+
     echo -e "\033[33mStart Quick Server DONE! \033[0m"
 fi
 
