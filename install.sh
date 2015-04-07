@@ -180,11 +180,15 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     ln -f -s $DEST_BIN_DIR/openresty/luajit/bin/luajit-2.1.0-alpha $DEST_BIN_DIR/openresty/luajit/bin/lua
     cp -rf $CUR_DIR/src $DEST_DIR
     cp -rf $CUR_DIR/apps $DEST_DIR
-    cp -rf $CUR_DIR/tools $DEST_DIR
+    mkdir -p $DEST_BIN_DIR/instrument
+    cp -rf $CUR_DIR/workers $DEST_BIN_DIR/instrument
 
     # deploy tool script
     cd $CUR_DIR/shells/
-    cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh tools.sh $DEST_DIR
+    cp -f start_quick_server.sh stop_quick_server.sh status_quick_server.sh $DEST_DIR
+    mkdir -p $DEST_DIR/apps/welcome/tools/actions
+    cp -f tools.sh $DEST_DIR/apps/welcome/.
+    cp -f start_workers.sh $DEST_BIN_DIR/instrument/.
     ln -f -s $DEST_BIN_DIR/openresty/nginx/sbin/nginx /usr/bin/nginx
     # if it in Mac OS X, getopt_long should be deployed.
     if [ $OSTYPE == "MACOS" ]; then
@@ -201,11 +205,12 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     rm -f $DEST_DIR/conf/config.lua--
 
     # modify tools path
-    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools.sh
-    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/tools/actions/MonitorAction.lua
-    rm -f $DEST_DIR/tools.sh--
-    rm -f $DEST_DIR/tools/actions/MonitorAction.lua--
-
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_DIR/apps/welcome/tools.sh
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/instrument/start_workers.sh
+    $SED_BIN "s#_QUICK_SERVER_ROOT_#$DEST_DIR#g" $DEST_BIN_DIR/instrument/workers/actions/MonitorAction.lua
+    rm -f $DEST_DIR/apps/welcome/tools.sh--
+    rm -f $DEST_BIN_DIR/instrument/start_workers.sh--
+    rm -f $DEST_BIN_DIR/instrument/workers/actions/MonitorAction.lua--
 
     # install luasocket
     cd $BUILD_DIR

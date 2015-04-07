@@ -5,6 +5,7 @@ local Constants = {}
 Constants.HTTP_REQUEST_TYPE      = "http"
 Constants.WEBSOCKET_REQUEST_TYPE = "websocket"
 Constants.CLI_REQUEST_TYPE       = "cli"
+Constants.WORKER_REQUEST_TYPE    = "worker"
 
 -- action
 Constants.ACTION_PACKAGE_NAME                   = 'actions'
