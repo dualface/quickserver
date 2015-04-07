@@ -1,4 +1,4 @@
-# Quick-Server
+# Quick Server
 ## 基于OpenResty的服务器框架
 
 ---
@@ -24,7 +24,7 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
 
 ## 相关资源
 
--   [Quick-Server Wiki首页](http://quickserver-doc.readthedocs.org/en/latest/index.html)
+-   [Quick Server Wiki首页](http://quickserver-doc.readthedocs.org/en/latest/index.html)
 
     包括 Quick Server 的方方面面，基本介绍，安装和使用指南，源码分析等等。
 

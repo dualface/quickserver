@@ -1,7 +1,7 @@
 #some tools for quick-server
 
 - start\_quick\_server.sh function list:
-    - start the whole Quick-Server.
+    - start the whole Quick Server.
     - start redis sever.
     - start mysql server.
     - start a cleaner for index tables in mysql.
