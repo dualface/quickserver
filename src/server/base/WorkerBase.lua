@@ -50,7 +50,7 @@ end
 function WorkerBase:runEventLoop()
     local actionName = self._requestParameters[1]
     assert(type(actionName) == "string")
-    assert(string_lower(actionName) == "jobworker.handle" || string_lower(actionName) == "monitor.watch")
+    assert(string_lower(actionName) == "jobworker.handle" or string_lower(actionName) == "monitor.watch")
 
     local resutl = self:runAction(actionName, self._requestParameters)
     printInfo("DONE")
