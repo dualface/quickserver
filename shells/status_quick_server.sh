@@ -8,8 +8,8 @@ function getVersion()
     $LUABIN -e "$CODE"
 }
 
-CURRDIR=$(dirname $(readlink -f $0))
 OLDDIR=$(pwd)
+CURRDIR=$(cd "$(dirname $0)" && pwd)
 
 cd $CURRDIR
 VERSION=$(getVersion $CURRDIR)
