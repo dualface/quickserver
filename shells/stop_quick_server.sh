@@ -58,11 +58,11 @@ VERSION=$(getVersion $CURRDIR)
 
 OSTYPE=$(isMacOs)
 if [ $OSTYPE == "MACOS" ]; then
-    ARGS=$($CURRDIR/tmp/getopt_long "$@")
     SED_BIN='sed -i --'
+    ARGS=$($CURRDIR/tmp/getopt_long "$@")
 else
-    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
     SED_BIN='sed -i'
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Stop quick server' -- "$@")
 fi
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
@@ -130,7 +130,11 @@ if [ $RELOAD -ne 0 ]; then
 fi
 
 # stop monitor and job worker first.
-killall start_workers.sh > /dev/null 2> /dev/null
+if [ OSTYPE == "MACOS" ]; then
+    ps -ef | grep "start_workers" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
+else
+    killall start_workers.sh > /dev/null 2> /dev/null
+fi
 killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
 
 #stop nginx
