@@ -39,16 +39,34 @@ function getNginxPort()
     $LUABIN -e "$CODE"
 }
 
-CURRDIR=$(dirname $(readlink -f $0))
+function isMacOs()
+{
+    TMPRES=$(uname -s)
+    if [ $TMPRES == "Darwin" ]; then
+        echo "MACOS"
+        exit 0
+    fi
+
+    echo "LINUX"
+}
+
 OLDDIR=$(pwd)
+CURRDIR=$(cd "$(dirname $0)" && pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx
-VERSION=$(getVersion $CURRDIR)
 
 cd $CURRDIR
+VERSION=$(getVersion $CURRDIR)
 
-ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
+OSTYPE=$(isMacOs)
+if [ $OSTYPE == "MACOS" ]; then
+    ARGS=$($CURRDIR/tmp/getopt_long "$@")
+    SED_BIN='sed -i --'
+else
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
+    SED_BIN='sed -i'
+fi
 
-if [ $? != 0 ] ; then echo "Start Quick Server Terminating..." >&2; exit 1; fi
+if [ $? -ne 0 ] ; then echo "Start Quick Server Terminating..." >&2; exit 1; fi
 
 eval set -- "$ARGS"
 
@@ -105,7 +123,7 @@ while true ; do
         --) shift; break ;;
 
         *)
-            echo "invalid option: $1"
+            echo "invalid option. $1"
             exit 1
             ;;
     esac
@@ -141,25 +159,29 @@ fi
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     pgrep nginx > /dev/null
     if [ $? -ne 0 ]; then
-        sed -i "/error_log/d" $NGINXDIR/conf/nginx.conf
-
         PORT=$(getNginxPort $CURRDIR)
-        sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+        $SED_BIN "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
 
         NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
-        sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+        $SED_BIN "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
 
         if [ $DEBUG -eq 1 ] ; then
-            sed -i "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
-            sed -i "1a error_log logs/error.log debug;" $NGINXDIR/conf/nginx.conf
-            sed -i "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
-            sed -i "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/tools.sh
+            $SED_BIN "s#DEBUG = _DBG_ERROR#DEBUG = _DBG_DEBUG#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#error_log logs/error.log;#error_log logs/error.log debug;#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/apps/welcome/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/bin/instrument/start_workers.sh
         else
-            sed -i "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
-            sed -i "1a error_log logs/error.log;" $NGINXDIR/conf/nginx.conf
-            sed -i "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
-            sed -i "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/tools.sh
+            $SED_BIN "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#error_log logs/error.log debug;#error_log logs/error.log;#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
+            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/apps/welcome/tools.sh
+            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/bin/instrument/start_workers.sh
         fi
+        rm -f $NGINXDIR/conf/nginx.conf--
+        rm -f $CURRDIR/apps/welcome/tools.sh--
+        rm -f $CURRDIR/bin/instrument/start_workers.sh--
+
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
         echo "Start Nginx DONE"
     else
@@ -167,14 +189,23 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
     fi
 fi
 
-
 cd $CURRDIR
 if [ $ALL -eq 1 ]; then
     # start monitor
-    pgrep tools.sh > /dev/null
-    if [ $? -ne 0 ]; then
-        $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    if [ $OSTYPE != "MACOS" ]; then
+        ps -ef | grep -i "monitor.watch" | grep -v "grep" > /dev/null
+        if [ $? -ne 0 ]; then
+            $CURRDIR/bin/instrument/start_workers.sh monitor.watch > $CURRDIR/logs/monitor.log &
+        fi
     fi
+
+    # start job worker
+    I=0
+    while [ $I -lt $NUMOFWORKERS ]; do
+        $CURRDIR/bin/instrument/start_workers.sh jobworker.handle > $CURRDIR/logs/jobworker.log &
+        I=$((I+1))
+    done
+
     echo -e "\033[33mStart Quick Server DONE! \033[0m"
 fi
 

@@ -64,8 +64,14 @@ end
 function BeanstalkdService:command(command, ...)
     command = string_lower(command)
     local res, err = self._beans:command(command, ...)
-    if err then
-        throw("beanstalkd command \"%s\" failed, %s", command, err)
+
+    -- make Haricot compatible. Such as "delete", it return nil, nil.
+    if not res and not err then
+        res = true
+    end
+
+    if not res then
+        throw("beanstalkd command \"%s\" failed, %s, %s", command, err, res)
     end
 
     return res

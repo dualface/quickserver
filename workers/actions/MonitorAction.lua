@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 local pcall = pcall
 local tostring = tostring
+local json_decode = json.decode
 local string_format = string.format
 local string_find = string.find
 local string_sub = string.sub
@@ -35,6 +36,7 @@ local table_concat = table.concat
 local math_trunc = math.trunc
 local io_popen = io.popen
 local os_execute = os.execute
+local os_time = os.time
 
 local _RESET_REDIS_CMD = [[_QUICK_SERVER_ROOT_/bin/redis/bin/redis-server _QUICK_SERVER_ROOT_/bin/redis/conf/redis.conf]]
 local _RESET_NGINX_CMD = [[nginx -p _QUICK_SERVER_ROOT_ -c _QUICK_SERVER_ROOT_/bin/openresty/nginx/conf/nginx.conf]]
@@ -53,11 +55,15 @@ local _MONITOR_MEM_INFO_KEY = "_MONITOR_MEM_INFO"
 local _MONITOR_CPU_INFO_KEY = "_MONITOR_CPU_INFO"
 local _MONITOR_DISK_INFO_KEY = "_MONITOR_DISK_INFO"
 
+local _JOB_HASH = "_JOB_HASH"
+
 -- since this tool is running background as a loop,
 -- redis connection don't need closing.
 local RedisService = cc.load("redis").service
 
 local BeansService = cc.load("beanstalkd").service
+
+local JobService = cc.load("job").service
 
 local httpClient = require("httpclient").new()
 
@@ -76,6 +82,8 @@ function MonitorAction:ctor(cmd)
     self._minuteListLen = 0
     self._secListLen = 0
     self._hourListLen = 0
+
+    self._jobTube = cmd.config.beanstalkd.jobTube
 end
 
 function MonitorAction:watchAction(arg)
@@ -250,8 +258,13 @@ function MonitorAction:_getPid()
         local res = fout:read("*a")
         fout:close()
 
+        local isBeansReseted = false
         while res == "" do
             res = self:_resetProcess(procName)
+            if procName == "beanstalkd" then isBeansReseted = true end
+        end
+        if isBeansReseted then
+            self:_recoverJobs()
         end
 
         local pids = string_split(res, "\n")
@@ -280,10 +293,12 @@ function MonitorAction:_resetProcess(procName)
 
     if procName == "redis-server" then
         os_execute(_RESET_REDIS_CMD)
+        self._redis = nil
     end
 
     if procName == "beanstalkd" then
         os_execute(_RESET_BEANSTALKD_CMD)
+        self._beans = nil
     end
 
     local cmd = string_format(_GET_PID_PATTERN, procName)
@@ -325,6 +340,43 @@ function MonitorAction:_getConnNums(procName)
     end
 
     return 0
+end
+
+function MonitorAction:_recoverJobs()
+    local redis = self:_getRedis()
+    local jobService = JobService:create(self:_getRedis(), self:_getBeans(), self._jobTube)
+
+    local res, err = redis:command("HGETALL", _JOB_HASH)
+    if not res then
+        printWarn("recover jobs from db faild: %s", err)
+        return
+    end
+
+    for k,v in pairs(res) do
+        local ok = redis:command("HDEL", _JOB_HASH, k)
+        if tostring(ok) == "1" then
+            local job, err = json_decode(v)
+            if job then
+                local now = os_time()
+                if job.start_time + job.delay <= now then
+                    job.delay = 0
+                else
+                    job.delay = job.start_time + job.delay - now
+                end
+                local id
+                id, err = jobService:add(job.action, job.arg, job.delay, job.priority, job.ttr)
+                if id then
+                    printInfo("recover job success, old job id: %s, new job id: %s", k, tostring(id))
+                end
+            end
+
+            if err then
+                printWarn("recover job failed: %s. job id: %s, contents: %s", err, k, v)
+            end
+        end
+    end
+
+    printInfo("recover jobs finished.")
 end
 
 function MonitorAction:_getBeans()
