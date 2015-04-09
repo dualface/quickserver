@@ -24,8 +24,6 @@ THE SOFTWARE.
 
 local factory = require("server.base.Factory")
 
-local args = {...}
-
 -- SERVER_CONFIG from init_by_lua, see nginx.conf
-local app = factory.create(SERVER_CONFIG, "Worker", args)
+local app = factory.create(SERVER_CONFIG, "Worker")
 app:run()
