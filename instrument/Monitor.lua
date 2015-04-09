@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 local pcall = pcall
 local tostring = tostring
+local tonumber = tonumber
 local json_decode = json.decode
 local string_format = string.format
 local string_find = string.find
@@ -335,7 +336,11 @@ function Monitor:_getConnNums(procName)
         if not ok then
             return "0"
         else
-            return string_match(res, "total%-jobs: (%d+)")
+            local r1 = string_match(res, "current%-jobs%-ready: (%d+)")
+            local r2 = string_match(res, "current%-jobs%-reserved: (%d+)")
+            local r3 = string_match(res, "current%-jobs%-delayed: (%d+)")
+
+            return tostring(r1 + r2 + r3)
         end
     end
 
