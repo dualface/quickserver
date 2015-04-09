@@ -59,11 +59,11 @@ VERSION=$(getVersion $CURRDIR)
 
 OSTYPE=$(isMacOs)
 if [ $OSTYPE == "MACOS" ]; then
-    ARGS=$($CURRDIR/tmp/getopt_long "$@")
     SED_BIN='sed -i --'
+    ARGS=$($CURRDIR/tmp/getopt_long "$@")
 else
-    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
     SED_BIN='sed -i'
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Start quick server' -- "$@")
 fi
 
 if [ $? -ne 0 ] ; then echo "Start Quick Server Terminating..." >&2; exit 1; fi
@@ -138,6 +138,9 @@ if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
     pgrep redis-server > /dev/null
     if [ $? -ne 0 ]; then
         $CURRDIR/bin/redis/bin/redis-server $CURRDIR/bin/redis/conf/redis.conf
+        if [ $? -ne 0 ]; then
+            exit $?
+        fi
         echo "Start Redis DONE"
     else
         echo "Redis is already started"
@@ -149,6 +152,9 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     pgrep beanstalkd > /dev/null
     if [ $? -ne 0 ]; then
         $CURRDIR/bin/beanstalkd/bin/beanstalkd > $CURRDIR/logs/beanstalkd.log &
+        if [ $? -ne 0 ]; then
+            exit $?
+        fi
         echo "Start Beanstalkd DONE"
     else
         echo "Beanstalkd is already started"
@@ -183,6 +189,9 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
         rm -f $CURRDIR/bin/instrument/start_workers.sh--
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
+        if [ $? -ne 0 ]; then
+            exit $?
+        fi
         echo "Start Nginx DONE"
     else
         echo "Nginx is already started"
