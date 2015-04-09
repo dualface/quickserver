@@ -130,7 +130,7 @@ if [ $RELOAD -ne 0 ]; then
 fi
 
 # stop monitor and job worker first.
-if [ OSTYPE == "MACOS" ]; then
+if [ $OSTYPE == "MACOS" ]; then
     ps -ef | grep "start_workers" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
     ps -ef | grep "monitor" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
 else
