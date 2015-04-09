@@ -69,24 +69,24 @@ local httpClient = require("httpclient").new()
 
 local socket = require("socket")
 
-local MonitorAction = class("Monitor")
+local Monitor = class("Monitor")
 
-function MonitorAction:ctor(cmd)
-    self._cmd = cmd
-    self._process = cmd.config.monitor.process
-    self._interval = cmd.config.monitor.interval
+function Monitor:ctor(config)
+    self._config = config
+    self._process = config.monitor.process
+    self._interval = config.monitor.interval
     self._procData = {}
-    self._memThreshold = cmd.config.mem
-    self._cpuThreshold = cmd.config.cpu
+    self._memThreshold = config.mem
+    self._cpuThreshold = config.cpu
 
     self._minuteListLen = 0
     self._secListLen = 0
     self._hourListLen = 0
 
-    self._jobTube = cmd.config.beanstalkd.jobTube
+    self._jobTube = config.beanstalkd.jobTube
 end
 
-function MonitorAction:watchAction(arg)
+function Monitor:watch(arg)
     local sock = require("socket")
     local elapseSec = 0
     local elapseMin = 0
@@ -122,7 +122,7 @@ function MonitorAction:watchAction(arg)
     end
 end
 
-function MonitorAction:_initList()
+function Monitor:_initList()
     self:_getPid()
 
     local pipe = self:_getRedis():newPipeline()
@@ -134,7 +134,7 @@ function MonitorAction:_initList()
     pipe:commit()
 end
 
-function MonitorAction:_getCpuInfo()
+function Monitor:_getCpuInfo()
     local fout = io_popen(_GET_CPU_INFO_CMD)
     local cores = string_match(fout:read("*a"), "CPU%(s%):%s+(%d+)")
     fout:close()
@@ -143,7 +143,7 @@ function MonitorAction:_getCpuInfo()
     redis:command("SET", _MONITOR_CPU_INFO_KEY, cores)
 end
 
-function MonitorAction:_getMemInfo()
+function Monitor:_getMemInfo()
     local fout = io_popen(_GET_MEM_INFO_CMD)
     local total, free = string_match(fout:read("*a"), "MemTotal:%s+(%d+).*MemFree:%s+(%d+)")
     fout:close()
@@ -152,7 +152,7 @@ function MonitorAction:_getMemInfo()
     redis:command("SET", _MONITOR_MEM_INFO_KEY, total .. "|" .. free)
 end
 
-function MonitorAction:_getDiskInfo()
+function Monitor:_getDiskInfo()
     local fout = io_popen(_GET_DISK_INFO_CMD)
     local total, free = string_match(fout:read("*a"), "total%s+(%d+)%s+%d+%s+(%d+).*")
     fout:close()
@@ -161,7 +161,7 @@ function MonitorAction:_getDiskInfo()
     redis:command("SET", _MONITOR_DISK_INFO_KEY, total .. "|" .. free)
 end
 
-function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
+function Monitor:_save(isUpdateMinList, isUpdateHourList)
     local maxSecLen = 60 / self._interval
 
     local pipe = self:_getRedis():newPipeline()
@@ -206,7 +206,7 @@ function MonitorAction:_save(isUpdateMinList, isUpdateHourList)
     end
 end
 
-function MonitorAction:_getPerfomance()
+function Monitor:_getPerfomance()
     -- get cpu%, mem via top
     local pids = {}
     for _, v in pairs (self._procData) do
@@ -248,7 +248,7 @@ function MonitorAction:_getPerfomance()
     end
 end
 
-function MonitorAction:_getPid()
+function Monitor:_getPid()
     local process = self._process
     local pipe = self:_getRedis():newPipeline()
     pipe:command("DEL", _MONITOR_PROC_DICT_KEY)
@@ -286,7 +286,7 @@ function MonitorAction:_getPid()
     pipe:commit()
 end
 
-function MonitorAction:_resetProcess(procName)
+function Monitor:_resetProcess(procName)
     if procName == "nginx" then
         os_execute(_RESET_NGINX_CMD)
     end
@@ -309,7 +309,7 @@ function MonitorAction:_resetProcess(procName)
     return res
 end
 
-function MonitorAction:_getConnNums(procName)
+function Monitor:_getConnNums(procName)
     -- redis connections.
     if string_find(procName, "REDIS%-SERVER") then
         local redis = self:_getRedis()
@@ -319,7 +319,7 @@ function MonitorAction:_getConnNums(procName)
 
     -- nginx connections
     if string_find(procName, "NGINX_MASTER") then
-        local res = httpClient:get("http://localhost:" .. tostring(self._cmd.config.port) .. "/nginx_status")
+        local res = httpClient:get("http://localhost:" .. tostring(self._config.port) .. "/nginx_status")
         if res.body then
             return string_match(res.body, "connections: (%d+)")
         else
@@ -331,7 +331,7 @@ function MonitorAction:_getConnNums(procName)
     -- beanstalkd jobs
     if string_find(procName, "BEANSTALKD") then
         local beans = self:_getBeans()
-        local ok, res = pcall(beans.command, beans, "stats_tube", self._cmd.config.beanstalkd.jobTube)
+        local ok, res = pcall(beans.command, beans, "stats_tube", self._config.beanstalkd.jobTube)
         if not ok then
             return "0"
         else
@@ -342,7 +342,7 @@ function MonitorAction:_getConnNums(procName)
     return 0
 end
 
-function MonitorAction:_recoverJobs()
+function Monitor:_recoverJobs()
     local redis = self:_getRedis()
     local jobService = JobService:create(self:_getRedis(), self:_getBeans(), self._jobTube)
 
@@ -379,15 +379,15 @@ function MonitorAction:_recoverJobs()
     printInfo("recover jobs finished.")
 end
 
-function MonitorAction:_getBeans()
+function Monitor:_getBeans()
     if not self._beans then
         self._beans = self:_newBeans()
     end
     return self._beans
 end
 
-function MonitorAction:_newBeans()
-    local beans = BeansService:create(self._cmd.config.beanstalkd)
+function Monitor:_newBeans()
+    local beans = BeansService:create(self._config.beanstalkd)
     local ok, err = beans:connect()
     if err then
         throw("connect internal beanstalkd failed, %s", err)
@@ -395,15 +395,15 @@ function MonitorAction:_newBeans()
     return beans
 end
 
-function MonitorAction:_getRedis()
+function Monitor:_getRedis()
     if not self._redis then
         self._redis = self:_newRedis()
     end
     return self._redis
 end
 
-function MonitorAction:_newRedis()
-    local redis = RedisService:create(self._cmd.config.redis)
+function Monitor:_newRedis()
+    local redis = RedisService:create(self._config.redis)
     local ok, err = redis:connect()
     if err then
         throw("connect internal redis failed, %s", err)
@@ -411,4 +411,7 @@ function MonitorAction:_newRedis()
     return redis
 end
 
-return MonitorAction
+local monitor = Monitor:create(SERVER_CONFIG)
+monitor:watch()
+
+return Monitor

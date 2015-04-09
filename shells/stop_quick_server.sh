@@ -62,7 +62,7 @@ if [ $OSTYPE == "MACOS" ]; then
     ARGS=$($CURRDIR/tmp/getopt_long "$@")
 else
     SED_BIN='sed -i'
-    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,debug,version,help -n 'Stop quick server' -- "$@")
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
 fi
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
@@ -132,8 +132,10 @@ fi
 # stop monitor and job worker first.
 if [ OSTYPE == "MACOS" ]; then
     ps -ef | grep "start_workers" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
+    ps -ef | grep "monitor" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
 else
     killall start_workers.sh > /dev/null 2> /dev/null
+    killall monitor.sh > /dev/null 2> /dev/null
 fi
 killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
 
@@ -190,10 +192,15 @@ fi
 
 if [ $RELOAD -ne 0 ]; then
     if [ $OSTYPE != "MACOS" ]; then
-        $CURRDIR/bin/instrument/start_workers.sh monitor.watch > $CURRDIR/logs/monitor.log &
+        $CURRDIR/bin/instrument/monitor.sh > $CURRDIR/logs/monitor.log &
     fi
 
-    $CURRDIR/bin/instrument/start_workers.sh jobworker.handle > $CURRDIR/logs/monitor.log &
+    # start job worker
+    I=0
+    while [ $I -lt $NUMOFWORKERS ]; do
+        $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
+        I=$((I+1))
+    done
 fi
 
 if [ $ALL -eq 1 ] ; then
