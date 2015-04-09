@@ -133,10 +133,17 @@ elif [ $OSTYPE == "CENTOS" ]; then
     yum install -y pcre-devel zlib-devel openssl-devel unzip
 elif [ $OSTYPE == "MACOS" ]; then
     type "brew" > /dev/null 2> /dev/null
-    TMP=$?
+    if [ $? -ne 0 ]; then
+        echo "pleas install brew, with this command:"
+        echo -e "\033[33mruby -e \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\" \033[0m"
+        exit 0
+    else
+        su $(users) -c "brew install pcre"
+    fi
+
     type "gcc" > /dev/null 2> /dev/null
-    if [ $? -ne 0 ] || [ $TMP -ne 0 ]; then
-        echo "Please install xcode and brew, then run \"brew install pcre\"."
+    if [ $? -ne 0 ]; then
+        echo "Please install xcode."
         exit 0
     fi
 else
@@ -172,7 +179,12 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     mkdir -p $DEST_BIN_DIR/openresty
 
     # install openresty
-    ./configure --prefix=$DEST_BIN_DIR/openresty --with-luajit --with-http_stub_status_module
+    ./configure \
+        --prefix=$DEST_BIN_DIR/openresty \
+        --with-luajit \
+        --with-http_stub_status_module \
+        --with-cc-opt="-I/usr/local/include" \
+        --with-ld-opt="-L/usr/local/lib"
     make
     make install
 
