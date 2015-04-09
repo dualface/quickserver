@@ -212,11 +212,14 @@ if [ $ALL -eq 1 ]; then
     fi
 
     # start job worker
-    I=0
-    while [ $I -lt $NUMOFWORKERS ]; do
-        $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
-        I=$((I+1))
-    done
+    ps -ef | grep -i "start_workers.*sh" | grep -v "grep" > /dev/null
+    if [ $? -ne 0 ]; then
+        I=0
+        while [ $I -lt $NUMOFWORKERS ]; do
+            $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
+            I=$((I+1))
+        done
+    fi
 
     echo -e "\033[33mStart Quick Server DONE! \033[0m"
 fi
