@@ -22,6 +22,8 @@ THE SOFTWARE.
 
 ]]
 
+local type = type
+
 local ActionDispatcher = import(".ActionDispatcher")
 local Constants = import(".Constants")
 
@@ -35,12 +37,22 @@ function CLIBase:ctor(config, arg)
 end
 
 function CLIBase:run()
-    local ok, err = xpcall(function()
-        self:runEventLoop()
+    local ok, res = xpcall(function()
+        return self:runEventLoop()
     end, function(err)
         err = tostring(err)
         printError(err)
     end)
+
+    if ok then
+        if type(res) ~= "table" then
+            printf(res)
+        else
+            dump(res)
+        end
+    end
+
+    printInfo("DONE")
 end
 
 function CLIBase:runEventLoop()
@@ -50,8 +62,7 @@ function CLIBase:runEventLoop()
         return
     end
 
-    local resutl = self:runAction(actionName, self._requestParameters)
-    printInfo("DONE")
+    return self:runAction(actionName, self._requestParameters)
 end
 
 function CLIBase:_showHelp()
