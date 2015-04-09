@@ -23,7 +23,6 @@ THE SOFTWARE.
 ]]
 
 local type = type
-local json_encode = json.encode
 
 local ActionDispatcher = import(".ActionDispatcher")
 local Constants = import(".Constants")
