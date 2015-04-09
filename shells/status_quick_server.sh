@@ -33,10 +33,10 @@ echo -e "\n\033[33m[Beanstalkd] \033[0m"
 ps -ef | grep -i "beanstalkd" | grep -v "grep" --color=auto
 
 echo -e "\n\033[33m[Monitor] \033[0m"
-ps -ef | grep -i "monitor.watch" | grep -v "grep" --color=auto | grep -v "lua -e SERVER_CONFIG" --color=auto
+ps -ef | grep -i "monitor\.sh" | grep -v "grep" --color=auto | grep -v "lua -e SERVER_CONFIG" --color=auto
 
 echo -e "\n\033[33m[Job Worker] \033[0m"
-ps -ef | grep -i "jobworker.handle" | grep -v "grep" --color=auto | grep -v "lua -e SERVER_CONFIG" --color=auto
+ps -ef | grep -i "start_workers\.sh" | grep -v "grep" --color=auto | grep -v "lua -e SERVER_CONFIG" --color=auto
 
 echo ""
 

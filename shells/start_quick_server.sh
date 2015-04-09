@@ -177,16 +177,19 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ]; then
             $SED_BIN "s#lua_code_cache on#lua_code_cache off#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/apps/welcome/tools.sh
             $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/bin/instrument/start_workers.sh
+            $SED_BIN "s#DEBUG=_DBG_WARN#DEBUG=_DBG_DEBUG#g" $CURRDIR/bin/instrument/monitor.sh
         else
             $SED_BIN "s#DEBUG = _DBG_DEBUG#DEBUG = _DBG_ERROR#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#error_log logs/error.log debug;#error_log logs/error.log;#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#lua_code_cache off#lua_code_cache on#g" $NGINXDIR/conf/nginx.conf
             $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/apps/welcome/tools.sh
             $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/bin/instrument/start_workers.sh
+            $SED_BIN "s#DEBUG=_DBG_DEBUG#DEBUG=_DBG_WARN#g" $CURRDIR/bin/instrument/monitor.sh
         fi
         rm -f $NGINXDIR/conf/nginx.conf--
         rm -f $CURRDIR/apps/welcome/tools.sh--
         rm -f $CURRDIR/bin/instrument/start_workers.sh--
+        rm -f $CURRDIR/bin/instrument/monitor.sh--
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf
         if [ $? -ne 0 ]; then
@@ -202,16 +205,16 @@ cd $CURRDIR
 if [ $ALL -eq 1 ]; then
     # start monitor
     if [ $OSTYPE != "MACOS" ]; then
-        ps -ef | grep -i "monitor.watch" | grep -v "grep" > /dev/null
+        ps -ef | grep -i "monitor.*sh" | grep -v "grep" > /dev/null
         if [ $? -ne 0 ]; then
-            $CURRDIR/bin/instrument/start_workers.sh monitor.watch > $CURRDIR/logs/monitor.log &
+            $CURRDIR/bin/instrument/monitor.sh > $CURRDIR/logs/monitor.log &
         fi
     fi
 
     # start job worker
     I=0
     while [ $I -lt $NUMOFWORKERS ]; do
-        $CURRDIR/bin/instrument/start_workers.sh jobworker.handle > $CURRDIR/logs/jobworker.log &
+        $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
         I=$((I+1))
     done
 
