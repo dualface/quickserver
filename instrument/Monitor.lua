@@ -72,7 +72,7 @@ local socket = require("socket")
 local Monitor = class("Monitor")
 
 function Monitor:ctor(config)
-    self._config = config 
+    self._config = config
     self._process = config.monitor.process
     self._interval = config.monitor.interval
     self._procData = {}
