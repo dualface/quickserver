@@ -55,6 +55,7 @@ declare -i REDIS=0
 
 OPENRESTY_VER=1.7.7.1
 LUASOCKET_VER=3.0-rc1
+LUASEC_VER=0.5
 REDIS_VAR=2.6.16
 BEANSTALKD_VER=1.9
 
@@ -243,6 +244,19 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     fi
     make && make install
     cp -f src/serial.so src/unix.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/socket/.
+
+    # install luasec
+    cd $BUILD_DIR
+    tar zxf luasec-$LUASEC_VER.tar.gz
+    cd luasec-$LUASEC_VER
+    $SED_BIN "s#/usr/share/lua/5.1#$DEST_BIN_DIR/openresty/luajit/share/lua/5.1#g" ./Makefile
+    $SED_BIN "s#/usr/lib/lua/5.1#$DEST_BIN_DIR/openresty/luajit/lib/lua/5.1#g" ./Makefile
+    if [ $OSTYPE == "MACOS" ]; then
+        make macosx
+    else
+        make linux
+    fi
+    make install
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
