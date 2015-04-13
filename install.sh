@@ -251,12 +251,10 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd luasec-$LUASEC_VER
     $SED_BIN "s#/usr/share/lua/5.1#$DEST_BIN_DIR/openresty/luajit/share/lua/5.1#g" ./Makefile
     $SED_BIN "s#/usr/lib/lua/5.1#$DEST_BIN_DIR/openresty/luajit/lib/lua/5.1#g" ./Makefile
-    if [ $OSTYPE == "MACOS" ]; then
-        make macosx
-    else
+    if [ $OSTYPE != "MACOS" ]; then
         make linux
+        make install
     fi
-    make install
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
