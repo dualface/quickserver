@@ -36,7 +36,7 @@ local _JOB_PRIORITY_NORMAL = 5000
 
 local JobService = class("JobService")
 
-function JobService:ctor(redis, beans, jobTube)
+function JobService:ctor(redis, beans, config)
     if not redis or not beans then
         throw("job service is initialized failed: redis or beans is invalid.")
     end
@@ -45,7 +45,7 @@ function JobService:ctor(redis, beans, jobTube)
     end
     self._redis = redis
     self._beans = beans
-    self._jobTube = jobTube
+    self._jobTube = config.beanstalkd.jobTube
 end
 
 function JobService:add(action, data, delay, priority, ttr)
