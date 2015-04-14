@@ -37,10 +37,10 @@ local RedisService = cc.load("redis").service
 local BeansService = cc.load("beanstalkd").service
 local JobService = cc.load("job").service
 
-local ActionDispatcher = import(".ActionDispatcher")
+local CLIBase = import(".CLIBase")
 local Constants = import(".Constants")
 
-local WorkerBase = class("WorkerBase", ActionDispatcher)
+local WorkerBase = class("WorkerBase", CLIBase)
 
 function WorkerBase:ctor(config)
     WorkerBase.super.ctor(self, config)
