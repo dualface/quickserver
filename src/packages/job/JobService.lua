@@ -40,8 +40,8 @@ function JobService:ctor(redis, beans, config)
     if not redis or not beans then
         throw("job service is initialized failed: redis or beans is invalid.")
     end
-    if not jobTube then
-        throw("job service is initialized failed: job tube is null.")
+    if not config then
+        throw("job service is initialized failed: can't get jobTube from config.")
     end
     self._redis = redis
     self._beans = beans
