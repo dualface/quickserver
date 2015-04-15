@@ -68,7 +68,7 @@ function JobService:add(action, data, delay, priority, ttr)
 
     local job = {}
     job.id = jobId
-    job.start_time = os_time()
+    job.joined_time = os_time()
     job.action = action
     job.arg = data
     job.delay = delay
