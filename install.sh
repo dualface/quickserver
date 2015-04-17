@@ -151,14 +151,14 @@ if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] ; then
     cd luarocks-$LUAROCKS_VER
     LUAFILE=$DEST_BIN_DIR/openresty/luajit/include/lua5.1
     if [ ! -f "$LUAFILE" ]; then 
-        ln -s $DEST_BIN_DIR/openresty/luajit/include/luajit-2.1 $file 
+        ln -s $DEST_BIN_DIR/openresty/luajit/include/luajit-2.1 $LUAFILE 
     fi 
     ./configure --prefix=$DEST_BIN_DIR/openresty/luajit --with-lua=$DEST_BIN_DIR/openresty/luajit
     make && make install
     $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install luasocket
     $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install luasec
     $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install httpclient
-
+    $DEST_BIN_DIR/openresty/luajit/bin/lua $DEST_BIN_DIR/openresty/luajit/bin/luarocks install luaxml
 
     # install cjson
     cp -f $DEST_BIN_DIR/openresty/lualib/cjson.so $DEST_BIN_DIR/openresty/luajit/lib/lua/5.1/.
