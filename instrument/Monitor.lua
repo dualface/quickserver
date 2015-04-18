@@ -55,7 +55,6 @@ local _MONITOR_LIST_PATTERN = "_MONITOR_%s_%s_LIST"
 local _MONITOR_MEM_INFO_KEY = "_MONITOR_MEM_INFO"
 local _MONITOR_CPU_INFO_KEY = "_MONITOR_CPU_INFO"
 local _MONITOR_DISK_INFO_KEY = "_MONITOR_DISK_INFO"
-
 local _JOB_HASH = "_JOB_HASH"
 
 -- since this tool is running background as a loop,
@@ -132,6 +131,7 @@ function Monitor:_initList()
         pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "MINUTE"))
         pipe:command("DEL", string_format(_MONITOR_LIST_PATTERN, k, "HOUR"))
     end
+    pipe:command("DEL", _JOB_HASH)
     pipe:commit()
 end
 
@@ -349,7 +349,7 @@ end
 
 function Monitor:_recoverJobs()
     local redis = self:_getRedis()
-    local jobService = JobService:create(self:_getRedis(), self:_getBeans(), self._jobTube)
+    local jobService = JobService:create(self:_getRedis(), self:_getBeans(), self._config)
 
     local res, err = redis:command("HGETALL", _JOB_HASH)
     if not res then
@@ -363,10 +363,10 @@ function Monitor:_recoverJobs()
             local job, err = json_decode(v)
             if job then
                 local now = os_time()
-                if job.start_time + job.delay <= now then
+                if job.joined_time + job.delay <= now then
                     job.delay = 0
                 else
-                    job.delay = job.start_time + job.delay - now
+                    job.delay = job.joined_time + job.delay - now
                 end
                 local id
                 id, err = jobService:add(job.action, job.arg, job.delay, job.priority, job.ttr)

@@ -37,17 +37,17 @@ local RedisService = cc.load("redis").service
 local BeansService = cc.load("beanstalkd").service
 local JobService = cc.load("job").service
 
-local ActionDispatcher = import(".ActionDispatcher")
+local CLIBase = import(".CLIBase")
 local Constants = import(".Constants")
 
-local WorkerBase = class("WorkerBase", ActionDispatcher)
+local WorkerBase = class("WorkerBase", CLIBase)
 
 function WorkerBase:ctor(config)
     WorkerBase.super.ctor(self, config)
 
     self._requestType = Constants.WORKER_REQUEST_TYPE
     self._jobTube = config.beanstalkd.jobTube
-    self._jobService = JobService:create(self:_getRedis(), self:_getBeans(), self._jobTube)
+    self._jobService = JobService:create(self:_getRedis(), self:_getBeans(), config)
 end
 
 function WorkerBase:run()
@@ -95,7 +95,7 @@ function WorkerBase:runEventLoop()
             res = json_encode(res)
         end
 
-        printf("finish job, jobId: %s, start_time: %s, end_time:%s, result: %s", tostring(data.id), os_date("%Y-%m-%d %H:%M:%S", data.start_time), os_date("%Y-%m-%d %H:%M:%S"), res)
+        printf("finish job, jobId: %s, joined_time: %s, reserved_time:%s, result: %s", tostring(data.id), os_date("%Y-%m-%d %H:%M:%S", data.joined_time), os_date("%Y-%m-%d %H:%M:%S"), res)
 
 ::reserve_next_job::
     end
