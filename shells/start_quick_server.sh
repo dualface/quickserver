@@ -215,8 +215,9 @@ if [ $ALL -eq 1 ]; then
     ps -ef | grep -i "start_workers.*sh" | grep -v "grep" > /dev/null
     if [ $? -ne 0 ]; then
         I=0
+        rm -f $CURRDIR/logs/jobworker.log
         while [ $I -lt $NUMOFWORKERS ]; do
-            $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
+            $CURRDIR/bin/instrument/start_workers.sh >> $CURRDIR/logs/jobworker.log &
             I=$((I+1))
         done
     fi
