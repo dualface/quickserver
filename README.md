@@ -50,7 +50,7 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
 
 -   主要 Bug 修复和改进
     -    Quick Server 返回的错误信息会去除冗余的路径显示。
-    -    启动 Quick Server时，各个子模块启动出错之后，现在可以正常退出了。
+    -    启动或者停止 Quick Server时，各个子模块启动出错之后，脚本现在可以正常退出了。
     -    对于后台任务数量的监视，现在会返回正确的值。
     -    tools.sh 工具现在能更好的显示执行的结果。
     -    启动，停止以及状态显示脚本，支持 Job Worker 模块。
@@ -65,4 +65,4 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
     -    启动，停止以及状态显示脚本支持 Mac 操作系统。
 
 -  增加了 luasec 库
-    -    该库的作用是对 httpclient 库以及 luasocket 库增加 ssl 的支持。在 Mac 下，作者停止维护，该库仅支持10.4版本的 Mac 系统。因此该库当 Quick Server 在 Mac 系统下安装时，并不会安装。
+    -    该库的作用是对 httpclient 库以及 luasocket 库增加 ssl 的支持。在 Mac 下，作者停止维护，该库仅支持10.4版本的 Mac 系统。因此该库当 Quick Server 在 Mac 系统下安装时，该库并不会安装。

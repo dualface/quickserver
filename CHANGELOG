@@ -7,6 +7,7 @@
 
 - BUGFIX:
     - start/stop/status shells can exit normally, if some errors happend in progress.
+    - start/stop/status shells can get the config of Quick Server in any path.
     - Monitor can show correct number of jobs in Beanstalkd.
 
 - IMPROVE:
