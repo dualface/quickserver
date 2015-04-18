@@ -30,6 +30,7 @@ local json_encode = json.encode
 local tostring = tostring
 local os_date = os.date
 local os_time = os.time
+local io_flush = io.flush
 
 local _JOB_HASH = "_JOB_HASH"
 
@@ -97,6 +98,7 @@ function WorkerBase:runEventLoop()
 
         printf("finish job, jobId: %s, start_time: %s, end_time:%s, result: %s", tostring(data.id), os_date("%Y-%m-%d %H:%M:%S", data.start_time), os_date("%Y-%m-%d %H:%M:%S"), res)
 
+        io_flush()
 ::reserve_next_job::
     end
 

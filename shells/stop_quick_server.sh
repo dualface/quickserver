@@ -197,8 +197,9 @@ if [ $RELOAD -ne 0 ]; then
 
     # start job worker
     I=0
+    rm -f $CURRDIR/logs/jobworker.log
     while [ $I -lt $NUMOFWORKERS ]; do
-        $CURRDIR/bin/instrument/start_workers.sh > $CURRDIR/logs/jobworker.log &
+        $CURRDIR/bin/instrument/start_workers.sh >> $CURRDIR/logs/jobworker.log &
         I=$((I+1))
     done
 fi
