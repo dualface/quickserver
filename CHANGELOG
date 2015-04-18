@@ -1,5 +1,23 @@
 ## Change Log
 
+### 0.5.1
+- FEATURE:
+    - Job Worker is finished as a module of Quick Server.
+    - Job Service package is offered. User can use it to add a job easily.
+
+- BUGFIX:
+    - start/stop/status shells can exit normally, if some errors happend in progress.
+    - start/stop/status shells can get the config of Quick Server in any path.
+    - Monitor can show correct number of jobs in Beanstalkd.
+
+- IMPROVE:
+    - In error messages, redundant paths can be stripped.
+    - Quick Server supports Mac OS now.
+    - start/stop/status use more colors for displaying.
+    - start/stop/status can show the version and mode of Quick Server.
+    - tools.sh can display the result better, even if the result is a lua table.
+    - Support job worker module in shells.
+    - Add lib luasec-0.5.0.
 
 ### 0.5.0
 - UPGRADE:
