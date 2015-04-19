@@ -221,7 +221,7 @@ var tests = {
         log.add_mark();
         log.add("SIGN OUT");
 
-        self.http_request("user.logout", {"sid": tests.session_id}, function(res) {
+        self.http_request("user.logout", {"sid": status.session_id}, function(res) {
             if (status.socket) {
                 // will call cleanup() and update_ui()
                 status.socket.close();
@@ -342,7 +342,7 @@ var tests = {
             if (data["__id"]) {
                 var msgid = data["__id"].toString();
                 if (typeof status.callbacks[msgid] !== "undefined") {
-                    var callback = tests.callbacks[msgid];
+                    var callback = status.callbacks[msgid];
                     status.callbacks[msgid] = null;
                     callback(data);
                 }
