@@ -28,10 +28,11 @@ if type(DEBUG) ~= "number" then DEBUG = 0 end
 cc = cc or {}
 
 require("framework.functions")
+require("framework.server_functions")
 require("framework.package_support")
 json = require("framework.json")
 
-cc.server = {VERSION = "quickserver 0.5.0"}
+cc.server = {VERSION = "quickserver 0.5.1"}
 
 -- register the build-in packages
 cc.register("event", require("framework.packages.event.init"))

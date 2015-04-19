@@ -1,1 +1,0 @@
-{"_msgid": 1000, "action": "Store.SaveoBj", "rawdata": [{"key1": "pressure_test"}, {"property": "pressure_test"}, {"i_name": "pressure_test"}], "indexes": ["i_name", "property"]} 

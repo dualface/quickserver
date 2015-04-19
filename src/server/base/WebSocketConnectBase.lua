@@ -68,7 +68,7 @@ function WebSocketConnectBase:run()
         if DEBUG > 1 then
             ngx_log(ngx.ERR, err .. debug.traceback("", 4))
         else
-            ngx_log(ngx.ERR, err)
+            ngx_log(ngx.ERR, strip_luafile_paths(err))
         end
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
         ngx.exit(ngx.ERROR)
@@ -170,7 +170,7 @@ function WebSocketConnectBase:runEventLoop()
         elseif ftype == "text" or ftype == "binary" then
             local ok, err = self:_processMessage(frame, ftype)
             if err then
-                printWarn("process %s message failed, %s", ftype, err)
+                printError("process %s message failed, %s", ftype, err)
             end
         else
             printWarn("unknwon frame type \"%s\"", tostring(ftype))

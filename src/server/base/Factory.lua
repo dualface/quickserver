@@ -26,7 +26,7 @@ local Factory = class("Factory")
 
 function Factory.create(config, classNamePrefix, ...)
     local path = config.appRootPath .. "/?.lua;"
-    if string.sub(package.path, 1, string.len(path)) ~= path then
+    if not string.find(package.path, path, 1, true) then
         package.path = path .. package.path
     end
 

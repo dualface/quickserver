@@ -9,14 +9,23 @@ function showHelp()
     echo -e "\t -r , --redis \t\t stop redis"
     echo -e "\t -b , --beanstalkd \t stop beanstalkd"
     echo -e "\t -h , --help \t\t show this help"
+    echo -e "\t -v , --version \t\t show version"
     echo -e "\t      --reload \t\t reload Quick Server config."
     echo "if the option is not specified, default option is \"--all(-a)\"."
+}
+
+function getVersion()
+{
+    LUABIN=$1/bin/openresty/luajit/bin/lua
+    CODE='_C=require("conf.config"); print("Quick Server " .. _QUICK_SERVER_VERSION);'
+
+    $LUABIN -e "$CODE"
 }
 
 function getNginxNumOfWorker()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.numOfWorkers);'
+    CODE="_C=require([[conf.config]]); print(_C.numOfWorkers);"
 
     $LUABIN -e "$CODE"
 }
@@ -24,15 +33,37 @@ function getNginxNumOfWorker()
 function getNginxPort()
 {
     LUABIN=$1/bin/openresty/luajit/bin/lua
-    CODE='_C=require("conf.config"); print(_C.port);'
+    CODE="_C=require([[conf.config]]); print(_C.port);"
 
     $LUABIN -e "$CODE"
 }
 
-CURRDIR=$(dirname $(readlink -f $0))
+function isMacOs()
+{
+    TMPRES=$(uname -s)
+    if [ $TMPRES == "Darwin" ]; then
+        echo "MACOS"
+        exit 0
+    fi
+
+    echo "LINUX"
+}
+
+OLDDIR=$(pwd)
+CURRDIR=$(cd "$(dirname $0)" && pwd)
 NGINXDIR=$CURRDIR/bin/openresty/nginx/
 
-ARGS=$(getopt -o abrnh --long all,nginx,redis,beanstalkd,reload,help -n 'Stop quick server' -- "$@")
+cd $CURRDIR
+VERSION=$(getVersion $CURRDIR)
+
+OSTYPE=$(isMacOs)
+if [ $OSTYPE == "MACOS" ]; then
+    SED_BIN='sed -i --'
+    ARGS=$($CURRDIR/tmp/getopt_long "$@")
+else
+    SED_BIN='sed -i'
+    ARGS=$(getopt -o abrnvh --long all,nginx,redis,beanstalkd,reload,version,help -n 'Stop quick server' -- "$@")
+fi
 
 if [ $? != 0 ] ; then echo "Stop Quick Server Terminating..." >&2; exit 1; fi
 
@@ -74,6 +105,11 @@ while true ; do
             shift
             ;;
 
+        -v|--version)
+            echo $VERSION
+            exit 0
+            ;;
+
         -h|--help)
             showHelp;
             exit 0
@@ -82,7 +118,7 @@ while true ; do
         --) shift; break ;;
 
         *)
-            echo "invalid option: $1"
+            echo "invalid option. $1"
             exit 1
             ;;
     esac
@@ -93,33 +129,56 @@ if [ $RELOAD -ne 0 ]; then
     ALL=0
 fi
 
+# stop monitor and job worker first.
+if [ $OSTYPE == "MACOS" ]; then
+    ps -ef | grep "start_workers" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
+    ps -ef | grep "monitor" | awk '{print $2}' | xargs kill -9 > /dev/null 2> /dev/null
+else
+    killall start_workers.sh > /dev/null 2> /dev/null
+    killall monitor.sh > /dev/null 2> /dev/null
+fi
+killall $CURRDIR/bin/openresty/luajit/bin/lua > /dev/null 2> /dev/null
+
 #stop nginx
 if [ $ALL -eq 1 ] || [ $NGINX -eq 1 ] || [ $RELOAD -eq 1 ]; then
     if [ $RELOAD -eq 0 ] ; then
         pgrep nginx > /dev/null
-        while [ $? -eq 0 ]
-        do
+        if [ $? -eq 0 ]; then
             nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
             if [ $? -ne 0 ]; then
                 exit $?
             fi
-            echo "Stop Nginx DONE"
-            pgrep nginx > /dev/null
-        done
-    else
-        PORT=$(getNginxPort)
-        sed -i "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+        fi
 
-        NUMOFWORKERS=$(getNginxNumOfWorker)
-        sed -i "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+        sleep 1
+        echo "Stop Nginx DONE"
+    else
+        PORT=$(getNginxPort $CURRDIR)
+        $SED_BIN "s#listen [0-9]*#listen $PORT#g" $NGINXDIR/conf/nginx.conf
+
+        NUMOFWORKERS=$(getNginxNumOfWorker $CURRDIR)
+        $SED_BIN "s#worker_processes [0-9]*#worker_processes $NUMOFWORKERS#g" $NGINXDIR/conf/nginx.conf
+
+        rm -f $NGINXDIR/conf/nginx.conf--
 
         nginx -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s reload
+        if [ $? -ne 0 ]; then
+            exit $?
+        fi
         echo "Reload Nginx conf DONE"
     fi
 fi
 
 #stop redis
 if [ $ALL -eq 1 ] || [ $REDIS -eq 1 ]; then
+    pgrep nginx > /dev/null
+
+    while [ $? -eq 0 ];
+    do
+        nginx -q -p $CURRDIR -c $NGINXDIR/conf/nginx.conf -s stop
+        pgrep nginx > /dev/null
+    done
+
     killall redis-server 2> /dev/null
     echo "Stop Redis DONE"
 fi
@@ -130,17 +189,27 @@ if [ $ALL -eq 1 ] || [ $BEANS -eq 1 ]; then
     echo "Stop Beanstalkd DONE"
 fi
 
-killall tools.sh 2> /dev/null
-killall bin/openresty/luajit/bin/lua 2> /dev/null
 
 if [ $RELOAD -ne 0 ]; then
-    $CURRDIR/tools.sh monitor.watch > $CURRDIR/logs/monitor.log &
+    if [ $OSTYPE != "MACOS" ]; then
+        $CURRDIR/bin/instrument/monitor.sh > $CURRDIR/logs/monitor.log &
+    fi
+
+    # start job worker
+    I=0
+    rm -f $CURRDIR/logs/jobworker.log
+    while [ $I -lt $NUMOFWORKERS ]; do
+        $CURRDIR/bin/instrument/start_workers.sh >> $CURRDIR/logs/jobworker.log &
+        I=$((I+1))
+    done
 fi
 
-cd $CURRDIR
 if [ $ALL -eq 1 ] ; then
-    echo -e "\033[31mStop Quick Server DONE! \033[0m"
+    echo -e "\033[33mStop $VERSION DONE! \033[0m"
+    echo "Stop $VERSION DONE!" >> $CURRDIR/logs/error.log
 fi
 
 sleep 3
 $CURRDIR/status_quick_server.sh
+
+cd $OLDDIR

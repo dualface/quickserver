@@ -131,7 +131,7 @@ function HttpConnectBase:_genOutput(result, err)
     local rtype = type(result)
     if self.config.messageFormat == Constants.MESSAGE_FORMAT_JSON then
         if err then
-            result = {err = err}
+            result = {err = strip_luafile_paths(err)}
         elseif rtype == "nil" then
             result = {}
         elseif rtype ~= "table" then
