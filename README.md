@@ -16,29 +16,16 @@ Quick Server 为开发者提供一个稳定可靠，可伸缩的服务端架构�
 -   支持短连接和长连接，满足从异步网络到实时网络的各种需求。
 -   支持插件机制，使用第三方插件加快功能开发。
 
-更多介绍可以参考[Quick Server 介绍](http://quickserver-doc.rtfd.org/en/latest/intro.html)。
+更多介绍可以参考[Quick Server 介绍](http://quickserver-docs.readthedocs.org/zh_CN/latest/intro/index.html)。
 
 ## 安装
 
-安装 Quick Server 请参考[Quick Server 安装](http://quickserver-doc.readthedocs.org/en/latest/install.html)。
+安装 Quick Server 请参考[Quick Server 安装](http://quickserver-docs.readthedocs.org/zh_CN/latest/install/index.html)。
 
 ## 相关资源
 
--   [Quick Server Wiki首页](http://quickserver-doc.readthedocs.org/en/latest/index.html)
-
-    包括 Quick Server 的方方面面，基本介绍，安装和使用指南，源码分析等等。
-
--   [邮件列表]()
-
-    敬请期待
-
--   支援邮件
-
-    cheeray.huang#gmail.com
-
--   QQ群
-
-    424776815
+-   文档: [http://quickserver-docs.readthedocs.org/](http://quickserver-docs.readthedocs.org/zh_CN/latest/index.html)
+-   QQ群: **424776815**
 
 ## 版本日志
 
