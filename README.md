@@ -1,14 +1,16 @@
 # Quick Server
+
 ## 基于OpenResty的服务器框架
 
 ---
 
-## 公告
+# 公告
 
-最新版本的 Quick Server 已经更名为 GameBox Cloud Core，并且迁移到 Bitbucket。
+【最新版本的 Quick Server 已经更名为 GameBox Cloud Core，并且迁移到 Bitbucket。】
 
 网址：[https://bitbucket.org/gameboxcloud/gbc-core](https://bitbucket.org/gameboxcloud/gbc-core)
 
+---
 
 ## 最新版本 0.5.1
 
