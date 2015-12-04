@@ -1,14 +1,14 @@
-# Quick Server
+# 公告
 
-## 基于OpenResty的服务器框架
+【最新版本的 Quick Server 已经更名为 GameBox Cloud Core。】
+
+网址：[https://github.com/dualface/gbc-core](https://github.com/dualface/gbc-core)
 
 ---
 
-# 公告
+# Quick Server
 
-【最新版本的 Quick Server 已经更名为 GameBox Cloud Core，并且迁移到 Bitbucket。】
-
-网址：[https://bitbucket.org/gameboxcloud/gbc-core](https://bitbucket.org/gameboxcloud/gbc-core)
+## 基于OpenResty的服务器框架
 
 ---
 
